@@ -1,0 +1,13 @@
+.git
+.github
+.vscode
+.vs
+node_modules
+**/bin
+**/obj
+**/dist
+docs
+deploy
+web
+*.md
+LICENSE

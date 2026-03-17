@@ -1,0 +1,12 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.2">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>d1f5459b-92ba-4672-bc6f-cb2dffaac0df</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../AlCopilot.Host/AlCopilot.Host.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -18,13 +18,13 @@ The system is structured as a single deployable unit with internal boundaries. E
 
 ## Modules (Bounded Contexts)
 
-| Module | Responsibility |
-|---|---|
-| **Identity** | Authentication, user profiles, preference history |
-| **Catalog** | Drink database, ingredients, categories — CRUD and search |
+| Module             | Responsibility                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Identity**       | OIDC integration with Keycloak, session management, user profiles, preference history                                                        |
+| **Catalog**        | Drink database, ingredients, categories — CRUD and search                                                                                    |
 | **Recommendation** | LLM integration layer: mood → prompt → suggestions. Core domain with AI patterns (prompt engineering, streaming responses, RAG over catalog) |
-| **Social** | Ratings, comments, sharing |
-| **Inventory** | "What's in my bar?" — personal bar inventory tracking |
+| **Social**         | Ratings, comments, sharing                                                                                                                   |
+| **Inventory**      | "What's in my bar?" — personal bar inventory tracking                                                                                        |
 
 Each module has its own EF Core `DbContext` and Postgres schema, keeping data boundaries clean even within the shared database.
 
@@ -32,38 +32,54 @@ Each module has its own EF Core `DbContext` and Postgres schema, keeping data bo
 
 ## Technology Stack
 
-| Layer | Choice | Why |
-|---|---|---|
-| **Runtime** | .NET + Aspire | Aspire provides distributed app orchestration and observability (dashboard, OpenTelemetry) without the complexity of Kubernetes in development |
-| **Data** | EF Core + Postgres | Battle-tested ORM and database combination. Marten was considered but rejected — too opinionated and introduces too much magic via event sourcing |
-| **In-process mediator** | Mediator (by Martin Othamar) | Source-generated, MIT licensed. MediatR went commercial in v13+ (same author as MassTransit). Mediator has a nearly identical API, better performance (no reflection), and zero licensing concerns |
-| **Async messaging** | Rebus | Thin transport abstraction, MIT licensed, at-least-once delivery. Not added initially — there is no external messaging target in a monolith. Introduced when extracting services or when durable async processing is needed |
-| **Frontend** | React + Vite + Tanstack Query + shadcn + Zustand | Modern, low-magic frontend stack. Tanstack Query for server state, Zustand for the small amount of client-only state |
-| **CI/CD** | GitHub Actions + GHCR + Release Please | Full pipeline from day one: build, test, coverage gate, Docker image push, automated versioning and changelog |
-| **Infrastructure** | AKS + Flux + Azure Service Bus + Blob Storage + Postgres Flexible Server | GitOps with Flux for deployment. Azure Service Bus (with local emulator for development) when async messaging is needed |
-| **Gateway** | Self-hosted Envoy Gateway | Azure Application Gateway has a ~$130/month floor plus capacity units even at low traffic. Envoy Gateway is the Kubernetes Gateway API reference implementation, runs on existing AKS nodes at near-zero marginal cost, and uses standard `Gateway`/`HTTPRoute` resources for portability |
+| Layer                   | Choice                                                                   | Why                                                                                                                                                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Runtime**             | .NET + Aspire                                                            | Aspire provides distributed app orchestration and observability (dashboard, OpenTelemetry) without the complexity of Kubernetes in development                                                                                                                                            |
+| **Data**                | EF Core + Postgres                                                       | Battle-tested ORM and database combination. Marten was considered but rejected — too opinionated and introduces too much magic via event sourcing                                                                                                                                         |
+| **In-process mediator** | Mediator (by Martin Othamar)                                             | Source-generated, MIT licensed. MediatR went commercial in v13+ (same author as MassTransit). Mediator has a nearly identical API, better performance (no reflection), and zero licensing concerns                                                                                        |
+| **Async messaging**     | Rebus                                                                    | Thin transport abstraction, MIT licensed, at-least-once delivery. Not added initially — there is no external messaging target in a monolith. Introduced when extracting services or when durable async processing is needed                                                               |
+| **Identity Provider**   | Keycloak                                                                 | Open-source, runs locally in Docker via Aspire, supports OIDC/OAuth 2.0. Avoids Entra External ID (no local dev story) and Authentik (complex setup). The Host handles OIDC code flow and issues cookies — the SPA never sees tokens                                                      |
+| **Frontend**            | React + Vite + Tanstack Query + shadcn + Zustand                         | Modern, low-magic frontend stack. Tanstack Query for server state, Zustand for the small amount of client-only state                                                                                                                                                                      |
+| **CI/CD**               | GitHub Actions + GHCR + Release Please                                   | Full pipeline from day one: build, test, coverage gate, Docker image push, automated versioning and changelog                                                                                                                                                                             |
+| **Infrastructure**      | AKS + Flux + Azure Service Bus + Blob Storage + Postgres Flexible Server | GitOps with Flux for deployment. Azure Service Bus (with local emulator for development) when async messaging is needed                                                                                                                                                                   |
+| **Gateway**             | Self-hosted Envoy Gateway                                                | Azure Application Gateway has a ~$130/month floor plus capacity units even at low traffic. Envoy Gateway is the Kubernetes Gateway API reference implementation, runs on existing AKS nodes at near-zero marginal cost, and uses standard `Gateway`/`HTTPRoute` resources for portability |
+| **Reverse proxy**       | YARP (when needed)                                                       | Built into the Host when a module is extracted into a separate service. Frontend remains unaware — same origin, same cookie, same routes. YARP forwards requests and attaches bearer tokens to proxied calls                                                                              |
 
 ---
 
 ## Decision Records: Why Not X
 
 ### Not Wolverine
+
 Despite having a built-in outbox and durability features, Wolverine creates deep framework coupling. If Wolverine goes commercial (as MassTransit did), you lose the mediator, outbox, transport, deduplication, and routing in one move — the entire application nervous system. With Mediator + Rebus, we own dispatch, outbox, and deduplication, and only rent the transport abstraction.
 
 ### Not MassTransit
+
 Commercial license.
 
 ### Not MediatR
+
 Commercial license (v13+).
 
 ### Not Brighter
+
 Brighter's outbox design assumes one `IAmATransactionConnectionProvider` per host, meaning one database connection/transaction context per outbox. This is a microservice assumption (one service = one database = one outbox). In a modular monolith with schema-per-module, you would need separate outbox configurations per module, each with its own sweeper — working against the framework rather than with it.
 
 ### Not Marten
+
 Too opinionated. Introduces event sourcing and document store patterns as defaults, adding significant magic for a project where a straightforward relational model is appropriate.
 
 ### Not Azure Application Gateway
+
 ~$130/month minimum floor plus per-capacity-unit charges, even at low traffic. Unjustifiable for a project of this scale.
+
+### Not Entra External ID
+
+No local development story. Requires a live Azure tenant for every auth flow test, slowing inner-loop development.
+
+### Not Authentik
+
+Significantly more complex setup than Keycloak for equivalent OIDC functionality. The additional features (proxied auth, outpost architecture) are not needed here.
 
 ---
 
@@ -96,23 +112,85 @@ The outbox will be implemented manually when needed — approximately 150 lines:
 
 ---
 
+## Authentication & BFF Pattern
+
+### Overview
+
+`AlCopilot.Host` acts as a **BFF (Backend-For-Frontend)**. It handles OIDC code flow, manages sessions, and issues `HttpOnly; Secure; SameSite=Strict` cookies. The SPA never sees access tokens, refresh tokens, or id tokens — they are stored server-side.
+
+This follows the [OAuth 2.0 for Browser-Based Applications](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps) recommendation.
+
+### Identity Provider: Keycloak
+
+Keycloak runs locally as a container orchestrated by Aspire's AppHost. In production, it runs as a dedicated service in AKS. Keycloak provides:
+
+- OIDC / OAuth 2.0 authorization code flow (with PKCE)
+- User registration and management
+- Social login providers (future)
+- Admin console for realm/client configuration
+
+### Auth Flow
+
+1. SPA navigates to a protected route
+2. Host initiates OIDC authorization code flow → redirects to Keycloak
+3. User authenticates at Keycloak → redirected back to Host callback
+4. Host exchanges code for tokens, stores them server-side (in-memory or Redis)
+5. Host sets `HttpOnly; Secure; SameSite=Strict` session cookie
+6. All subsequent SPA requests carry the cookie — no tokens in the browser
+
+### Envoy Gateway Role
+
+Envoy Gateway is the **external ingress gateway** only — TLS termination, rate limiting, and routing via `Gateway`/`HTTPRoute` resources. It does **not** handle OIDC flows, cookies, or session management. That is application-layer logic in the Host.
+
+```
+Internet ──TLS──▶ Envoy Gateway ──▶ AlCopilot.Host (BFF)
+```
+
+### Module Extraction via YARP
+
+When a module is extracted into a separate service, **YARP** reverse proxy is added to the Host. The frontend changes nothing — same cookie, same origin, same routes.
+
+**Before extraction (monolith):**
+
+```
+Browser ──cookie──▶ AlCopilot.Host (BFF + all modules in-process)
+```
+
+**After extracting a module:**
+
+```
+Browser ──cookie──▶ AlCopilot.Host (BFF + remaining modules)
+                        │
+                        ├── YARP ──▶ Extracted.Service
+                        ├── Catalog (in-process)
+                        └── ...
+```
+
+The Host attaches bearer tokens to proxied requests via YARP request transforms. The extracted service validates JWTs. The browser is unaware of the split.
+
+---
+
 ## Infrastructure
 
 ### AKS
+
 Managed control plane (no cost regardless of cluster SKU tier), Standard_B-series nodes for cost efficiency. The Free cluster SKU is used, which carries a limited SLA — acceptable for this project's scale.
 
 ### Flux
+
 Installed as a native AKS extension. Watches `deploy/flux/` in this repository and reconciles cluster state automatically.
 
 ### CI/CD Flow
+
 1. Push to `main`
 2. GitHub Actions builds and tests the application
 3. Release Please manages versioning and generates changelogs
-4. Docker image is pushed to GHCR
+4. Container image is published to GHCR via `dotnet publish /t:PublishContainer`
 5. Flux detects the new image and reconciles the AKS cluster
 
 ### Local Development
-Aspire AppHost orchestrates the full local environment, including the Azure Service Bus emulator and a Postgres instance. No Kubernetes required for development.
+
+Aspire AppHost orchestrates the full local environment, including Keycloak, the Azure Service Bus emulator, and a Postgres instance. No Kubernetes required for development.
 
 ---
 
@@ -120,20 +198,34 @@ Aspire AppHost orchestrates the full local environment, including the Azure Serv
 
 ```
 alcopilot/
-├── .github/workflows/            # CI/CD pipelines
-├── deploy/flux/                  # Flux kustomizations (base + overlays)
+├── .github/
+│   ├── workflows/                # CI/CD pipelines
+│   ├── instructions/             # Per-path Copilot instructions
+│   ├── skills/                   # SKILL files (created incrementally)
+│   └── copilot-instructions.md   # Core Copilot instructions (SKILL gate)
+├── deploy/                       # Infrastructure and deployment
+│   ├── helm/                     # Helm charts (future)
+│   ├── flux/                     # Flux GitOps manifests (future)
+│   └── terraform/                # IaC (future)
 ├── docs/                         # Architecture and documentation
-├── src/
-│   ├── AlCopilot.AppHost/        # Aspire orchestrator
-│   ├── AlCopilot.ServiceDefaults/
-│   ├── AlCopilot.Api/            # ASP.NET Core host (composes modules)
-│   ├── AlCopilot.Shared/         # Cross-cutting concerns
-│   ├── AlCopilot.Identity/       # Module
-│   ├── AlCopilot.Catalog/        # Module
-│   ├── AlCopilot.Recommendation/ # Module
-│   ├── AlCopilot.Social/         # Module
-│   ├── AlCopilot.Inventory/      # Module
-│   └── AlCopilot.Frontend/       # React app
-├── tests/                        # Per-module test projects
-└── AlCopilot.sln
+├── server/                       # .NET backend
+│   ├── src/
+│   │   ├── AlCopilot.AppHost/    # Aspire orchestrator
+│   │   ├── AlCopilot.ServiceDefaults/
+│   │   ├── AlCopilot.Host/        # ASP.NET Core host + BFF (composes modules, runs workers)
+│   │   ├── AlCopilot.Shared/     # Cross-cutting concerns
+│   │   ├── AlCopilot.Catalog/    # Module
+│   │   ├── AlCopilot.Catalog.Contracts/ # Module contracts
+│   │   ├── AlCopilot.Identity/   # Module
+│   │   ├── AlCopilot.Recommendation/ # Module
+│   │   ├── AlCopilot.Social/     # Module
+│   │   └── AlCopilot.Inventory/  # Module
+│   ├── tests/                    # Per-module test projects
+│   ├── Directory.Build.props     # Shared MSBuild properties + Version
+│   ├── Directory.Packages.props  # Central Package Management
+│   └── AlCopilot.slnx            # Solution file
+└── web/                          # Frontend (pnpm workspace)
+    ├── apps/
+    │   └── alcopilot-portal/     # Main user-facing app (Vite + React + TS)
+    └── packages/                 # Shared packages (future)
 ```
