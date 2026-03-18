@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Aspire/">
+    <Project Path="src/AlCopilot.AppHost/AlCopilot.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/Modules/" />
+  <Folder Name="/Shared/">
+    <Project Path="src/AlCopilot.ServiceDefaults/AlCopilot.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/AlCopilot.Host.Tests/AlCopilot.Host.Tests.csproj" />
+  </Folder>
+  <Project Path="src/AlCopilot.Host/AlCopilot.Host.csproj" />
+</Solution>

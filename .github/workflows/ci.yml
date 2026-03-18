@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  server:
+    name: Server (build + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore AlCopilot.slnx
+
+      - name: Build
+        run: dotnet build AlCopilot.slnx --no-restore -c Release
+
+      - name: Test
+        id: test
+        run: |
+          if find tests -name '*.csproj' 2>/dev/null | grep -q .; then
+            dotnet test AlCopilot.slnx --no-build -c Release --logger trx --collect:"XPlat Code Coverage"
+          else
+            echo "No test projects found, skipping."
+          fi
+
+      - name: Upload test results
+        if: always() && hashFiles('server/tests/**/TestResults/**/*.trx') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: server/tests/**/TestResults/
+
+      - name: Coverage report
+        if: github.event_name == 'pull_request' && hashFiles('server/tests/**/coverage.cobertura.xml') != ''
+        uses: danielpalme/ReportGenerator-GitHub-Action@5
+        with:
+          reports: server/tests/**/coverage.cobertura.xml
+          targetdir: coveragereport
+
+      - name: Post coverage summary
+        if: github.event_name == 'pull_request' && hashFiles('coveragereport/SummaryGithub.md') != ''
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: coveragereport/SummaryGithub.md
+
+  web:
+    name: Web (lint + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter @alcopilot/portal lint
+
+      - name: Build
+        run: pnpm --filter @alcopilot/portal build
