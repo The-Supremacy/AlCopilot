@@ -60,3 +60,16 @@ Read [docs/architecture.md](../../docs/architecture.md) for full architecture, d
 - Follow .NET naming conventions (PascalCase for public, \_camelCase for private fields)
 - Async methods suffixed with `Async`
 - Use `sealed` on classes that are not designed for inheritance
+
+## Testing
+
+- **xUnit** for test framework
+- **Shouldly** for assertions — NOT FluentAssertions (commercial)
+- **NSubstitute** for mocking — NOT Moq (SponsorLink controversy)
+- **TestContainers** (Postgres) for integration tests — NOT in-memory EF providers
+- **NetArchTest.eNhanced** for architecture tests
+- Unit + integration tests in the same project: `AlCopilot.{Module}.Tests`
+- Integration tests marked with `[Trait("Category", "Integration")]`
+- Architecture tests in `AlCopilot.Architecture.Tests`
+- Test classes are `sealed`
+- Use primary constructors for fixture injection

@@ -36,3 +36,11 @@ Read [docs/architecture.md](../../docs/architecture.md) for full architecture an
 - API proxy configured in `vite.config.ts` — `/api` routes to backend during dev
 - Use TanStack Query hooks for all API calls — no raw `fetch` in components
 - API types should be shared or generated, not manually duplicated
+
+## Testing
+
+- **Vitest** for component testing — native to Vite, same config and transforms
+- **React Testing Library** for rendering and interaction assertions
+- **Playwright** for E2E tests — runs against deployed staging environment (nightly/pre-release, not every PR)
+- Colocate test files next to source: `Component.test.tsx` / `hook.test.ts`
+- Prefer user-centric queries (`getByRole`, `getByText`) over implementation details (`getByTestId`)

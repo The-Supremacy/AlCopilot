@@ -32,24 +32,30 @@ jobs:
         run: dotnet build AlCopilot.slnx --no-restore -c Release
 
       - name: Test
-        run: dotnet test AlCopilot.slnx --no-build -c Release --logger trx --collect:"XPlat Code Coverage"
+        id: test
+        run: |
+          if find tests -name '*.csproj' 2>/dev/null | grep -q .; then
+            dotnet test AlCopilot.slnx --no-build -c Release --logger trx --collect:"XPlat Code Coverage"
+          else
+            echo "No test projects found, skipping."
+          fi
 
       - name: Upload test results
-        if: always()
+        if: always() && hashFiles('server/tests/**/TestResults/**/*.trx') != ''
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: server/tests/**/TestResults/
 
       - name: Coverage report
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && hashFiles('server/tests/**/coverage.cobertura.xml') != ''
         uses: danielpalme/ReportGenerator-GitHub-Action@5
         with:
           reports: server/tests/**/coverage.cobertura.xml
           targetdir: coveragereport
 
       - name: Post coverage summary
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && hashFiles('coveragereport/SummaryGithub.md') != ''
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           path: coveragereport/SummaryGithub.md

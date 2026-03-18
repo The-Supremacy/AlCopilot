@@ -229,3 +229,49 @@ alcopilot/
     │   └── alcopilot-portal/     # Main user-facing app (Vite + React + TS)
     └── packages/                 # Shared packages (future)
 ```
+
+---
+
+## Testing Strategy
+
+### Backend (.NET)
+
+| Type             | Purpose                                          | Tools                                                                | Project Pattern                                            | When     |
+| ---------------- | ------------------------------------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- | -------- |
+| **Unit**         | Pure logic, no I/O, isolated                     | xUnit + Shouldly + NSubstitute                                       | `AlCopilot.{Module}.Tests`                                 | Every PR |
+| **Integration**  | Real DB, real HTTP, cross-layer                  | xUnit + Shouldly + WebApplicationFactory + TestContainers (Postgres) | `AlCopilot.{Module}.Tests` (same project, trait-separated) | Every PR |
+| **Architecture** | Module boundaries, dependency rules, conventions | xUnit + NetArchTest.eNhanced                                         | `AlCopilot.Architecture.Tests`                             | Every PR |
+
+**Unit and integration tests live in the same project** per module (`AlCopilot.{Module}.Tests`). Integration tests are marked with `[Trait("Category", "Integration")]` so they can be filtered if the suite grows too slow. Currently, all tests run on every PR — TestContainers is fast enough.
+
+**Architecture tests** enforce modular monolith boundaries: modules only reference Contracts, handlers are sealed, entities don't leak across schemas, naming conventions are followed.
+
+**Assertion library: Shouldly** — FluentAssertions is commercial. Shouldly is MIT, readable, and has good error messages.
+
+**Mocking: NSubstitute** — Moq had a telemetry controversy (SponsorLink). NSubstitute is MIT, clean API, no controversy.
+
+**No in-memory database** — EF Core's in-memory provider doesn't support transactions, relational constraints, or Postgres-specific features. SQLite in-memory diverges too. TestContainers with real Postgres catches real issues.
+
+### Frontend (Web)
+
+| Type          | Purpose                                     | Tools                          | When                  |
+| ------------- | ------------------------------------------- | ------------------------------ | --------------------- |
+| **Component** | Render + interaction testing                | Vitest + React Testing Library | Every PR              |
+| **E2E**       | Full browser flows against real environment | Playwright                     | Nightly / pre-release |
+
+**Vitest** is native to Vite — same config, same transform pipeline, fast watch mode. Component tests verify rendered output and user interactions via React Testing Library.
+
+**Playwright** runs against a deployed staging environment. This is the "nightly build" — browser startup, real services, real network. Too slow and brittle for every PR.
+
+### Future Stages
+
+| Type                 | Purpose                                 | Tools                      | When to Add                                       |
+| -------------------- | --------------------------------------- | -------------------------- | ------------------------------------------------- |
+| **Load testing**     | Performance under sustained traffic     | k6 or NBomber              | When deployed to staging with representative data |
+| **Mutation testing** | Verify test quality by injecting faults | Stryker.NET / Stryker (JS) | When test suite is mature and coverage is high    |
+
+### Not Used
+
+- **Pact (contract testing)**: Cross-module contracts are shared via `.Contracts` projects — no HTTP boundary to test
+- **Snapshot tests**: Brittle and low-value for this kind of application
+- **FluentAssertions**: Commercial license

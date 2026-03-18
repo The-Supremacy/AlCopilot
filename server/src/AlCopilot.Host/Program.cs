@@ -7,3 +7,6 @@ app.MapDefaultEndpoints();
 app.MapGet("/", () => "Hello World!");
 
 app.Run();
+
+// Make the implicit Program class accessible to WebApplicationFactory
+public partial class Program;
