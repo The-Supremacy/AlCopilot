@@ -10,7 +10,7 @@ applyTo: 'docs/**'
 - One sentence per line in source (renders as paragraphs, easier diffs)
 - Use `---` horizontal rules to separate major sections
 - Tables for structured comparisons
-- Code blocks with language tags (`csharp, `bash, ```typescript, etc.)
+- Code blocks with language tags (`csharp`, `bash`, `typescript`, etc.)
 
 ## Architecture Docs
 
