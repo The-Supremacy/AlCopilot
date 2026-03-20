@@ -43,10 +43,11 @@ The developer builds first instances of each piece of functionality manually. Co
 
 ```
 alcopilot/
-├── .github/                      # CI/CD, Copilot instructions, SKILLs
+├── .github/                      # CI/CD, Copilot instructions, SKILLs, agents
 │   ├── workflows/                # GitHub Actions pipelines
 │   ├── instructions/             # Per-path Copilot instructions
-│   └── skills/                   # SKILL files (created incrementally)
+│   ├── skills/                   # SKILL files (created incrementally)
+│   └── agents/                   # Custom Copilot agents
 ├── deploy/                       # Infrastructure and deployment
 ├── docs/                         # Architecture and documentation
 ├── server/                       # .NET backend
@@ -62,3 +63,21 @@ alcopilot/
 - **Semantic commits only** — enforced by Husky + commitlint
 - **Central Package Management** — all NuGet versions in `server/Directory.Packages.props`
 - Per-path instructions in `.github/instructions/` have full conventions for each area
+
+## Custom Agents
+
+Three custom agents are available in `.github/agents/`:
+
+| Agent         | Purpose                                             | Write Access                                                        |
+| ------------- | --------------------------------------------------- | ------------------------------------------------------------------- |
+| `@architect`  | Architecture planning, feature specs, design review | No — read-only                                                      |
+| `@scaffolder` | Code generation following SKILL files               | Yes — the **only** agent authorized to generate implementation code |
+| `@reviewer`   | Convention checking, code review, GitHub PR review  | No — read-only                                                      |
+
+### Agent Delegation
+
+When working in general Agent mode, delegate to specialized agents as subagents:
+
+- **Architecture alignment checks** → delegate to the `@architect` subagent
+- **Convention and code review** → delegate to the `@reviewer` subagent
+- **Code scaffolding** → suggest that the user switches to `@scaffolder` mode (scaffolding requires interactive write access)
