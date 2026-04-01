@@ -10,11 +10,9 @@
     <Project Path="src/AlCopilot.ServiceDefaults/AlCopilot.ServiceDefaults.csproj" />
     <Project Path="src/AlCopilot.Shared/AlCopilot.Shared.csproj" />
   </Folder>
-  <Folder Name="/Tests/">
-    <Project Path="tests/AlCopilot.Host.Tests/AlCopilot.Host.Tests.csproj" />
-  </Folder>
   <Project Path="src/AlCopilot.Host/AlCopilot.Host.csproj" />
   <Folder Name="/Tests/">
+    <Project Path="tests/AlCopilot.Host.Tests/AlCopilot.Host.Tests.csproj" />
     <Project Path="tests/AlCopilot.Architecture.Tests/AlCopilot.Architecture.Tests.csproj" />
     <Project Path="tests/AlCopilot.DrinkCatalog.Tests/AlCopilot.DrinkCatalog.Tests.csproj" />
   </Folder>
