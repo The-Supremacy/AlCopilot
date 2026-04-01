@@ -1,37 +1,59 @@
+# Proposal: Drink Catalog Module
+
+## What
+
+Build the **DrinkCatalog** module — the first bounded context in AlCopilot. This module owns the drink database: drinks, ingredients, ingredient categories, tags, and recipes. It provides browse, search, and CRUD capabilities via a REST API under `/api/drink-catalog`.
+
 ## Why
 
-AlCopilot needs a foundational drinks database before any recommendation, search, or social features can work. The Catalog module is the first building block — every other module depends on having drinks, ingredients, and categories to reference. Without it, the platform has nothing to suggest.
+The drink catalog is foundational — every other module (Recommendation, Social, Inventory) depends on having a queryable catalog of drinks with their recipes and ingredients. Building it first establishes the DDD infrastructure (`AlCopilot.Shared` base types), the modular monolith patterns (module registration, contracts, Aspire integration), and the testing patterns (TestContainers, architecture tests) that all subsequent modules will reuse.
 
-This is the first module implementation, so it also establishes the patterns that all subsequent modules will follow: module registration, dedicated DbContext with schema isolation, Contracts project for cross-module communication, and API endpoint conventions.
+## Scope
 
-## What Changes
+### In Scope
 
-- Create the **Catalog module** (`AlCopilot.Catalog`) with its own DbContext and `catalog` Postgres schema
-- Create the **Catalog Contracts** project (`AlCopilot.Catalog.Contracts`) for cross-module DTOs and queries
-- Define domain entities: Drink, Ingredient, Category, and their relationships
-- Expose REST API endpoints for browsing, searching, and managing drinks
-- Register the module in the Host via `AddCatalogModule()` extension method
-- Add the Catalog database to the Aspire AppHost orchestration
-- Create the **Catalog Tests** project with unit and integration tests (TestContainers + real Postgres)
-- Add architecture tests to enforce module boundary rules
+- **Domain model**: Drink aggregate (with RecipeEntry children), Tag aggregate, Ingredient aggregate, IngredientCategory aggregate — all following DDD conventions with value objects, repositories, and domain events
+- **DDD infrastructure**: `AlCopilot.Shared` project with `AggregateRoot<TId>`, `Entity<TId>`, `ValueObject<T>`, `IRepository<TRoot, TId>`, `IUnitOfWork`, `IDomainEvent`, `IDomainEventHandler<T>`, `DomainEventInterceptor`, `DomainEventRecord`
+- **Persistence**: `DrinkCatalogDbContext` with `drink_catalog` Postgres schema, EF Core migrations, value object conversions
+- **Contracts**: `AlCopilot.DrinkCatalog.Contracts` with query/command DTOs and Mediator message types
+- **Handlers**: Mediator request handlers for all CRUD and query operations — handlers orchestrate via repositories and UoW, domain logic in aggregates
+- **API endpoints**: Minimal API routes under `/api/drink-catalog` mapped in `DrinkCatalogEndpoints.cs`
+- **Soft delete**: Drinks support soft delete (`IsDeleted` + `DeletedAtUtc`), filtered by global query filter
+- **Aspire integration**: PostgreSQL resource in AppHost, connection string wiring
+- **Tests**: Unit tests (handler orchestration, domain logic), integration tests (TestContainers Postgres), architecture tests (module boundaries, sealed classes, DDD compliance)
 
-## Capabilities
+### Out of Scope
 
-### New Capabilities
+- Authentication/authorization (Identity module, future)
+- AI-powered recommendations (Recommendation module, future)
+- Ratings and comments (Social module, future)
+- Frontend UI (separate change)
+- Image upload/storage (future — `ImageUrl` is a simple string for now)
 
-- `drink-browsing`: Browse drinks by category with pagination and view drink details including ingredients
-- `drink-search`: Full-text search across drink names, descriptions, and ingredients
-- `drink-management`: Admin CRUD operations for drinks, ingredients, and categories
+## Affected Modules
 
-### Modified Capabilities
+| Module                     | Impact                                            |
+| -------------------------- | ------------------------------------------------- |
+| **DrinkCatalog** (new)     | Primary — new module                              |
+| **AlCopilot.Shared** (new) | DDD base types created here                       |
+| **AlCopilot.Host**         | Registers module, maps endpoints, runs migrations |
+| **AlCopilot.AppHost**      | Adds PostgreSQL resource                          |
 
-_None — this is the first module; no existing specs to modify._
+## Dependencies
 
-## Impact
+All dependencies are already in `Directory.Packages.props`:
 
-- **New projects**: `AlCopilot.Catalog`, `AlCopilot.Catalog.Contracts`, `AlCopilot.Catalog.Tests`
-- **Modified projects**: `AlCopilot.Host` (module registration, endpoint mapping), `AlCopilot.AppHost` (Postgres resource)
-- **Database**: New `catalog` schema in Postgres with EF Core migrations
-- **Dependencies**: EF Core + Npgsql (already in stack — no new dependencies)
-- **API surface**: New `/api/catalog/*` endpoints (drinks, categories, ingredients)
-- **Architecture tests**: New module boundary rules in `AlCopilot.Architecture.Tests`
+| Package                               | License            | Purpose                    |
+| ------------------------------------- | ------------------ | -------------------------- |
+| Npgsql.EntityFrameworkCore.PostgreSQL | PostgreSQL License | EF Core Postgres provider  |
+| Mediator.Abstractions                 | MIT                | Mediator message types     |
+| Mediator.SourceGenerator              | MIT                | Source-generated mediator  |
+| Aspire.Hosting.PostgreSQL             | MIT                | Aspire Postgres resource   |
+| Microsoft.EntityFrameworkCore.Design  | MIT                | EF Core migrations tooling |
+
+No new dependencies required.
+
+## Risks
+
+- **First module**: Establishes patterns all future modules follow. Extra review on DDD infrastructure is warranted.
+- **Migration strategy**: Initial migration only. Rollback via `dotnet ef migrations remove` or manual `DROP SCHEMA drink_catalog CASCADE`.

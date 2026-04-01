@@ -1,83 +1,124 @@
-## ADDED Requirements
+# Spec: Drink Management
 
-### Requirement: Create a drink
+## Feature: Drink CRUD
 
-The system SHALL allow administrators to create new drinks with their ingredients.
+### Requirement: Create Drink
 
-#### Scenario: Create drink with valid data
+The system SHALL allow creating a new drink with a name, optional description, optional image URL, tags, and recipe entries.
 
-- **WHEN** an administrator submits a new drink with name, description, category, and at least one ingredient
-- **THEN** the system creates the drink and returns its identifier
-- **AND** the drink is immediately available for browsing and search
+**Scenario: Create drink with full details**
 
-#### Scenario: Create drink with duplicate name
+- Given valid tags and ingredients exist
+- When a consumer creates a drink with name, description, image URL, tags, and recipe entries (each with ingredient, quantity, and optional recommended brand)
+- Then the system SHALL create the drink and return its ID
+- And the drink SHALL be associated with the specified tags
+- And the drink SHALL contain the specified recipe entries
 
-- **WHEN** an administrator submits a new drink with a name that already exists
-- **THEN** the system returns a 409 Conflict response
+**Scenario: Create drink with minimal details**
 
-#### Scenario: Create drink with missing required fields
+- Given valid data
+- When a consumer creates a drink with only a name (no description, no image, no tags, no recipe)
+- Then the system SHALL create the drink successfully
 
-- **WHEN** an administrator submits a drink without a name or without any ingredients
-- **THEN** the system returns a 400 Bad Request response with validation errors
+**Scenario: Duplicate drink name**
 
-### Requirement: Update a drink
+- Given a drink named "Mojito" already exists (including soft-deleted)
+- When a consumer creates another drink named "Mojito"
+- Then the system SHALL reject the request with a conflict error
+- And the error message SHALL indicate the name is already taken
 
-The system SHALL allow administrators to update existing drink details and ingredients.
+**Scenario: Domain event raised on creation**
 
-#### Scenario: Update drink details
+- Given valid drink data
+- When a drink is created
+- Then the Drink aggregate SHALL raise a `DrinkCreatedEvent` containing the drink ID
 
-- **WHEN** an administrator updates a drink's name, description, or category
-- **THEN** the system persists the changes and returns the updated drink
+### Requirement: Update Drink
 
-#### Scenario: Update drink ingredients
+The system SHALL allow updating a drink's details, tags, and recipe entries.
 
-- **WHEN** an administrator replaces a drink's ingredient list
-- **THEN** the system replaces all existing ingredients with the new list
+**Scenario: Update drink details**
 
-#### Scenario: Update non-existent drink
+- Given a drink exists
+- When a consumer updates its name, description, and image URL
+- Then the system SHALL persist all changes
 
-- **WHEN** an administrator attempts to update a drink that does not exist
-- **THEN** the system returns a 404 Not Found response
+**Scenario: Replace drink tags**
 
-### Requirement: Delete a drink
+- Given a drink has tags ["Refreshing", "Summer"]
+- When a consumer updates with tags ["Winter", "Classic"]
+- Then the drink SHALL have only the new tags — previous associations are removed
 
-The system SHALL allow administrators to soft-delete drinks.
+**Scenario: Replace recipe entries**
 
-#### Scenario: Soft-delete a drink
+- Given a drink has recipe entries
+- When a consumer updates with different recipe entries
+- Then the drink SHALL have only the new recipe entries — previous entries are removed
 
-- **WHEN** an administrator deletes a drink
-- **THEN** the drink is no longer returned in browse or search results
-- **AND** the drink data is retained in the database for audit purposes
+**Scenario: Update non-existent drink**
 
-#### Scenario: Delete non-existent drink
+- Given no drink exists with the requested ID
+- When a consumer attempts to update it
+- Then the system SHALL return a not-found response
 
-- **WHEN** an administrator attempts to delete a drink that does not exist
-- **THEN** the system returns a 404 Not Found response
+**Scenario: Update to duplicate name**
 
-### Requirement: Manage categories
+- Given drinks "Mojito" and "Daiquiri" exist
+- When a consumer updates "Daiquiri" to have the name "Mojito"
+- Then the system SHALL reject with a conflict error
 
-The system SHALL allow administrators to create and list categories.
+### Requirement: Soft Delete Drink
 
-#### Scenario: Create a category
+The system SHALL support soft-deleting drinks. Soft-deleted drinks are excluded from all queries but remain in the database.
 
-- **WHEN** an administrator creates a category with a unique name
-- **THEN** the system creates the category and returns its identifier
+**Scenario: Soft delete existing drink**
 
-#### Scenario: Create category with duplicate name
+- Given a drink exists and is active
+- When a consumer deletes it
+- Then the drink SHALL be marked as deleted with a timestamp
+- And the drink SHALL no longer appear in browse or search results
+- And the Drink aggregate SHALL raise a `DrinkDeletedEvent`
 
-- **WHEN** an administrator creates a category with a name that already exists
-- **THEN** the system returns a 409 Conflict response
+**Scenario: Delete non-existent drink**
 
-### Requirement: Manage ingredients
+- Given no drink exists with the requested ID
+- When a consumer attempts to delete it
+- Then the system SHALL return a not-found response
 
-The system SHALL allow administrators to create and list ingredients for reuse across drinks.
+## Feature: Tag Management
 
-#### Scenario: Create an ingredient
+### Requirement: Create Tag
 
-- **WHEN** an administrator creates an ingredient with a unique name
-- **THEN** the system creates the ingredient and returns its identifier
+**Scenario: Create tag**
 
-#### Scenario: List all ingredients
+- Given no tag with the name "Tropical" exists
+- When a consumer creates a tag named "Tropical"
+- Then the system SHALL create the tag and return its ID
 
-- **WHEN** an administrator requests the list of ingredients
-- **THEN** the system returns all ingredients ordered by name
+**Scenario: Duplicate tag name**
+
+- Given a tag named "Tropical" already exists
+- When a consumer creates another tag named "Tropical"
+- Then the system SHALL reject with a conflict error
+
+### Requirement: Delete Tag
+
+**Scenario: Delete unreferenced tag**
+
+- Given a tag exists that is not associated with any active drinks
+- When a consumer deletes the tag
+- Then the system SHALL remove it
+
+**Scenario: Delete tag referenced by drinks**
+
+- Given a tag is associated with one or more active drinks
+- When a consumer attempts to delete it
+- Then the system SHALL reject with a conflict error indicating the tag is still in use
+
+### Requirement: List Tags
+
+**Scenario: List all tags**
+
+- Given tags exist
+- When a consumer requests the tag list
+- Then the system SHALL return all tags with their names

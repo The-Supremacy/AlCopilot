@@ -1,60 +1,103 @@
-## ADDED Requirements
+# Spec: Drink Browsing & Search
 
-### Requirement: Browse drinks by category
+## Feature: Browse Drinks
 
-The system SHALL allow users to browse drinks filtered by category with paginated results.
+### Requirement: List Drinks with Pagination
 
-#### Scenario: List all categories
+The system SHALL return a paginated list of active drinks ordered by name.
 
-- **WHEN** a user requests the list of categories
-- **THEN** the system returns all active categories with their names and drink counts
+**Scenario: Browse all drinks**
 
-#### Scenario: Browse drinks in a category
+- Given drinks exist in the catalog
+- When a consumer requests drinks without filters
+- Then the system SHALL return a paginated list of drinks with id, name, description, image URL, and tags
+- And results SHALL be ordered alphabetically by name
 
-- **WHEN** a user selects a category
-- **THEN** the system returns a paginated list of drinks in that category
-- **AND** each drink includes its name, description, image URL, and category
+**Scenario: Browse drinks filtered by tag**
 
-#### Scenario: Browse all drinks without category filter
+- Given drinks exist with various tags
+- When a consumer requests drinks filtered by one or more tag IDs
+- Then the system SHALL return only drinks associated with ALL specified tags (AND logic)
 
-- **WHEN** a user requests drinks without specifying a category
-- **THEN** the system returns a paginated list of all drinks ordered by name
+**Scenario: Browse with pagination**
 
-#### Scenario: Empty category
+- Given more drinks exist than the requested page size
+- When a consumer requests page 2 with page size 10
+- Then the system SHALL return the correct slice of results
+- And the response SHALL include total count, current page, and page size
 
-- **WHEN** a user selects a category that contains no drinks
-- **THEN** the system returns an empty list with zero total count
+**Scenario: Empty catalog**
 
-### Requirement: View drink details with ingredients
+- Given no active drinks exist
+- When a consumer requests the drink list
+- Then the system SHALL return an empty list with total count 0
 
-The system SHALL display complete drink details including its ingredients and preparation information.
+**Scenario: Soft-deleted drinks excluded**
 
-#### Scenario: View drink by ID
+- Given a drink has been soft-deleted
+- When a consumer browses drinks
+- Then the soft-deleted drink SHALL NOT appear in results
 
-- **WHEN** a user requests a specific drink by its identifier
-- **THEN** the system returns the drink's name, description, image URL, category, and full ingredient list
-- **AND** each ingredient includes its name and quantity with unit
+### Requirement: View Drink Details
 
-#### Scenario: Drink not found
+The system SHALL return full details for a single drink including recipe and ingredient information.
 
-- **WHEN** a user requests a drink with a non-existent identifier
-- **THEN** the system returns a 404 Not Found response
+**Scenario: View existing drink**
 
-### Requirement: Paginated results
+- Given a drink exists with tags, recipe entries, and ingredients (with notable brands)
+- When a consumer requests the drink by ID
+- Then the system SHALL return the drink with all tags, recipe entries (quantity, recommended brand), and each ingredient's details (name, category, notable brands)
 
-The system SHALL support cursor-based or offset pagination for all list endpoints.
+**Scenario: View non-existent drink**
 
-#### Scenario: Default page size
+- Given no drink exists with the requested ID
+- When a consumer requests the drink by ID
+- Then the system SHALL return a not-found response
 
-- **WHEN** a user requests a list without specifying page size
-- **THEN** the system returns at most 20 items
+**Scenario: View soft-deleted drink**
 
-#### Scenario: Custom page size with upper bound
+- Given a drink has been soft-deleted
+- When a consumer requests it by ID
+- Then the system SHALL return a not-found response (query filter excludes it)
 
-- **WHEN** a user requests a list with a page size greater than 100
-- **THEN** the system caps the page size at 100
+## Feature: Search Drinks
 
-#### Scenario: Pagination metadata
+### Requirement: Full-Text Search
 
-- **WHEN** a user requests a paginated list
-- **THEN** the response includes total count, current page, and page size
+The system SHALL support searching drinks by name, description, tag name, or ingredient name using case-insensitive partial matching.
+
+**Scenario: Search by drink name**
+
+- Given a drink named "Mojito" exists
+- When a consumer searches for "moj"
+- Then the system SHALL return "Mojito" in the results
+
+**Scenario: Search by ingredient name**
+
+- Given a drink has an ingredient named "Lime Juice"
+- When a consumer searches for "lime"
+- Then the system SHALL return that drink in the results
+
+**Scenario: Search by tag name**
+
+- Given a drink is tagged "Refreshing"
+- When a consumer searches for "refresh"
+- Then the system SHALL return that drink in the results
+
+**Scenario: Search with no results**
+
+- Given no drinks match the search term
+- When a consumer searches for "zzzznonexistent"
+- Then the system SHALL return an empty paginated result
+
+**Scenario: Search excludes soft-deleted drinks**
+
+- Given a soft-deleted drink matches the search term
+- When a consumer searches
+- Then the soft-deleted drink SHALL NOT appear in results
+
+**Scenario: Search results are paginated**
+
+- Given many drinks match the search term
+- When a consumer searches with pagination parameters
+- Then the system SHALL return the correct page with total count

@@ -1,99 +1,186 @@
 ## Context
 
-AlCopilot currently has a bare-bones Host with no modules. The Catalog module is the first to be implemented, establishing the patterns for all future modules. The Host's `Program.cs` has only service defaults and a hello-world endpoint. The AppHost orchestrates only the Host project with no database resources.
+DrinkCatalog is the first module in the AlCopilot modular monolith. It owns the drink database — drinks, ingredients, categories, tags, and recipes — and exposes browse, search, and CRUD operations via REST endpoints.
 
-The `Directory.Packages.props` already includes testing packages (xUnit, Shouldly, NSubstitute, TestContainers, NetArchTest) but has no EF Core, Npgsql, or Mediator packages yet.
+Because this is the first module, it also establishes the cross-cutting DDD infrastructure in `AlCopilot.Shared` (aggregate base types, value objects, repositories, unit of work, domain event interceptor) that all subsequent modules will reuse.
+
+Current state: the project has `AlCopilot.Host` (BFF), `AlCopilot.AppHost` (Aspire orchestrator), and `AlCopilot.ServiceDefaults`. No modules exist yet. Existing code on the branch from a prior implementation attempt will be adapted to follow proper DDD patterns.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Establish the Catalog module as the reference implementation for all future modules
-- Implement browsing, search, and management endpoints for drinks, categories, and ingredients
-- Set up EF Core with a dedicated `catalog` Postgres schema and migrations
-- Create the Contracts project pattern for cross-module communication
-- Wire Postgres into the Aspire AppHost for local development
-- Achieve full test coverage with TestContainers against real Postgres
+- Establish DDD infrastructure in `AlCopilot.Shared` (base types, interceptor, repositories)
+- Implement DrinkCatalog module with proper aggregate roots, value objects, and repositories
+- Provide REST API for drink browse, search, and CRUD under `/api/drink-catalog`
+- Demonstrate the full module lifecycle: domain → persistence → contracts → handlers → endpoints → tests
+- Set up testing infrastructure: TestContainers fixture, architecture test project
 
 **Non-Goals:**
 
-- Authentication/authorization (Identity module — future work; endpoints are unauthenticated for now)
-- Frontend UI (web portal — separate change)
-- AI-powered recommendations (Recommendation module — depends on Catalog.Contracts)
-- Image upload/storage (drinks reference image URLs, not binary storage)
-- Full-text search via Postgres `tsvector` (initial implementation uses `ILIKE` queries; can migrate to `tsvector` when performance requires it)
+- Authentication/authorization (Identity module, future)
+- Frontend UI (separate change)
+- Cross-module eventing via Rebus (no other modules exist yet to consume events)
+- Image upload/storage (ImageUrl is a string URL)
+- Full outbox background worker (events are persisted for future use, but no Rebus publisher yet)
 
 ## Decisions
 
-### Decision: EF Core with schema-per-module
+### 1. Aggregate Boundaries
 
-`CatalogDbContext` uses `catalog` as its Postgres schema. All Catalog tables (`drinks`, `categories`, `ingredients`, `drink_ingredients`) live under this schema. Other modules will use their own schemas, keeping data boundaries clean in a shared database.
+| Aggregate Root         | Children                     | Value Objects                                          | Rationale                                                                                                               |
+| ---------------------- | ---------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Drink**              | `RecipeEntry` (child entity) | `DrinkName` (max 200), `ImageUrl` (max 1000, optional) | Drink is the central concept. Recipe entries are meaningless outside a drink — they form a single consistency boundary. |
+| **Tag**                | —                            | `TagName` (max 100)                                    | Tags are independent, referenced by ID from Drink. Simple lookup aggregate.                                             |
+| **Ingredient**         | —                            | `IngredientName` (max 200)                             | Ingredients exist independently of drinks. Recipes reference them by ID.                                                |
+| **IngredientCategory** | —                            | `CategoryName` (max 100)                               | Categories group ingredients. Referenced by ID from Ingredient.                                                         |
 
-**Alternative considered**: Separate databases per module. Rejected — unnecessary operational overhead at this stage. Schema isolation provides the same logical separation with simpler infrastructure.
+**Alternative considered**: Making Tag/Ingredient/IngredientCategory simple EF entities without aggregate root base. Rejected because it would create two patterns in one module — some entities with DDD, some without. Consistency matters more than saving a few lines on simple aggregates.
 
-### Decision: Mediator for request dispatch
+**RecipeEntry** is a child entity (`Entity<(Guid DrinkId, Guid IngredientId)>`) within the Drink aggregate. It holds `Quantity` (value object, max 100 chars) and optional `RecommendedBrand` (plain string, max 200). The composite key (DrinkId + IngredientId) enforces one entry per ingredient per drink.
 
-All API endpoints dispatch through Mediator (source-generated). Queries and commands are defined in `AlCopilot.Catalog.Contracts` so other modules can send queries (e.g., `GetDrinkByIdQuery`) without referencing the Catalog implementation.
+### 2. Value Objects
 
-**Alternative considered**: Direct service injection. Rejected — Mediator provides the decoupling needed for the Contracts pattern and future module extraction.
+| Value Object     | Wraps     | Validation                                 | Used By                   |
+| ---------------- | --------- | ------------------------------------------ | ------------------------- |
+| `DrinkName`      | `string`  | Non-empty, max 200 chars, trimmed          | `Drink.Name`              |
+| `TagName`        | `string`  | Non-empty, max 100 chars, trimmed          | `Tag.Name`                |
+| `IngredientName` | `string`  | Non-empty, max 200 chars, trimmed          | `Ingredient.Name`         |
+| `CategoryName`   | `string`  | Non-empty, max 100 chars, trimmed          | `IngredientCategory.Name` |
+| `Quantity`       | `string`  | Non-empty, max 100 chars                   | `RecipeEntry.Quantity`    |
+| `ImageUrl`       | `string?` | Max 1000 chars, nullable (null = no image) | `Drink.ImageUrl`          |
 
-### Decision: Minimal API endpoints grouped by resource
+All inherit from `ValueObject<T>` with implicit conversion to `T`. Factory method `Create(raw)` validates and returns the value object. EF Core maps via `HasConversion(v => v.Value, raw => TypeName.Create(raw))`.
 
-Endpoints use .NET Minimal APIs with `MapGroup()` for route organization:
+**Alternative considered**: Skipping value objects for simple names. Rejected — validation in the type system prevents invalid data from ever existing, and the pattern is established now for all modules.
 
-- `GET /api/catalog/drinks` — list/browse with optional category filter
-- `GET /api/catalog/drinks/{id}` — drink details
-- `GET /api/catalog/drinks/search?q=` — search
-- `POST /api/catalog/drinks` — create
-- `PUT /api/catalog/drinks/{id}` — update
-- `DELETE /api/catalog/drinks/{id}` — soft delete
-- `GET /api/catalog/categories` — list categories
-- `POST /api/catalog/categories` — create category
-- `GET /api/catalog/ingredients` — list ingredients
-- `POST /api/catalog/ingredients` — create ingredient
+### 3. Domain Events
 
-**Alternative considered**: Controllers. Rejected — Minimal APIs are the modern .NET approach, lighter weight, and recommended by the Aspire template.
+| Event               | Raised By                | Payload                   |
+| ------------------- | ------------------------ | ------------------------- |
+| `DrinkCreatedEvent` | `Drink.Create()` factory | `DrinkId`                 |
+| `DrinkDeletedEvent` | `Drink.SoftDelete()`     | `DrinkId`, `DeletedAtUtc` |
 
-### Decision: Soft delete via `IsDeleted` flag
+No same-module handlers react to these events in DrinkCatalog. They are persisted to `domain_events` for future cross-module consumption (e.g., Recommendation module reacting to new drinks). The interceptor infrastructure is built now; consumers come later.
 
-Drinks support soft deletion with an `IsDeleted` boolean and `DeletedAtUtc` timestamp. A global query filter on the DbContext excludes deleted drinks from all queries by default. Admin queries can explicitly include deleted records.
+**Alternative considered**: Adding events for tags/ingredients/categories. Rejected — no foreseeable consumer. Events can be added when a use case arises.
 
-**Alternative considered**: Hard delete. Rejected — other modules (Social, Recommendation) may reference drink IDs; hard delete would break referential integrity across modules.
+### 4. Repository Design
 
-### Decision: ILIKE for initial search
+```
+IRepository<TRoot, TId>           (in AlCopilot.Shared)
+  ├── IDrinkRepository            (in DrinkCatalog — adds query methods)
+  ├── ITagRepository              (in DrinkCatalog)
+  ├── IIngredientRepository       (in DrinkCatalog)
+  └── IIngredientCategoryRepository (in DrinkCatalog)
+```
 
-Search uses Postgres `ILIKE` for case-insensitive matching across drink name, description, and ingredient names via a `LEFT JOIN`. This is simple, correct, and sufficient for the initial dataset.
+- `IDrinkRepository` extends generic with: `GetPagedAsync(tagIds, page, pageSize)`, `SearchAsync(query, page, pageSize)`, `ExistsByNameAsync(name)`
+- Other repositories use the generic interface only (GetByIdAsync, Add, Remove)
+- Implementations are `internal sealed` classes wrapping `DrinkCatalogDbContext`
+- `DrinkRepository` loads the complete aggregate: Drink + Tags + RecipeEntries (with Ingredient → IngredientCategory)
 
-**Alternative considered**: Full-text search with `tsvector/tsquery`. Deferred — adds migration complexity (GIN indexes, trigger-maintained search vectors) that isn't justified until we have performance data showing `ILIKE` is a bottleneck.
+**Alternative considered**: Using DbContext directly in handlers (current code). Rejected — violates DDD, makes handlers untestable without a real database, couples domain logic to EF.
 
-### Decision: Offset pagination
+### 5. Handler Pattern
 
-API list endpoints use offset pagination (`page` + `pageSize` parameters) returning total count. Default page size is 20, max is 100.
+Handlers are thin orchestrators:
 
-**Alternative considered**: Cursor-based pagination. Deferred — offset pagination is simpler for the browsing use case where users navigate to specific pages. Can be reconsidered if performance degrades on large datasets.
+```
+1. Receive Mediator request
+2. Load aggregate(s) via IRepository
+3. Call domain method on aggregate (validation + business logic happens here)
+4. Save via IUnitOfWork (triggers domain event interceptor)
+5. Return result
+```
+
+Handlers do NOT contain business logic, EF queries, or direct DbContext access.
+
+**Query handlers** are an exception — they use `IReadOnlyRepository` or a read-specific interface for optimized projections (no need to load full aggregates for list/search views). This avoids the N+1 problem of loading aggregates just to project DTOs.
+
+### 6. Persistence
+
+- Schema: `drink_catalog`
+- `DrinkCatalogDbContext` implements `IUnitOfWork`
+- `DomainEventInterceptor` registered on the DbContext via `AddDbContext` options factory
+- `DomainEventRecord` mapped to `drink_catalog.domain_events` table
+- Global query filter on `Drink`: `HasQueryFilter(d => !d.IsDeleted)`
+- Unique indexes on: `Drink.Name`, `Tag.Name`, `Ingredient.Name`, `IngredientCategory.Name`
+- `Ingredient.NotableBrands` (`List<string>`) mapped to `jsonb`
+- Many-to-many Drink ↔ Tag via shadow join table `DrinkTag`
+
+### 7. API Endpoints
+
+All under `/api/drink-catalog`:
+
+| Method | Path                       | Handler                                           |
+| ------ | -------------------------- | ------------------------------------------------- |
+| GET    | `/drinks`                  | `GetDrinksQuery` — paginated, optional tag filter |
+| GET    | `/drinks/{id}`             | `GetDrinkByIdQuery` — full detail with recipe     |
+| GET    | `/drinks/search?q=`        | `SearchDrinksQuery` — paginated text search       |
+| POST   | `/drinks`                  | `CreateDrinkCommand`                              |
+| PUT    | `/drinks/{id}`             | `UpdateDrinkCommand`                              |
+| DELETE | `/drinks/{id}`             | `DeleteDrinkCommand` (soft delete)                |
+| GET    | `/tags`                    | `GetTagsQuery`                                    |
+| POST   | `/tags`                    | `CreateTagCommand`                                |
+| DELETE | `/tags/{id}`               | `DeleteTagCommand`                                |
+| GET    | `/ingredient-categories`   | `GetIngredientCategoriesQuery`                    |
+| POST   | `/ingredient-categories`   | `CreateIngredientCategoryCommand`                 |
+| GET    | `/ingredients`             | `GetIngredientsQuery` — optional category filter  |
+| POST   | `/ingredients`             | `CreateIngredientCommand`                         |
+| PUT    | `/ingredients/{id}/brands` | `UpdateIngredientCommand`                         |
+
+### 8. Project Structure
+
+```
+server/src/
+  AlCopilot.Shared/
+    AlCopilot.Shared.csproj
+    Domain/
+      IAggregateRoot.cs, AggregateRoot.cs, Entity.cs
+      IDomainEvent.cs, IDomainEventHandler.cs
+      ValueObject.cs
+    Data/
+      IRepository.cs, IUnitOfWork.cs
+      DomainEventInterceptor.cs, DomainEventRecord.cs
+
+  Modules/
+    AlCopilot.DrinkCatalog/
+      AlCopilot.DrinkCatalog.csproj
+      DrinkCatalogModule.cs          → AddDrinkCatalogModule()
+      DrinkCatalogEndpoints.cs       → MapDrinkCatalogEndpoints()
+      Domain/
+        Aggregates/  → Drink.cs, Tag.cs, Ingredient.cs, IngredientCategory.cs
+        Entities/    → RecipeEntry.cs
+        ValueObjects/ → DrinkName.cs, TagName.cs, IngredientName.cs, CategoryName.cs, Quantity.cs, ImageUrl.cs
+        Events/      → DrinkCreatedEvent.cs, DrinkDeletedEvent.cs
+      Data/
+        DrinkCatalogDbContext.cs (implements IUnitOfWork)
+        Repositories/ → DrinkRepository.cs, TagRepository.cs, IngredientRepository.cs, IngredientCategoryRepository.cs
+        Migrations/
+      Handlers/
+        Queries/  → GetDrinksHandler.cs, GetDrinkByIdHandler.cs, SearchDrinksHandler.cs, ...
+        Commands/ → CreateDrinkHandler.cs, UpdateDrinkHandler.cs, DeleteDrinkHandler.cs, ...
+
+    AlCopilot.DrinkCatalog.Contracts/
+      AlCopilot.DrinkCatalog.Contracts.csproj
+      DTOs/     → DrinkDto.cs, DrinkDetailDto.cs, TagDto.cs, ...
+      Queries/  → GetDrinksQuery.cs, SearchDrinksQuery.cs, ...
+      Commands/ → CreateDrinkCommand.cs, UpdateDrinkCommand.cs, ...
+
+server/tests/
+  AlCopilot.DrinkCatalog.Tests/   → unit + integration tests
+  AlCopilot.Architecture.Tests/   → module boundary + DDD compliance tests
+```
 
 ## Risks / Trade-offs
 
-**[ILIKE performance on large datasets]** → Acceptable risk. Monitoring via Aspire dashboard. Migration to `tsvector` is a backward-compatible enhancement that doesn't change the API contract.
+**[Value objects add EF mapping complexity]** → Manageable via `HasConversion`. The pattern is consistent and established once. Worth it for domain validation guarantees.
 
-**[No auth on management endpoints]** → Temporary. Management endpoints will be secured when the Identity module is implemented. Documented as a known gap.
+**[Repository abstraction over EF adds indirection]** → Handlers become testable with NSubstitute. DDD compliance outweighs the extra interface. Query handlers may use read-optimized paths for performance.
 
-**[Offset pagination skip cost]** → For deep pages (`page=1000`), Postgres must scan and discard rows. Mitigated by the max page size of 100 and the expectation that the catalog will stay under 10k drinks for the foreseeable future.
+**[Domain events persisted but no consumers yet]** → Events are stored atomically. When cross-module consumers arrive, the data is already there. No wasted work.
 
-## Migration Plan
+**[First module sets all patterns]** → Risk of over-engineering. Mitigated by keeping aggregates simple (no deep hierarchies), value objects straightforward (single validated primitives), and the interceptor loop well-tested.
 
-This is a greenfield module — no existing data to migrate.
-
-1. Add EF Core + Npgsql packages to `Directory.Packages.props`
-2. Add Mediator package to `Directory.Packages.props`
-3. Create module projects and wire into the solution
-4. Add Postgres resource to AppHost
-5. Generate initial EF Core migration
-6. Module registration in Host runs migrations on startup (development only; production uses explicit migration tooling)
-
-**Rollback**: Remove the module registration from Host and drop the `catalog` schema.
-
-## Open Questions
-
-- Should drink names be globally unique or unique within a category? (Proposal assumes globally unique)
-- Should the ingredient quantity be a string (e.g., "2 oz", "a splash") or structured (amount + unit)? (Design assumes string for flexibility)
+**[Migration rollback]** → `dotnet ef migrations remove` for dev. For production: `DROP SCHEMA drink_catalog CASCADE` since this is the initial schema with no existing data.

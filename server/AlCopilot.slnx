@@ -2,12 +2,20 @@
   <Folder Name="/Aspire/">
     <Project Path="src/AlCopilot.AppHost/AlCopilot.AppHost.csproj" />
   </Folder>
-  <Folder Name="/Modules/" />
+  <Folder Name="/Modules/">
+    <Project Path="src/Modules/AlCopilot.DrinkCatalog/AlCopilot.DrinkCatalog.csproj" />
+    <Project Path="src/Modules/AlCopilot.DrinkCatalog.Contracts/AlCopilot.DrinkCatalog.Contracts.csproj" />
+  </Folder>
   <Folder Name="/Shared/">
     <Project Path="src/AlCopilot.ServiceDefaults/AlCopilot.ServiceDefaults.csproj" />
+    <Project Path="src/AlCopilot.Shared/AlCopilot.Shared.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/AlCopilot.Host.Tests/AlCopilot.Host.Tests.csproj" />
   </Folder>
   <Project Path="src/AlCopilot.Host/AlCopilot.Host.csproj" />
+  <Folder Name="/Tests/">
+    <Project Path="tests/AlCopilot.Architecture.Tests/AlCopilot.Architecture.Tests.csproj" />
+    <Project Path="tests/AlCopilot.DrinkCatalog.Tests/AlCopilot.DrinkCatalog.Tests.csproj" />
+  </Folder>
 </Solution>
