@@ -1,0 +1,8 @@
+{
+  "chat.promptFilesRecommendations": {
+    "opsx-propose": true,
+    "opsx-apply": true,
+    "opsx-explore": true,
+    "opsx-archive": true
+  }
+}

@@ -1,12 +1,8 @@
----
-applyTo: 'web/**'
----
-
-# Web Instructions (Frontend)
+# Web Conventions (Frontend)
 
 ## Architecture Reference
 
-Read [docs/architecture.md](../../docs/architecture.md) for full architecture and tech stack decisions.
+Read [docs/architecture.md](../docs/architecture.md) for full architecture and tech stack decisions.
 
 ## Stack
 
@@ -44,3 +40,20 @@ Read [docs/architecture.md](../../docs/architecture.md) for full architecture an
 - **Playwright** for E2E tests — runs against deployed staging environment (nightly/pre-release, not every PR)
 - Colocate test files next to source: `Component.test.tsx` / `hook.test.ts`
 - Prefer user-centric queries (`getByRole`, `getByText`) over implementation details (`getByTestId`)
+
+## Review Checklist
+
+When reviewing React/TS code, verify:
+
+- [ ] Uses **TanStack Router** for routing — NOT React Router
+- [ ] Uses **TanStack Query** for server state — NOT raw `fetch` or Redux
+- [ ] Uses **Zustand** for client-only state — NOT Redux or MobX
+- [ ] Uses **shadcn/ui + Tailwind** — NOT Material UI or Chakra
+- [ ] Uses **Vitest** for tests — NOT Jest
+- [ ] Named exports (except page components)
+- [ ] `function` declarations for components (not arrow functions)
+- [ ] `@/` path alias for `src/` imports
+- [ ] Tests colocated: `.test.tsx` / `.test.ts` next to source
+- [ ] User-centric queries in tests (not `getByTestId`)
+- [ ] Package names scoped as `@alcopilot/{name}`
+- [ ] No `any` types (unless genuinely unavoidable)

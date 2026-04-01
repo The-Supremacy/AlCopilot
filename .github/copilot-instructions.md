@@ -2,7 +2,10 @@
 
 ## Project Overview
 
-AlCopilot is an AI-powered drinks suggestion platform. Read [docs/architecture.md](../docs/architecture.md) for the full architecture, tech stack, and design decisions.
+AlCopilot is an AI-powered drinks suggestion platform.
+
+- [docs/architecture.md](../docs/architecture.md) — full architecture, tech stack, and design decisions
+- [AGENTS.md](../AGENTS.md) — agent workflow, roles, and area-specific conventions
 
 ## CRITICAL: No Vibe Coding
 
@@ -43,22 +46,31 @@ The developer builds first instances of each piece of functionality manually. Co
 
 ```
 alcopilot/
-├── .github/                      # CI/CD, Copilot instructions, SKILLs
-│   ├── workflows/                # GitHub Actions pipelines
-│   ├── instructions/             # Per-path Copilot instructions
-│   └── skills/                   # SKILL files (created incrementally)
-├── deploy/                       # Infrastructure and deployment
-├── docs/                         # Architecture and documentation
-├── server/                       # .NET backend
-│   ├── src/                      # Source projects (AlCopilot.Host, modules, etc.)
-│   └── tests/                    # Test projects
-└── web/                          # Frontend (pnpm workspace)
-    ├── apps/alcopilot-portal/    # Main user-facing app (Vite + React + TS)
-    └── packages/                 # Shared packages (future)
+├── .github/                      # CI/CD, Copilot config, SKILLs, hooks
+│   ├── workflows/                # GitHub Actions pipelines (see workflows/AGENTS.md)
+│   ├── skills/                   # SKILL files (created incrementally)
+│   └── hooks/                    # Copilot hooks (enforcement)
+├── deploy/                       # Infrastructure and deployment (see deploy/AGENTS.md)
+├── docs/                         # Architecture and documentation (see docs/AGENTS.md)
+├── server/                       # .NET backend (see server/AGENTS.md)
+├── web/                          # Frontend (see web/AGENTS.md)
+└── AGENTS.md                     # Agent workflow, roles, conventions index
 ```
 
-## Key Conventions
+## Conventions
 
 - **Semantic commits only** — enforced by Husky + commitlint
 - **Central Package Management** — all NuGet versions in `server/Directory.Packages.props`
-- Per-path instructions in `.github/instructions/` have full conventions for each area
+- Area-specific conventions in `AGENTS.md` files throughout the repo
+
+## Copilot Hooks
+
+Hooks in `.github/hooks/` enforce security and audit rules for the Copilot coding agent and Copilot CLI.
+
+**Active hooks:**
+
+| Hook           | Script                     | What it does                                                                |
+| -------------- | -------------------------- | --------------------------------------------------------------------------- |
+| `preToolUse`   | `scripts/security-gate.sh` | Blocks destructive commands, protects `docs/architecture.md` and lock files |
+| `postToolUse`  | `scripts/audit-log.sh`     | Logs all tool calls to `logs/copilot-audit.jsonl`                           |
+| `sessionStart` | `scripts/log-session.sh`   | Logs session start to `logs/copilot-sessions.jsonl`                         |

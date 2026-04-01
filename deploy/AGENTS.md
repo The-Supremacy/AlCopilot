@@ -1,12 +1,8 @@
----
-applyTo: 'deploy/**'
----
-
-# Deploy Instructions (Infrastructure & Deployment)
+# Deploy Conventions (Infrastructure & Deployment)
 
 ## Architecture Reference
 
-Read [docs/architecture.md](../../docs/architecture.md) for infrastructure decisions and rationale.
+Read [docs/architecture.md](../docs/architecture.md) for infrastructure decisions and rationale.
 
 ## Structure
 

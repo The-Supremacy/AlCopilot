@@ -1,8 +1,4 @@
----
-applyTo: 'docs/**'
----
-
-# Documentation Instructions
+# Documentation Conventions
 
 ## Standards
 
@@ -25,5 +21,5 @@ applyTo: 'docs/**'
 
 ## Diagrams
 
-- Use ASCII art or Mermaid for diagrams
+- Prefer **Mermaid** for diagrams — renders natively in GitHub and most tools
 - Keep diagrams close to the text that references them

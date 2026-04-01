@@ -1,8 +1,4 @@
----
-applyTo: '.github/workflows/**'
----
-
-# CI Instructions (GitHub Actions)
+# CI Conventions (GitHub Actions)
 
 ## Workflows
 

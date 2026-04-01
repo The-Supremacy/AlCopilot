@@ -232,6 +232,50 @@ alcopilot/
 
 ---
 
+## Domain-Driven Design
+
+Each module follows DDD principles. Domain logic lives in aggregates and domain services — never in handlers or infrastructure code.
+
+### Aggregates
+
+An **aggregate root** is the consistency boundary. Repositories load and persist the complete aggregate atomically. Child entities (e.g., `RecipeEntry` within `Drink`) are part of the aggregate and never accessed independently. Cross-aggregate references use IDs only.
+
+Base types live in `AlCopilot.Shared`:
+
+- `AggregateRoot<TId>` — base class with `Id`, `DomainEvents` list, protected `Raise(IDomainEvent)` method
+- `Entity<TId>` — base class for child entities within an aggregate
+- `ValueObject<T>` — base class with `Value` property, implicit conversion to `T`, equality by value
+
+### Value Objects
+
+Prefer value objects for any property with validation rules (length limits, format, non-empty). Value objects validate in their constructor/factory method — invalid values are structurally impossible. EF Core maps them via `HasConversion(v => v.Value, raw => TypeName.Create(raw))`.
+
+### Repositories & Unit of Work
+
+`IRepository<TRoot, TId>` provides `GetByIdAsync`, `Add`, `Remove`. One repository per aggregate root. Implementations are `internal sealed` classes wrapping the module's `DbContext`.
+
+`IUnitOfWork` provides `SaveChangesAsync`. The module's `DbContext` implements `IUnitOfWork`. Handlers call it once at the end — no mid-handler saves.
+
+### Domain Events & Outbox
+
+Aggregates raise domain events via `Raise(new SomeEvent(...))`. A `SaveChangesInterceptor` implements a **dispatch-before-commit loop**:
+
+1. Collect events from tracked aggregates, clear their lists
+2. Persist `DomainEventRecord` rows to the module's `domain_events` table
+3. Dispatch each event to registered `IDomainEventHandler<T>` implementations (in-process, same scope)
+4. Repeat (handlers may cause new events) — max depth 5, throw if exceeded
+5. Final `SaveChanges` commits everything atomically (state changes + event records)
+
+**Same-module** event handlers run synchronously in the same transaction via the interceptor loop. **Cross-module** event handlers use eventual consistency: `IsPublished = false` rows are picked up by a background worker and dispatched via Rebus. This preserves modular monolith boundaries — when a module is extracted, nothing changes because cross-module communication was already async.
+
+`DomainEventRecord` schema per module: `Id (long)`, `AggregateId (Guid)`, `AggregateType`, `EventType`, `Payload (jsonb)`, `OccurredAtUtc`, `Sequence`, `IsPublished`.
+
+### Why Not Event Sourcing
+
+Event sourcing (Marten, EventStoreDB) introduces significant complexity for a project where a straightforward relational model is appropriate. Domain events are persisted for replay and outbox purposes, but the source of truth is the aggregate state in the relational tables — not the event stream.
+
+---
+
 ## Testing Strategy
 
 ### Backend (.NET)
@@ -275,3 +319,13 @@ alcopilot/
 - **Pact (contract testing)**: Cross-module contracts are shared via `.Contracts` projects — no HTTP boundary to test
 - **Snapshot tests**: Brittle and low-value for this kind of application
 - **FluentAssertions**: Commercial license
+
+---
+
+## AI Tooling
+
+AI agent configuration follows a portable hierarchy:
+
+- **AGENTS.md hierarchy**: Root [AGENTS.md](../AGENTS.md) indexes area-specific conventions; `AGENTS.md` files in `server/`, `web/`, `deploy/`, `docs/`, `.github/workflows/` contain per-area conventions
+- **SKILL gate**: `.github/skills/` authorizes code generation for repeatable patterns (enforced via `.github/copilot-instructions.md`)
+- **Hooks**: `.github/hooks/` enforce security and audit rules for the Copilot coding agent and CLI
