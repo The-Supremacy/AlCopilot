@@ -77,6 +77,31 @@ public sealed class DrinkBrowseIntegrationTests(PostgresFixture fixture) : IAsyn
         result.TotalCount.ShouldBe(2);
         result.Items.Count.ShouldBe(1);
     }
+
+    [Fact]
+    public async Task GetPaged_FilterByMultipleTags_ReturnsUnionOrLogic()
+    {
+        // Arrange: add a third tag and a drink that has ONLY that tag
+        var tag3 = Tag.Create(TagName.Create("Fruity"));
+        _db.Tags.Add(tag3);
+        var drink3 = Drink.Create(DrinkName.Create("Daiquiri"), "Rum and lime", ImageUrl.Create(null));
+        drink3.SetTags([tag3]);
+        _db.Drinks.Add(drink3);
+        await _db.SaveChangesAsync();
+
+        // tag "Strong" is only on Old Fashioned, tag "Fruity" is only on Daiquiri
+        var tagStrong = await _db.Tags.FirstAsync(t => t.Name == TagName.Create("Strong"));
+        var repo = new DrinkRepository(_db);
+
+        // Act: filter by both Strong and Fruity — OR should return both, AND would return neither
+        var result = await repo.GetPagedAsync([tagStrong.Id, tag3.Id], 1, 20);
+
+        // Assert
+        result.TotalCount.ShouldBe(2);
+        result.Items.Select(d => d.Name).ShouldBe(
+            ["Daiquiri", "Old Fashioned"],
+            ignoreOrder: true);
+    }
 }
 
 [Trait("Category", "Integration")]

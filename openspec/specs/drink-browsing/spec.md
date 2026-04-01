@@ -17,7 +17,13 @@ The system SHALL return a paginated list of active drinks ordered by name.
 
 - Given drinks exist with various tags
 - When a consumer requests drinks filtered by one or more tag IDs
-- Then the system SHALL return only drinks associated with ALL specified tags (AND logic)
+- Then the system SHALL return drinks associated with ANY of the specified tags (OR logic)
+
+**Scenario: Browse drinks filtered by multiple tags returns union**
+
+- Given Drink A has Tag1 but not Tag2, and Drink B has Tag2 but not Tag1
+- When a consumer requests drinks filtered by both Tag1 and Tag2
+- Then the system SHALL return both Drink A and Drink B
 
 **Scenario: Browse with pagination**
 
