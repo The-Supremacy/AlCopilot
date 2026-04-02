@@ -1,11 +1,9 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
-using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
+using AlCopilot.DrinkCatalog.Features.IngredientCategory;
 using AlCopilot.Shared.Data;
 using Mediator;
 
-namespace AlCopilot.DrinkCatalog.Handlers.Commands;
+namespace AlCopilot.DrinkCatalog.Features.Ingredient;
 
 public sealed class CreateIngredientHandler(
     IIngredientRepository ingredientRepository,

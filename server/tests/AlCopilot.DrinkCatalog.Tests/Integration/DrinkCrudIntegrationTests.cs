@@ -1,7 +1,9 @@
 using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Data.Repositories;
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
+using AlCopilot.DrinkCatalog.Contracts.Queries;
+using AlCopilot.DrinkCatalog.Features.Drink;
+using AlCopilot.DrinkCatalog.Features.Ingredient;
+using AlCopilot.DrinkCatalog.Features.IngredientCategory;
+using AlCopilot.DrinkCatalog.Features.Tag;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
 
@@ -9,7 +11,7 @@ namespace AlCopilot.DrinkCatalog.Tests.Integration;
 
 [Trait("Category", "Integration")]
 [Collection("Postgres")]
-public sealed class DrinkCrudIntegrationTests(PostgresFixture fixture) : IAsyncLifetime
+public sealed class DrinkRepositoryPersistenceTests(PostgresFixture fixture) : IAsyncLifetime
 {
     private DrinkCatalogDbContext _db = null!;
 
@@ -124,7 +126,7 @@ public sealed class DrinkCrudIntegrationTests(PostgresFixture fixture) : IAsyncL
         await _db.SaveChangesAsync();
 
         var repo = new DrinkRepository(_db);
-        var paged = await repo.GetPagedAsync(null, 1, 20);
+        var paged = await repo.GetPagedAsync(new DrinkFilter(null, null, 1, 20));
         paged.Items.ShouldNotContain(d => d.Name == "SoonDeleted");
 
         var detail = await repo.GetDetailByIdAsync(drink.Id);

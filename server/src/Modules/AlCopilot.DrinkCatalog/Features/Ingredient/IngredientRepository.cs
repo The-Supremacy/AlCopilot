@@ -1,8 +1,9 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
+using AlCopilot.DrinkCatalog.Data;
+using AlCopilot.DrinkCatalog.Features.IngredientCategory;
 using Microsoft.EntityFrameworkCore;
 
-namespace AlCopilot.DrinkCatalog.Data.Repositories;
+namespace AlCopilot.DrinkCatalog.Features.Ingredient;
 
 internal sealed class IngredientRepository(DrinkCatalogDbContext dbContext) : IIngredientRepository
 {

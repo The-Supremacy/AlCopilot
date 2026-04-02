@@ -1,8 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
-using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
-using AlCopilot.DrinkCatalog.Handlers.Commands;
+using AlCopilot.DrinkCatalog.Features.Drink;
+using AlCopilot.DrinkCatalog.Features.Ingredient;
+using AlCopilot.DrinkCatalog.Features.IngredientCategory;
+using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
 using NSubstitute;
 using Shouldly;

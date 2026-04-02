@@ -23,7 +23,7 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Domain.Aggregates.Drink", b =>
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.Drink.Drink", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -59,7 +59,31 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                     b.ToTable("Drinks", "drink_catalog");
                 });
 
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Domain.Aggregates.Ingredient", b =>
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.Drink.RecipeEntry", b =>
+                {
+                    b.Property<Guid>("DrinkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("IngredientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Quantity")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RecommendedBrand")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("DrinkId", "IngredientId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.ToTable("RecipeEntries", "drink_catalog");
+                });
+
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.Ingredient.Ingredient", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -90,7 +114,7 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                     b.ToTable("Ingredients", "drink_catalog");
                 });
 
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Domain.Aggregates.IngredientCategory", b =>
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.IngredientCategory.IngredientCategory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -112,31 +136,7 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                     b.ToTable("IngredientCategories", "drink_catalog");
                 });
 
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Domain.Aggregates.RecipeEntry", b =>
-                {
-                    b.Property<Guid>("DrinkId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("IngredientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Quantity")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("RecommendedBrand")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("DrinkId", "IngredientId");
-
-                    b.HasIndex("IngredientId");
-
-                    b.ToTable("RecipeEntries", "drink_catalog");
-                });
-
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Domain.Aggregates.Tag", b =>
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.Tag.Tag", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -179,9 +179,6 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<bool>("IsPublished")
-                        .HasColumnType("boolean");
-
                     b.Property<DateTimeOffset>("OccurredAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -189,13 +186,11 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<long>("Sequence")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("IsPublished")
-                        .HasFilter("\"IsPublished\" = false");
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.HasIndex("AggregateId", "Id");
 
                     b.ToTable("domain_events", "drink_catalog");
                 });
@@ -215,46 +210,46 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                     b.ToTable("DrinkTag", "drink_catalog");
                 });
 
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Domain.Aggregates.Ingredient", b =>
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.Drink.RecipeEntry", b =>
                 {
-                    b.HasOne("AlCopilot.DrinkCatalog.Domain.Aggregates.IngredientCategory", null)
-                        .WithMany()
-                        .HasForeignKey("IngredientCategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Domain.Aggregates.RecipeEntry", b =>
-                {
-                    b.HasOne("AlCopilot.DrinkCatalog.Domain.Aggregates.Drink", null)
+                    b.HasOne("AlCopilot.DrinkCatalog.Features.Drink.Drink", null)
                         .WithMany("RecipeEntries")
                         .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AlCopilot.DrinkCatalog.Domain.Aggregates.Ingredient", null)
+                    b.HasOne("AlCopilot.DrinkCatalog.Features.Ingredient.Ingredient", null)
                         .WithMany()
                         .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.Ingredient.Ingredient", b =>
+                {
+                    b.HasOne("AlCopilot.DrinkCatalog.Features.IngredientCategory.IngredientCategory", null)
+                        .WithMany()
+                        .HasForeignKey("IngredientCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("DrinkTag", b =>
                 {
-                    b.HasOne("AlCopilot.DrinkCatalog.Domain.Aggregates.Drink", null)
+                    b.HasOne("AlCopilot.DrinkCatalog.Features.Drink.Drink", null)
                         .WithMany()
                         .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AlCopilot.DrinkCatalog.Domain.Aggregates.Tag", null)
+                    b.HasOne("AlCopilot.DrinkCatalog.Features.Tag.Tag", null)
                         .WithMany()
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Domain.Aggregates.Drink", b =>
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.Drink.Drink", b =>
                 {
                     b.Navigation("RecipeEntries");
                 });

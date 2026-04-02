@@ -1,6 +1,5 @@
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
 
-namespace AlCopilot.DrinkCatalog.Domain.Aggregates;
+namespace AlCopilot.DrinkCatalog.Features.Drink;
 
 public sealed class RecipeEntry
 {

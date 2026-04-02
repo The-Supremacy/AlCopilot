@@ -1,12 +1,10 @@
-using AlCopilot.DrinkCatalog.Domain.Events;
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
 using AlCopilot.Shared.Domain;
 
-namespace AlCopilot.DrinkCatalog.Domain.Aggregates;
+namespace AlCopilot.DrinkCatalog.Features.Drink;
 
 public sealed class Drink : AggregateRoot<Guid>
 {
-    private readonly List<Tag> _tags = [];
+    private readonly List<AlCopilot.DrinkCatalog.Features.Tag.Tag> _tags = [];
     private readonly List<RecipeEntry> _recipeEntries = [];
 
     public DrinkName Name { get; private set; } = null!;
@@ -16,7 +14,7 @@ public sealed class Drink : AggregateRoot<Guid>
     public DateTimeOffset? DeletedAtUtc { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
-    public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
+    public IReadOnlyCollection<AlCopilot.DrinkCatalog.Features.Tag.Tag> Tags => _tags.AsReadOnly();
     public IReadOnlyCollection<RecipeEntry> RecipeEntries => _recipeEntries.AsReadOnly();
 
     private Drink() { }
@@ -52,7 +50,7 @@ public sealed class Drink : AggregateRoot<Guid>
         Raise(new DrinkDeletedEvent(Id, DeletedAtUtc.Value));
     }
 
-    public void SetTags(IEnumerable<Tag> tags)
+    public void SetTags(IEnumerable<AlCopilot.DrinkCatalog.Features.Tag.Tag> tags)
     {
         _tags.Clear();
         _tags.AddRange(tags);

@@ -1,6 +1,6 @@
 using AlCopilot.Shared.Domain;
 
-namespace AlCopilot.DrinkCatalog.Domain.ValueObjects;
+namespace AlCopilot.DrinkCatalog.Features.Drink;
 
 public sealed class ImageUrl : ValueObject<string?>
 {

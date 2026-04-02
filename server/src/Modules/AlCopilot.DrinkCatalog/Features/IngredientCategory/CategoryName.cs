@@ -1,6 +1,6 @@
 using AlCopilot.Shared.Domain;
 
-namespace AlCopilot.DrinkCatalog.Domain.ValueObjects;
+namespace AlCopilot.DrinkCatalog.Features.IngredientCategory;
 
 public sealed class CategoryName : ValueObject<string>
 {

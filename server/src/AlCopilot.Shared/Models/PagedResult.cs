@@ -1,4 +1,4 @@
-namespace AlCopilot.DrinkCatalog.Contracts.DTOs;
+namespace AlCopilot.Shared.Models;
 
 public sealed record PagedRequest(int Page = 1, int PageSize = 20);
 

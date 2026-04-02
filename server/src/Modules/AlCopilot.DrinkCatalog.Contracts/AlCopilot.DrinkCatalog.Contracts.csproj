@@ -4,4 +4,8 @@
     <PackageReference Include="Mediator.Abstractions" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../../AlCopilot.Shared/AlCopilot.Shared.csproj" />
+  </ItemGroup>
+
 </Project>

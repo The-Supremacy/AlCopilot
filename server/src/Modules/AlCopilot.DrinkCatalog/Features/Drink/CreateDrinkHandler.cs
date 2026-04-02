@@ -1,11 +1,9 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
-using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
+using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
 using Mediator;
 
-namespace AlCopilot.DrinkCatalog.Handlers.Commands;
+namespace AlCopilot.DrinkCatalog.Features.Drink;
 
 public sealed class CreateDrinkHandler(
     IDrinkRepository drinkRepository,
@@ -23,13 +21,11 @@ public sealed class CreateDrinkHandler(
 
         if (request.TagIds is { Count: > 0 })
         {
-            var tags = new List<Tag>();
-            foreach (var tagId in request.TagIds)
-            {
-                var tag = await tagRepository.GetByIdAsync(tagId, cancellationToken)
-                    ?? throw new InvalidOperationException($"Tag '{tagId}' not found.");
-                tags.Add(tag);
-            }
+            var tags = await tagRepository.GetByIdsAsync(request.TagIds, cancellationToken);
+            var foundIds = tags.Select(t => t.Id).ToHashSet();
+            var missingId = request.TagIds.FirstOrDefault(id => !foundIds.Contains(id));
+            if (missingId != default)
+                throw new InvalidOperationException($"Tag '{missingId}' not found.");
             drink.SetTags(tags);
         }
 

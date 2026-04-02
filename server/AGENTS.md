@@ -108,8 +108,20 @@ Read [docs/architecture.md](../docs/architecture.md) for full architecture, desi
   4. Repeat (handlers may cause new events) — max depth 5, throw if exceeded
   5. Final `SaveChanges` commits everything atomically (state + events)
 - **Same-module** event handlers: synchronous, same transaction (via the interceptor loop)
-- **Cross-module** event handlers: always eventual consistency via the outbox (`IsPublished = false` → background worker → Rebus)
-- `DomainEventRecord` schema: `Id (long)`, `AggregateId (Guid)`, `AggregateType`, `EventType`, `Payload (jsonb)`, `OccurredAtUtc`, `Sequence`, `IsPublished`
+- **Cross-module** event handlers: eventual consistency via Rebus (outbox pattern to be added when needed)
+- `DomainEventRecord` schema: `Id (long)`, `AggregateId (Guid)`, `AggregateType`, `EventType`, `Payload (jsonb)`, `OccurredAtUtc`
+- `EventType` stores a logical name from `[DomainEventName]` attribute (e.g., `drink-catalog.drink-created.v1`), not the CLR type name
+- `DomainEventTypeRegistry` provides bidirectional `Type ↔ string` lookup, built at startup from module assemblies
+- Indexes: `(AggregateId, Id)` for per-aggregate audit/replay, `(OccurredAtUtc)` for time-range queries
+
+### Cross-Module Communication
+
+Two patterns — use both based on coupling semantics:
+
+- **Mediator commands** (orchestration): Module A sends a command/query from Module B's Contracts. Same transaction, request/response. Use when the caller needs a result or atomicity.
+- **Integration events + outbox** (choreography): `DomainEventRecord` rows are the outbox. A single `OutboxWorker` on Host polls each module's `domain_events` table, publishes to Rebus/Azure Service Bus topics. Consumers subscribe independently with per-consumer retry and dead-lettering. Use when the publisher doesn't need to know who reacts.
+
+See [docs/architecture.md](../docs/architecture.md) for full outbox design and module extraction strategy.
 
 ### Shared Project Structure
 
@@ -121,6 +133,9 @@ server/src/AlCopilot.Shared/
     Entity.cs
     IDomainEvent.cs
     IDomainEventHandler.cs
+    DomainEventNameAttribute.cs
+    DomainEventTypeRegistry.cs
+    DomainEventRegistryServiceCollectionExtensions.cs
     ValueObject.cs
   Data/
     IRepository.cs

@@ -1,11 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
-using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
 using AlCopilot.Shared.Data;
 using Mediator;
 
-namespace AlCopilot.DrinkCatalog.Handlers.Commands;
+namespace AlCopilot.DrinkCatalog.Features.Tag;
 
 public sealed class CreateTagHandler(
     ITagRepository tagRepository,

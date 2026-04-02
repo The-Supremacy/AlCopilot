@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Aspire/">
     <Project Path="src/AlCopilot.AppHost/AlCopilot.AppHost.csproj" />
+    <Project Path="src/AlCopilot.Migrator/AlCopilot.Migrator.csproj" />
   </Folder>
   <Folder Name="/Modules/">
     <Project Path="src/Modules/AlCopilot.DrinkCatalog/AlCopilot.DrinkCatalog.csproj" />

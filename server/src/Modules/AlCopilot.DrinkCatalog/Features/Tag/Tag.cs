@@ -1,14 +1,11 @@
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
 using AlCopilot.Shared.Domain;
 
-namespace AlCopilot.DrinkCatalog.Domain.Aggregates;
+namespace AlCopilot.DrinkCatalog.Features.Tag;
 
 public sealed class Tag : AggregateRoot<Guid>
 {
     public TagName Name { get; private set; } = null!;
     public DateTimeOffset CreatedAtUtc { get; private set; }
-
-    public ICollection<Drink> Drinks { get; private set; } = [];
 
     private Tag() { }
 

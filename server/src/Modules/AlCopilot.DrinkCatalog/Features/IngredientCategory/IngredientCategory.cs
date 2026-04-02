@@ -1,7 +1,6 @@
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
 using AlCopilot.Shared.Domain;
 
-namespace AlCopilot.DrinkCatalog.Domain.Aggregates;
+namespace AlCopilot.DrinkCatalog.Features.IngredientCategory;
 
 public sealed class IngredientCategory : AggregateRoot<Guid>
 {

@@ -8,6 +8,4 @@ public sealed class DomainEventRecord
     public string EventType { get; set; } = string.Empty;
     public string Payload { get; set; } = string.Empty;
     public DateTimeOffset OccurredAtUtc { get; set; }
-    public long Sequence { get; set; }
-    public bool IsPublished { get; set; }
 }

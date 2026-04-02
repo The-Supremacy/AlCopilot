@@ -1,8 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
+using AlCopilot.DrinkCatalog.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace AlCopilot.DrinkCatalog.Data.Repositories;
+namespace AlCopilot.DrinkCatalog.Features.Tag;
 
 internal sealed class TagRepository(DrinkCatalogDbContext dbContext) : ITagRepository
 {
@@ -19,7 +19,10 @@ internal sealed class TagRepository(DrinkCatalogDbContext dbContext) : ITagRepos
     {
         return await dbContext.Tags
             .OrderBy(t => t.Name)
-            .Select(t => new TagDto(t.Id, t.Name, t.Drinks.Count))
+            .Select(t => new TagDto(
+                t.Id,
+                t.Name,
+                dbContext.Drinks.Count(d => d.Tags.Any(dt => dt.Id == t.Id))))
             .ToListAsync(cancellationToken);
     }
 
@@ -31,5 +34,12 @@ internal sealed class TagRepository(DrinkCatalogDbContext dbContext) : ITagRepos
     public async Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await dbContext.Tags.AnyAsync(t => t.Name == name, cancellationToken);
+    }
+
+    public async Task<List<Tag>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Tags
+            .Where(t => ids.Contains(t.Id))
+            .ToListAsync(cancellationToken);
     }
 }

@@ -1,5 +1,6 @@
 using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.Shared.Data;
+using AlCopilot.Shared.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
@@ -13,7 +14,10 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     public DrinkCatalogDbContext CreateDbContext()
     {
+        // Intentionally empty service provider — no domain event handlers registered.
+        // The interceptor persists DomainEventRecords but dispatches to zero handlers.
         var services = new ServiceCollection();
+        services.AddDomainEventAssembly(typeof(DrinkCatalogModule).Assembly);
         services.AddScoped<DomainEventInterceptor>();
         var sp = services.BuildServiceProvider();
 

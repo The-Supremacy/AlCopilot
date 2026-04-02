@@ -1,12 +1,10 @@
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
-using AlCopilot.DrinkCatalog.Domain.Events;
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
+using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.Shared.Domain;
 using Shouldly;
 
 namespace AlCopilot.DrinkCatalog.Tests.Domain;
 
-public sealed class DomainEventInterceptorLogicTests
+public sealed class AggregateRootTests
 {
     [Fact]
     public void AggregateRoot_RaisesEvent_CollectedInDomainEvents()

@@ -108,7 +108,7 @@ A custom `IMessageTypeNameConvention` is used to produce human-readable, version
 
 ### Outbox pattern
 
-The outbox will be implemented manually when needed — approximately 150 lines: an `OutboxMessage` table plus a `BackgroundService` poller. This approach gives full control over which `DbContext`/transaction each outbox write participates in (one per module), and is more educational than depending on a framework implementation.
+A single `OutboxWorker` `BackgroundService` runs on the Host. Each module registers its outbox source (schema, table, DbContext) during `AddXxxModule()`. The worker polls each source for undispatched `DomainEventRecord` rows, deserializes via `DomainEventTypeRegistry`, and publishes to Rebus topics. This gives at-least-once delivery with per-consumer retry and dead-lettering handled natively by Azure Service Bus. See "Domain Events & Outbox" in the DDD section for full details.
 
 ---
 
@@ -266,9 +266,30 @@ Aggregates raise domain events via `Raise(new SomeEvent(...))`. A `SaveChangesIn
 4. Repeat (handlers may cause new events) — max depth 5, throw if exceeded
 5. Final `SaveChanges` commits everything atomically (state changes + event records)
 
-**Same-module** event handlers run synchronously in the same transaction via the interceptor loop. **Cross-module** event handlers use eventual consistency: `IsPublished = false` rows are picked up by a background worker and dispatched via Rebus. This preserves modular monolith boundaries — when a module is extracted, nothing changes because cross-module communication was already async.
+`DomainEventRecord` schema per module: `Id (long)`, `AggregateId (Guid)`, `AggregateType`, `EventType`, `Payload (jsonb)`, `OccurredAtUtc`. `EventType` stores a logical name from `[DomainEventName]` (e.g., `drink-catalog.drink-created.v1`), decoupled from CLR type names. Records serve as an audit log and event replay source. Indexes: `(AggregateId, Id)` for per-aggregate streams, `(OccurredAtUtc)` for time-range queries.
 
-`DomainEventRecord` schema per module: `Id (long)`, `AggregateId (Guid)`, `AggregateType`, `EventType`, `Payload (jsonb)`, `OccurredAtUtc`, `Sequence`, `IsPublished`.
+#### Cross-Module Communication Patterns
+
+Two complementary patterns cover all cross-module interaction:
+
+| Pattern                         | Use case                                          | Transaction                                  | Coupling                           |
+| ------------------------------- | ------------------------------------------------- | -------------------------------------------- | ---------------------------------- |
+| **Mediator commands**           | Orchestration — "do this, tell me if it worked"   | Same transaction (rolls back together)       | Caller knows the Contracts command |
+| **Integration events + outbox** | Choreography — "this happened, react if you want" | Separate transactions (eventual consistency) | Publisher doesn't know consumers   |
+
+**Mediator commands** (via Contracts): Module A sends a command/query defined in Module B's Contracts project. Synchronous, in-process, request/response. Use when the caller needs a result or needs the operation to succeed atomically.
+
+**Integration events** (via outbox + Rebus): `DomainEventRecord` rows serve as the outbox. A single `OutboxWorker` `BackgroundService` on the Host polls each module's `domain_events` table, deserializes via `DomainEventTypeRegistry`, and publishes to Rebus topics (Azure Service Bus). Each consuming module subscribes independently — the broker handles per-consumer delivery, retry, and dead-lettering. The publishing module doesn't know or care who subscribes.
+
+**Outbox design:**
+
+- Single `OutboxWorker` on Host — each module registers its outbox source (schema, table, DbContext type) during `AddXxxModule()`
+- Worker processes sources round-robin: `WHERE "DispatchedAtUtc" IS NULL ORDER BY "Id" LIMIT N`
+- `DispatchedAtUtc` nullable column tracks dispatch status (added when the first cross-module consumer is built)
+- One Rebus bus instance on Host — all modules publish through it
+- Per-source isolation: if one module's table is unavailable, the worker skips it and continues
+
+**Module extraction:** Remove the module's outbox source registration from Host. The extracted service runs its own `OutboxWorker` with its own Rebus instance. Subscribers don't change — they listen to topics, not deployment topology.
 
 ### Why Not Event Sourcing
 

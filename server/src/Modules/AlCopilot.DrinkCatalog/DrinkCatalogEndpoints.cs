@@ -1,5 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
+using AlCopilot.Shared.Models;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -26,25 +27,14 @@ public static class DrinkCatalogEndpoints
         var drinks = group.MapGroup("/drinks");
 
         drinks.MapGet("/", async (
-            [AsParameters] GetDrinksQuery query,
+            [AsParameters] DrinkBrowseRequest filters,
+            [AsParameters] PagedRequest paging,
             IMediator mediator,
             CancellationToken ct) =>
         {
+            var filter = new DrinkFilter(filters.Q, filters.TagIds?.ToList(), paging.Page, paging.PageSize);
+            var query = new GetDrinksQuery(filter);
             var result = await mediator.Send(query, ct);
-            return Results.Ok(result);
-        });
-
-        drinks.MapGet("/search", async (
-            string q,
-            int page,
-            int pageSize,
-            IMediator mediator,
-            CancellationToken ct) =>
-        {
-            if (string.IsNullOrWhiteSpace(q))
-                return Results.BadRequest("Query parameter 'q' is required and cannot be whitespace.");
-
-            var result = await mediator.Send(new SearchDrinksQuery(q, page, pageSize), ct);
             return Results.Ok(result);
         });
 
@@ -84,6 +74,13 @@ public static class DrinkCatalogEndpoints
             var deleted = await mediator.Send(new DeleteDrinkCommand(id), ct);
             return deleted ? Results.NoContent() : Results.NotFound();
         });
+    }
+
+    private sealed class DrinkBrowseRequest
+    {
+        public string? Q { get; init; }
+
+        public Guid[]? TagIds { get; init; }
     }
 
     private static void MapTagEndpoints(RouteGroupBuilder group)

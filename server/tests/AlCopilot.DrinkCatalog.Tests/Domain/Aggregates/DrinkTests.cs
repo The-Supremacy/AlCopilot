@@ -1,6 +1,5 @@
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
-using AlCopilot.DrinkCatalog.Domain.Events;
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
+using AlCopilot.DrinkCatalog.Features.Drink;
+using AlCopilot.DrinkCatalog.Features.Tag;
 using Shouldly;
 
 namespace AlCopilot.DrinkCatalog.Tests.Domain.Aggregates;

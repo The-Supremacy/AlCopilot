@@ -1,9 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
-using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.Shared.Data;
 using Mediator;
 
-namespace AlCopilot.DrinkCatalog.Handlers.Commands;
+namespace AlCopilot.DrinkCatalog.Features.Ingredient;
 
 public sealed class UpdateIngredientHandler(
     IIngredientRepository ingredientRepository,

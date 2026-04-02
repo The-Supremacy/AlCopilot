@@ -1,6 +1,10 @@
 using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Data.Repositories;
+using AlCopilot.DrinkCatalog.Features.Drink;
+using AlCopilot.DrinkCatalog.Features.Ingredient;
+using AlCopilot.DrinkCatalog.Features.IngredientCategory;
+using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
+using AlCopilot.Shared.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +19,8 @@ public static class DrinkCatalogModule
     {
         var connectionString = configuration.GetConnectionString("drink-catalog")
             ?? throw new InvalidOperationException("Connection string 'drink-catalog' is not configured.");
+
+        services.AddDomainEventAssembly(typeof(DrinkCatalogModule).Assembly);
 
         services.AddScoped<DomainEventInterceptor>();
 

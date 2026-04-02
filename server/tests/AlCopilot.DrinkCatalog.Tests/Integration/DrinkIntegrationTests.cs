@@ -1,7 +1,9 @@
 using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Data.Repositories;
-using AlCopilot.DrinkCatalog.Domain.Aggregates;
-using AlCopilot.DrinkCatalog.Domain.ValueObjects;
+using AlCopilot.DrinkCatalog.Contracts.Queries;
+using AlCopilot.DrinkCatalog.Features.Drink;
+using AlCopilot.DrinkCatalog.Features.Ingredient;
+using AlCopilot.DrinkCatalog.Features.IngredientCategory;
+using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
@@ -10,7 +12,7 @@ namespace AlCopilot.DrinkCatalog.Tests.Integration;
 
 [Trait("Category", "Integration")]
 [Collection("Postgres")]
-public sealed class DrinkBrowseIntegrationTests(PostgresFixture fixture) : IAsyncLifetime
+public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsyncLifetime
 {
     private DrinkCatalogDbContext _db = null!;
 
@@ -51,7 +53,7 @@ public sealed class DrinkBrowseIntegrationTests(PostgresFixture fixture) : IAsyn
     public async Task GetPaged_ReturnsAllActiveDrinks()
     {
         var repo = new DrinkRepository(_db);
-        var result = await repo.GetPagedAsync(null, 1, 20);
+        var result = await repo.GetPagedAsync(new DrinkFilter(null, null, 1, 20));
 
         result.TotalCount.ShouldBe(2);
         result.Items.ShouldNotContain(d => d.Name == "Deleted Drink");
@@ -62,7 +64,7 @@ public sealed class DrinkBrowseIntegrationTests(PostgresFixture fixture) : IAsyn
     {
         var tag = await _db.Tags.FirstAsync(t => t.Name == TagName.Create("Strong"));
         var repo = new DrinkRepository(_db);
-        var result = await repo.GetPagedAsync([tag.Id], 1, 20);
+        var result = await repo.GetPagedAsync(new DrinkFilter(null, [tag.Id], 1, 20));
 
         result.TotalCount.ShouldBe(1);
         result.Items[0].Name.ShouldBe("Old Fashioned");
@@ -72,7 +74,7 @@ public sealed class DrinkBrowseIntegrationTests(PostgresFixture fixture) : IAsyn
     public async Task GetPaged_Pagination_ReturnsCorrectPage()
     {
         var repo = new DrinkRepository(_db);
-        var result = await repo.GetPagedAsync(null, 1, 1);
+        var result = await repo.GetPagedAsync(new DrinkFilter(null, null, 1, 1));
 
         result.TotalCount.ShouldBe(2);
         result.Items.Count.ShouldBe(1);
@@ -94,7 +96,7 @@ public sealed class DrinkBrowseIntegrationTests(PostgresFixture fixture) : IAsyn
         var repo = new DrinkRepository(_db);
 
         // Act: filter by both Strong and Fruity — OR should return both, AND would return neither
-        var result = await repo.GetPagedAsync([tagStrong.Id, tag3.Id], 1, 20);
+        var result = await repo.GetPagedAsync(new DrinkFilter(null, [tagStrong.Id, tag3.Id], 1, 20));
 
         // Assert
         result.TotalCount.ShouldBe(2);
@@ -106,7 +108,7 @@ public sealed class DrinkBrowseIntegrationTests(PostgresFixture fixture) : IAsyn
 
 [Trait("Category", "Integration")]
 [Collection("Postgres")]
-public sealed class DrinkSearchIntegrationTests(PostgresFixture fixture) : IAsyncLifetime
+public sealed class DrinkRepositoryFilterTests(PostgresFixture fixture) : IAsyncLifetime
 {
     private DrinkCatalogDbContext _db = null!;
 
@@ -135,25 +137,36 @@ public sealed class DrinkSearchIntegrationTests(PostgresFixture fixture) : IAsyn
     }
 
     [Fact]
-    public async Task Search_ByName_FindsDrink()
+    public async Task GetPaged_WithQuery_FindsDrink()
     {
         var repo = new DrinkRepository(_db);
-        var result = await repo.SearchAsync("marg", 1, 20);
+        var result = await repo.GetPagedAsync(new DrinkFilter("marg", null, 1, 20));
         result.TotalCount.ShouldBeGreaterThan(0);
     }
 
     [Fact]
-    public async Task Search_NoResults_ReturnsEmpty()
+    public async Task GetPaged_WithQueryAndTagFilter_ReturnsMatchingDrink()
+    {
+        var tag = await _db.Tags.SingleAsync();
+        var repo = new DrinkRepository(_db);
+        var result = await repo.GetPagedAsync(new DrinkFilter("marg", [tag.Id], 1, 20));
+
+        result.TotalCount.ShouldBe(1);
+        result.Items[0].Name.ShouldBe("Margarita");
+    }
+
+    [Fact]
+    public async Task GetPaged_WithQuery_NoResults_ReturnsEmpty()
     {
         var repo = new DrinkRepository(_db);
-        var result = await repo.SearchAsync("nonexistent", 1, 20);
+        var result = await repo.GetPagedAsync(new DrinkFilter("nonexistent", null, 1, 20));
         result.TotalCount.ShouldBe(0);
     }
 }
 
 [Trait("Category", "Integration")]
 [Collection("Postgres")]
-public sealed class DrinkDetailIntegrationTests(PostgresFixture fixture) : IAsyncLifetime
+public sealed class DrinkRepositoryDetailTests(PostgresFixture fixture) : IAsyncLifetime
 {
     private DrinkCatalogDbContext _db = null!;
     private Guid _drinkId;

@@ -1,9 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
-using AlCopilot.DrinkCatalog.Data;
 using Mediator;
 
-namespace AlCopilot.DrinkCatalog.Handlers.Queries;
+namespace AlCopilot.DrinkCatalog.Features.IngredientCategory;
 
 public sealed class GetIngredientCategoriesHandler(IIngredientCategoryRepository categoryRepository)
     : IRequestHandler<GetIngredientCategoriesQuery, List<IngredientCategoryDto>>

@@ -6,7 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AlCopilot.Shared.Data;
 
-public sealed class DomainEventInterceptor(IServiceProvider serviceProvider) : SaveChangesInterceptor
+public sealed class DomainEventInterceptor(
+    IServiceProvider serviceProvider,
+    DomainEventTypeRegistry eventTypeRegistry) : SaveChangesInterceptor
 {
     private const int MaxDispatchDepth = 5;
 
@@ -25,55 +27,61 @@ public sealed class DomainEventInterceptor(IServiceProvider serviceProvider) : S
 
     private async Task DispatchDomainEventsAsync(DbContext context, CancellationToken cancellationToken)
     {
-        for (var depth = 0; depth < MaxDispatchDepth; depth++)
-        {
-            var aggregates = context.ChangeTracker
-                .Entries<IAggregateRoot>()
-                .Where(e => e.Entity.DomainEvents.Count > 0)
-                .Select(e => e.Entity)
-                .ToList();
+        var dispatchDepth = 0;
 
-            if (aggregates.Count == 0)
+        while (true)
+        {
+            if (dispatchDepth >= MaxDispatchDepth)
+                throw new InvalidOperationException(
+                    $"Domain event dispatch loop exceeded maximum depth of {MaxDispatchDepth}.");
+
+            var hadEvents = await DispatchCurrentBatchAsync(context, cancellationToken);
+            if (!hadEvents)
                 return;
 
-            var events = aggregates
-                .SelectMany(a => a.DomainEvents)
-                .ToList();
+            dispatchDepth++;
+        }
+    }
 
-            foreach (var aggregate in aggregates)
-            {
-                aggregate.ClearDomainEvents();
-            }
+    private async Task<bool> DispatchCurrentBatchAsync(
+        DbContext context,
+        CancellationToken cancellationToken)
+    {
+        var aggregatesWithEvents = context.ChangeTracker
+            .Entries<IAggregateRoot>()
+            .Where(e => e.Entity.DomainEvents.Count > 0)
+            .Select(e => (AggregateTypeName: e.Entity.GetType().Name, Events: e.Entity.DomainEvents.ToList(), Entity: e.Entity))
+            .ToList();
 
-            var domainEventSet = context.Set<DomainEventRecord>();
+        if (aggregatesWithEvents.Count == 0)
+            return false;
+
+        foreach (var (_, _, entity) in aggregatesWithEvents)
+            entity.ClearDomainEvents();
+
+        var domainEventSet = context.Set<DomainEventRecord>();
+        var allEvents = new List<IDomainEvent>();
+
+        foreach (var (aggregateTypeName, events, _) in aggregatesWithEvents)
+        {
             foreach (var domainEvent in events)
             {
+                allEvents.Add(domainEvent);
                 domainEventSet.Add(new DomainEventRecord
                 {
                     AggregateId = domainEvent.AggregateId,
-                    AggregateType = domainEvent.GetType().Name.Replace("Event", string.Empty),
-                    EventType = domainEvent.GetType().FullName ?? domainEvent.GetType().Name,
+                    AggregateType = aggregateTypeName,
+                    EventType = eventTypeRegistry.GetName(domainEvent.GetType()),
                     Payload = JsonSerializer.Serialize((object)domainEvent),
                     OccurredAtUtc = domainEvent.OccurredAtUtc,
-                    IsPublished = false
                 });
             }
-
-            foreach (var domainEvent in events)
-            {
-                await DispatchToHandlersAsync(domainEvent, cancellationToken);
-            }
         }
 
-        var remaining = context.ChangeTracker
-            .Entries<IAggregateRoot>()
-            .Any(e => e.Entity.DomainEvents.Count > 0);
+        foreach (var domainEvent in allEvents)
+            await DispatchToHandlersAsync(domainEvent, cancellationToken);
 
-        if (remaining)
-        {
-            throw new InvalidOperationException(
-                $"Domain event dispatch loop exceeded maximum depth of {MaxDispatchDepth}.");
-        }
+        return true;
     }
 
     private async Task DispatchToHandlersAsync(IDomainEvent domainEvent, CancellationToken cancellationToken)

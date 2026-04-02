@@ -1,9 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
-using AlCopilot.DrinkCatalog.Data;
 using Mediator;
 
-namespace AlCopilot.DrinkCatalog.Handlers.Queries;
+namespace AlCopilot.DrinkCatalog.Features.Drink;
 
 public sealed class GetDrinkByIdHandler(IDrinkRepository drinkRepository)
     : IRequestHandler<GetDrinkByIdQuery, DrinkDetailDto?>
