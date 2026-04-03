@@ -11,10 +11,24 @@ public sealed class HostSmokeTests(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task Root_ReturnsSuccessStatusCode()
     {
-        using var client = factory.CreateClient();
+        const string connectionStringKey = "ConnectionStrings__drink-catalog";
+        var originalValue = Environment.GetEnvironmentVariable(connectionStringKey);
 
-        var response = await client.GetAsync("/");
+        Environment.SetEnvironmentVariable(
+            connectionStringKey,
+            "Host=localhost;Database=alcopilot;Username=alcopilot;Password=alcopilot");
 
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        try
+        {
+            using var client = factory.CreateClient();
+
+            var response = await client.GetAsync("/");
+
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(connectionStringKey, originalValue);
+        }
     }
 }

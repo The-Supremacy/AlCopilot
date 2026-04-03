@@ -15,6 +15,9 @@
 		{
 			"name": "deploy",
 			"path": "deploy"
+		},
+		{
+			"path": "openspec"
 		}
 	],
 	"settings": {

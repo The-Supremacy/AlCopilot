@@ -101,6 +101,7 @@ Key properties of Rebus in this stack:
 - **Message format**: Rebus does not have its own wire protocol. Messages are clean JSON. Rebus metadata (`rbs2-*`) travels in transport headers only — not wrapped in the message payload — making messages portable to non-.NET consumers with no Rebus-specific deserialization required.
 - **Mixed transports**: Rebus supports configuring different transports for different endpoints. In-process dispatch goes through Mediator; external async messages go through Service Bus. The two are not mixed within Rebus itself — Mediator owns in-process, Rebus owns out-of-process.
 - **Interoperability**: Exporting to a non-Rebus system requires only that the consumer can read standard JSON and interpret the transport headers. No Rebus client is required on the receiving end. This contrasts with Wolverine, which has its own envelope protocol and requires Wolverine-specific handling for interoperability.
+- **Topic provisioning**: Topic creation is treated as external infrastructure responsibility. The Host publishes to pre-provisioned Azure Service Bus topics and does not auto-create them at runtime.
 
 ### Message type naming
 
@@ -190,7 +191,7 @@ Installed as a native AKS extension. Watches `deploy/flux/` in this repository a
 
 ### Local Development
 
-Aspire AppHost orchestrates the full local environment, including Keycloak, the Azure Service Bus emulator, and a Postgres instance. No Kubernetes required for development.
+Aspire AppHost orchestrates the full local environment, including Keycloak, the Azure Service Bus emulator, and a Postgres instance. No Kubernetes required for development. The AppHost starts the Service Bus emulator, but it does not create application topics automatically; those remain part of environment provisioning.
 
 ---
 
