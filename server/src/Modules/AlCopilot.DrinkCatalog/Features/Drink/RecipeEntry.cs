@@ -1,4 +1,3 @@
-
 namespace AlCopilot.DrinkCatalog.Features.Drink;
 
 public sealed class RecipeEntry

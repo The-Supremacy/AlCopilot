@@ -30,10 +30,12 @@ public sealed class DomainEventTypeRegistry
                 $"Domain event name '{eventName}' is not registered. " +
                 $"No event class with [DomainEventName(\"{eventName}\")] was found.");
 
+    public IReadOnlyDictionary<Type, string> GetTypeNames() => _typeToName;
+
     public static DomainEventTypeRegistry CreateFrom(params Assembly[] assemblies)
     {
         var typeToName = new Dictionary<Type, string>();
-        var nameToType = new Dictionary<string, Type>();
+        var nameToType = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var assembly in assemblies)
         {
@@ -41,18 +43,24 @@ public sealed class DomainEventTypeRegistry
             {
                 var attribute = type.GetCustomAttribute<DomainEventNameAttribute>();
                 if (attribute is null)
+                {
                     continue;
+                }
 
                 if (!typeof(IDomainEvent).IsAssignableFrom(type))
+                {
                     throw new InvalidOperationException(
                         $"Type '{type.FullName}' has [DomainEventName] but does not implement IDomainEvent.");
+                }
 
                 var fullName = attribute.FullName;
 
                 if (nameToType.TryGetValue(fullName, out var existing))
+                {
                     throw new InvalidOperationException(
                         $"Duplicate domain event name '{fullName}' on types " +
                         $"'{existing.FullName}' and '{type.FullName}'.");
+                }
 
                 typeToName[type] = fullName;
                 nameToType[fullName] = type;
@@ -61,6 +69,6 @@ public sealed class DomainEventTypeRegistry
 
         return new DomainEventTypeRegistry(
             typeToName.ToFrozenDictionary(),
-            nameToType.ToFrozenDictionary());
+            nameToType.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase));
     }
 }

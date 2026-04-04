@@ -1,6 +1,6 @@
 using AlCopilot.Shared.Domain;
 
-namespace AlCopilot.DrinkCatalog.Features.Drink;
+namespace AlCopilot.DrinkCatalog.Contracts.Events;
 
 [DomainEventName("drink-catalog.drink-created")]
 public sealed record DrinkCreatedEvent(Guid DrinkId) : IDomainEvent

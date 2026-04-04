@@ -10,14 +10,15 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Mediator.Abstractions" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Rebus" />
+    <PackageReference Include="Rebus.AzureServiceBus" />
+    <PackageReference Include="Rebus.RabbitMq" />
+    <PackageReference Include="Rebus.ServiceProvider" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../AlCopilot.ServiceDefaults/AlCopilot.ServiceDefaults.csproj" />
+    <ProjectReference Include="../AlCopilot.Shared/AlCopilot.Shared.csproj" />
     <ProjectReference Include="../Modules/AlCopilot.DrinkCatalog/AlCopilot.DrinkCatalog.csproj" />
   </ItemGroup>
 

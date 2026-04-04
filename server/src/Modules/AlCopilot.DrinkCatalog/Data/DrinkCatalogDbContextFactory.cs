@@ -1,3 +1,4 @@
+using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ internal sealed class DrinkCatalogDbContextFactory : IDesignTimeDbContextFactory
     public DrinkCatalogDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<DrinkCatalogDbContext>();
-        var registry = DomainEventTypeRegistry.CreateFrom(typeof(DrinkCatalogModule).Assembly);
+        var registry = DomainEventTypeRegistry.CreateFrom(typeof(DrinkCreatedEvent).Assembly);
         var services = new ServiceCollection().BuildServiceProvider();
         optionsBuilder.UseNpgsql(
             "Host=localhost;Port=5432;Database=alcopilot;Username=postgres;Password=postgres",

@@ -1,3 +1,4 @@
+using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.Shared.Domain;
 using Shouldly;

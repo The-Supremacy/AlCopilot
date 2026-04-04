@@ -1,3 +1,4 @@
+using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Domain;
@@ -17,7 +18,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         // Intentionally empty service provider — no domain event handlers registered.
         // The interceptor persists DomainEventRecords but dispatches to zero handlers.
         var services = new ServiceCollection();
-        services.AddDomainEventAssembly(typeof(DrinkCatalogModule).Assembly);
+        services.AddDomainEventAssembly(typeof(DrinkCreatedEvent).Assembly);
         services.AddScoped<DomainEventInterceptor>();
         var sp = services.BuildServiceProvider();
 

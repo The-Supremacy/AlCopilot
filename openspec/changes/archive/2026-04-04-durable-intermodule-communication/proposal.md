@@ -27,7 +27,7 @@ Those adjustments are part of the same architectural capability, not a separate 
 - **Outbox registration**: add shared `OutboxSourceDescriptor` infrastructure and module registration from `AddXxxModule()`
 - **Outbox worker**: implement a single `BackgroundService` on `AlCopilot.Host` that polls registered sources, deserializes events through `DomainEventTypeRegistry`, publishes them, and marks them dispatched
 - **Message naming**: ensure event type names use logical `[DomainEventName]` values and remain stable across transport boundaries
-- **Tests**: add unit and integration coverage for Rebus naming, outbox publishing, dispatch marking, and retry behavior
+- **Tests**: add unit and integration coverage for Rebus naming, outbox publishing, dispatch marking, and retry behavior. Production remains Azure Service Bus; automated pub/sub integration tests may use a separate real transport when emulator limitations prevent reliable topic/subscription verification.
 
 ### Out of Scope
 
@@ -69,6 +69,7 @@ The change also depends on:
 - **Delivery semantics**: at-least-once delivery means consumers must remain idempotent as new subscriptions are introduced
 - **Migration churn**: `domain_events` is already mid-transition in local changes, so the migration path needs careful review
 - **Test complexity**: integration coverage depends on the Azure Service Bus emulator and companion infrastructure being reliable in CI and local runs
+- **Test transport split**: automated pub/sub verification may use RabbitMQ while production remains on Azure Service Bus, which adds a small amount of test-only transport configuration in exchange for stable real-transport choreography coverage
 
 ## Notes
 

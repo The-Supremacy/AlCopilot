@@ -88,13 +88,12 @@ Alternative considered:
 `AlCopilot.Shared` will define an `OutboxSourceDescriptor` containing:
 
 - `DbContextType`
-- `Schema`
-- `TableName`
+- a logical source `Name` for logging and diagnostics
 
 An `AddOutboxSource` service-collection extension will register descriptors from each module.
 For example, `DrinkCatalogModule` registers its `DrinkCatalogDbContext` and `drink_catalog.domain_events` table.
 
-This gives the Host a stable discovery model for all modules that participate in durable publishing without creating compile-time coupling from Host to module internals.
+This gives the Host a stable discovery model for all modules that participate in durable publishing without creating compile-time coupling from Host to module internals. The worker relies on the resolved module `DbContext` and its EF mapping for table/schema details rather than duplicating that metadata in shared registration.
 
 Why this over hardcoding module knowledge in the Host:
 
@@ -184,9 +183,11 @@ Alternative considered:
 
 Integration tests will use:
 
-- Postgres via TestContainers
-- Azure Service Bus Emulator plus its companion container
-- `WebApplicationFactory<Program>` configured with test-time connection strings
+- Postgres via TestContainers for the outbox store
+- RabbitMQ via TestContainers for automated transport-backed pub/sub verification
+- `WebApplicationFactory<Program>` or equivalent test-time host wiring configured with test-time connection strings
+
+Local development and production-oriented runtime wiring continue to use Azure Service Bus. RabbitMQ is limited to automated integration tests because the current Azure Service Bus emulator path is not yet reliable enough for topic/subscription verification in this workflow.
 
 Unit tests will cover:
 
@@ -200,11 +201,12 @@ This keeps test behavior aligned with production transport semantics and avoids 
 Why this over swapping to an in-memory transport in integration tests:
 
 - Rebus transport replacement in app startup is awkward and fragile
-- emulator-backed tests validate the actual topic/subscription shape
-- fewer differences between local, CI, and production wiring
+- RabbitMQ-backed tests still exercise real pub/sub behavior, routing, and message serialization
+- it provides stable automated coverage for choreography scenarios while Azure Service Bus remains the production transport
 
 Alternative considered:
 
+- Azure Service Bus emulator for automated topic/subscription tests. Deferred because the current emulator path is not reliable enough for this verification target.
 - in-memory Rebus for integration tests. Rejected for end-to-end verification, though still acceptable for small unit-level handler tests.
 
 ## Risks / Trade-offs

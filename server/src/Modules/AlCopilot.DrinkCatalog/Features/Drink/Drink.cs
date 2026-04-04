@@ -1,3 +1,4 @@
+using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.Shared.Domain;
 
 namespace AlCopilot.DrinkCatalog.Features.Drink;

@@ -15,6 +15,9 @@
 		{
 			"name": "deploy",
 			"path": "deploy"
+		},
+		{
+			"path": "openspec"
 		}
 	],
 	"settings": {
@@ -36,7 +39,6 @@
 			"bradlc.vscode-tailwindcss",
 			"hashicorp.terraform",
 			"ms-azuretools.vscode-docker",
-			"GitHub.copilot",
 			"GitHub.copilot-chat",
 			"microsoft-aspire.aspire-vscode"
 		]

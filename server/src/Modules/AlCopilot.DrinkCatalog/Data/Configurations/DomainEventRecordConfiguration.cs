@@ -16,5 +16,7 @@ internal sealed class DomainEventRecordConfiguration : IEntityTypeConfiguration<
         builder.Property(r => r.Payload).IsRequired().HasColumnType("jsonb");
         builder.HasIndex(r => new { r.AggregateId, r.Id });
         builder.HasIndex(r => r.OccurredAtUtc);
+        builder.HasIndex(r => new { r.DispatchedAtUtc, r.Id })
+            .HasFilter("\"DispatchedAtUtc\" IS NULL");
     }
 }
