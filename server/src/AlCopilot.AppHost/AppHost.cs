@@ -1,14 +1,9 @@
 using Projects;
+using System.Security.Cryptography;
 
 var builder = DistributedApplication.CreateBuilder(args);
-var emulatorConfigPath = Path.GetFullPath(Path.Combine(
-    Directory.GetCurrentDirectory(),
-    "..",
-    "..",
-    "tests",
-    "AlCopilot.Host.Tests",
-    "ServiceBusEmulator.Config.json"));
-const string sqlPassword = "Your_strong_Password123";
+var emulatorConfigPath = Path.Combine(AppContext.BaseDirectory, "ServiceBusEmulator.Config.json");
+var sqlPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(24));
 
 var serviceBusSql = builder.AddContainer("servicebus-sql", "mcr.microsoft.com/mssql/server", "2022-latest")
     .WithEnvironment("ACCEPT_EULA", "Y")
@@ -19,7 +14,7 @@ var serviceBusSql = builder.AddContainer("servicebus-sql", "mcr.microsoft.com/ms
 var serviceBusEmulator = builder.AddContainer(
         "servicebus-emulator",
         "mcr.microsoft.com/azure-messaging/servicebus-emulator",
-        "latest")
+        "1.1.2")
     .WithBindMount(emulatorConfigPath, "/ServiceBus_Emulator/ConfigFiles/Config.json", isReadOnly: true)
     .WithEnvironment("SQL_SERVER", "servicebus-sql")
     .WithEnvironment("MSSQL_SA_PASSWORD", sqlPassword)

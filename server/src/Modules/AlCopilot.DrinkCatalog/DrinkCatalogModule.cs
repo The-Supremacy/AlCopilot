@@ -33,9 +33,7 @@ public static class DrinkCatalogModule
         });
 
         services.AddOutboxSource<DrinkCatalogDbContext>(
-            name: "drink-catalog",
-            schema: "drink_catalog",
-            tableName: "domain_events");
+            name: "drink-catalog");
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<DrinkCatalogDbContext>());
         services.AddScoped<IDrinkRepository, DrinkRepository>();

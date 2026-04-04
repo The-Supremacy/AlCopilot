@@ -149,7 +149,7 @@ public sealed class OutboxWorkerTests(DurableMessagingFixture fixture) : IAsyncL
 
         var worker = new OutboxWorker(
             serviceProvider,
-            [new OutboxSourceDescriptor("drink-catalog", typeof(DrinkCatalogDbContext), "drink_catalog", "domain_events")],
+            [new OutboxSourceDescriptor("drink-catalog", typeof(DrinkCatalogDbContext))],
             DomainEventTypeRegistry.CreateFrom(typeof(DrinkCreatedEvent).Assembly),
             bus,
             Options.Create(new OutboxWorkerOptions { BatchSize = 10, PollInterval = TimeSpan.FromMilliseconds(100) }),

@@ -81,7 +81,8 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
     {
         var drinkId = await CreateDrinkAsync("Retry Publish");
 
-        await RunWorkerUntilAsync(CreateUnsubscribedPublisherBus(), async () =>
+        using var unsubscribedBus = CreateUnsubscribedPublisherBus();
+        await RunWorkerUntilAsync(unsubscribedBus, async () =>
         {
             await using var dbContext = fixture.CreateDbContext();
             await WaitForDispatchAsync(dbContext, drinkId);
@@ -147,7 +148,7 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
 
         var worker = new OutboxWorker(
             serviceProvider,
-            [new OutboxSourceDescriptor("drink-catalog", typeof(DrinkCatalogDbContext), "drink_catalog", "domain_events")],
+            [new OutboxSourceDescriptor("drink-catalog", typeof(DrinkCatalogDbContext))],
             EventTypeRegistry,
             bus,
             Microsoft.Extensions.Options.Options.Create(
@@ -229,11 +230,13 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
 
     private sealed class DurableMessagingHarness : IAsyncDisposable
     {
+        private readonly BuiltinHandlerActivator _publisherActivator;
         private readonly BuiltinHandlerActivator _subscriberActivator = new();
         private readonly Channel<ReceivedTransportMessage> _messages = Channel.CreateUnbounded<ReceivedTransportMessage>();
 
-        private DurableMessagingHarness(IBus publisherBus)
+        private DurableMessagingHarness(BuiltinHandlerActivator publisherActivator, IBus publisherBus)
         {
+            _publisherActivator = publisherActivator;
             PublisherBus = publisherBus;
         }
 
@@ -241,7 +244,8 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
 
         public static async Task<DurableMessagingHarness> CreateAsync(string connectionString)
         {
-            var publisherBus = Configure.With(new BuiltinHandlerActivator())
+            var publisherActivator = new BuiltinHandlerActivator();
+            var publisherBus = Configure.With(publisherActivator)
                 .Transport(t => t.UsePostgreSqlAsOneWayClient(
                     connectionString,
                     "rebus_messages",
@@ -257,7 +261,7 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
                 .Options(ConfigureOptions)
                 .Start();
 
-            var harness = new DurableMessagingHarness(publisherBus);
+            var harness = new DurableMessagingHarness(publisherActivator, publisherBus);
 
             harness._subscriberActivator
                 .Handle<DrinkCreatedEvent>(async message =>
@@ -310,6 +314,7 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
 
         public ValueTask DisposeAsync()
         {
+            _publisherActivator.Dispose();
             _subscriberActivator.Dispose();
             _messages.Writer.TryComplete();
             return ValueTask.CompletedTask;
