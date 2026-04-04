@@ -1,19 +1,19 @@
 using System.Threading.Channels;
 using System.Text.Json;
+using AlCopilot.DrinkCatalog;
 using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.Host.Messaging;
-using AlCopilot.Shared.Data;
-using AlCopilot.Shared.Domain;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 using Rebus.Activation;
 using Rebus.Bus;
 using Rebus.Config;
 using Rebus.Pipeline;
+using Rebus.RabbitMq;
 using Rebus.Serialization;
 using Rebus.Serialization.Custom;
 using Rebus.Serialization.Json;
@@ -27,20 +27,22 @@ namespace AlCopilot.Host.Tests;
 [Collection("DurableMessaging")]
 public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFixture fixture) : IAsyncLifetime
 {
-    private static readonly DomainEventTypeRegistry EventTypeRegistry =
-        DomainEventTypeRegistry.CreateFrom(typeof(DrinkCreatedEvent).Assembly);
+    private static readonly AlCopilot.Shared.Domain.DomainEventTypeRegistry EventTypeRegistry =
+        AlCopilot.Shared.Domain.DomainEventTypeRegistry.CreateFrom(typeof(DrinkCreatedEvent).Assembly);
 
     public Task InitializeAsync() => fixture.ResetDatabaseAsync();
 
     public Task DisposeAsync() => fixture.ResetDatabaseAsync();
 
     [Fact]
-    public async Task Worker_PublishesCommittedEvent_AndMarksRecordDispatched()
+    public async Task Worker_PublishesCommittedEvent_ThroughRabbitMq_AndMarksRecordDispatched()
     {
-        await using var harness = await DurableMessagingHarness.CreateAsync(fixture.PostgresConnectionString);
-
+        await using var harness = await DurableMessagingHarness.CreateAsync(fixture.MessagingConnectionString);
         var drinkId = await CreateDrinkAsync("Transport Publish");
-        await RunWorkerUntilAsync(harness.PublisherBus, async () =>
+        await using var provider = BuildServiceProvider();
+        using var worker = CreateWorker(provider);
+
+        await RunWorkerUntilAsync(worker, async () =>
         {
             await using var dbContext = fixture.CreateDbContext();
             await WaitForDispatchAsync(dbContext, drinkId);
@@ -55,12 +57,14 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
     }
 
     [Fact]
-    public async Task PublishedContractEvent_UsesLogicalNameAndExpectedPayloadShape()
+    public async Task PublishedContractEvent_UsesLogicalNameAndExpectedPayloadShape_ThroughRabbitMq()
     {
-        await using var harness = await DurableMessagingHarness.CreateAsync(fixture.PostgresConnectionString);
-
+        await using var harness = await DurableMessagingHarness.CreateAsync(fixture.MessagingConnectionString);
         var drinkId = await CreateDrinkAsync("Payload Shape");
-        await RunWorkerUntilAsync(harness.PublisherBus, async () =>
+        await using var provider = BuildServiceProvider();
+        using var worker = CreateWorker(provider);
+
+        await RunWorkerUntilAsync(worker, async () =>
         {
             await using var dbContext = fixture.CreateDbContext();
             await WaitForDispatchAsync(dbContext, drinkId);
@@ -80,9 +84,10 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
     public async Task Worker_MarksRecordDispatched_WhenNoSubscriberExists()
     {
         var drinkId = await CreateDrinkAsync("Retry Publish");
+        await using var provider = BuildServiceProvider();
+        using var worker = CreateWorker(provider);
 
-        using var unsubscribedBus = CreateUnsubscribedPublisherBus();
-        await RunWorkerUntilAsync(unsubscribedBus, async () =>
+        await RunWorkerUntilAsync(worker, async () =>
         {
             await using var dbContext = fixture.CreateDbContext();
             await WaitForDispatchAsync(dbContext, drinkId);
@@ -94,17 +99,21 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
     }
 
     [Fact]
-    public async Task PublishFailure_LeavesRowRetryable_AndLaterRunPublishesSuccessfully()
+    public async Task PublishFailure_LeavesRowRetryable_AndLaterRunPublishesSuccessfully_ThroughRabbitMq()
     {
-        await using var harness = await DurableMessagingHarness.CreateAsync(fixture.PostgresConnectionString);
+        await using var harness = await DurableMessagingHarness.CreateAsync(fixture.MessagingConnectionString);
         var drinkId = await CreateDrinkAsync("Retryable After Failure");
 
         var failingBus = Substitute.For<IBus>();
         failingBus.Publish(Arg.Any<object>()).Returns(_ => throw new InvalidOperationException("simulated transport failure"));
-        await RunWorkerUntilAsync(
-            failingBus,
-            async () => await Task.Delay(500),
-            TimeSpan.FromSeconds(2));
+        await using (var failingProvider = BuildServiceProvider())
+        {
+            using var failingWorker = CreateWorker(failingProvider, failingBus);
+            await RunWorkerUntilAsync(
+                failingWorker,
+                async () => await Task.Delay(500),
+                TimeSpan.FromSeconds(2));
+        }
 
         await using (var afterFailureContext = fixture.CreateDbContext())
         {
@@ -112,11 +121,15 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
             failedRecord.DispatchedAtUtc.ShouldBeNull();
         }
 
-        await RunWorkerUntilAsync(harness.PublisherBus, async () =>
+        await using (var provider = BuildServiceProvider())
         {
-            await using var dbContext = fixture.CreateDbContext();
-            await WaitForDispatchAsync(dbContext, drinkId);
-        });
+            using var worker = CreateWorker(provider);
+            await RunWorkerUntilAsync(worker, async () =>
+            {
+                await using var dbContext = fixture.CreateDbContext();
+                await WaitForDispatchAsync(dbContext, drinkId);
+            });
+        }
 
         var receivedMessage = await harness.ReceiveAsync();
         receivedMessage.ShouldNotBeNull();
@@ -136,24 +149,42 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
         return drink.Id;
     }
 
-    private async Task RunWorkerUntilAsync(
-        IBus bus,
+    private ServiceProvider BuildServiceProvider()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:drink-catalog"] = fixture.PostgresConnectionString,
+                ["ConnectionStrings:messaging"] = fixture.MessagingConnectionString,
+                ["Messaging:Transport"] = "RabbitMq",
+                [$"{OutboxWorkerOptions.SectionName}:BatchSize"] = "10",
+                [$"{OutboxWorkerOptions.SectionName}:PollInterval"] = "00:00:00.100"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddDrinkCatalogModule(configuration);
+        services.AddDurableMessaging(configuration);
+
+        return services.BuildServiceProvider();
+    }
+
+    private static OutboxWorker CreateWorker(IServiceProvider provider, IBus? bus = null)
+    {
+        return new OutboxWorker(
+            provider,
+            provider.GetServices<AlCopilot.Shared.Data.OutboxSourceDescriptor>(),
+            provider.GetRequiredService<AlCopilot.Shared.Domain.DomainEventTypeRegistry>(),
+            bus ?? provider.GetRequiredService<IBus>(),
+            provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<OutboxWorkerOptions>>(),
+            NullLogger<OutboxWorker>.Instance);
+    }
+
+    private static async Task RunWorkerUntilAsync(
+        OutboxWorker worker,
         Func<Task> assertion,
         TimeSpan? timeout = null)
     {
-        using var serviceProvider = new ServiceCollection()
-            .AddScoped(_ => fixture.CreateDbContext())
-            .AddScoped<DrinkCatalogDbContext>(_ => fixture.CreateDbContext())
-            .BuildServiceProvider();
-
-        var worker = new OutboxWorker(
-            serviceProvider,
-            [new OutboxSourceDescriptor("drink-catalog", typeof(DrinkCatalogDbContext))],
-            EventTypeRegistry,
-            bus,
-            Microsoft.Extensions.Options.Options.Create(
-                new OutboxWorkerOptions { BatchSize = 10, PollInterval = TimeSpan.FromMilliseconds(100) }),
-            NullLogger<OutboxWorker>.Instance);
 
         using var cancellationTokenSource = new CancellationTokenSource(timeout ?? TimeSpan.FromSeconds(20));
         await worker.StartAsync(cancellationTokenSource.Token);
@@ -190,80 +221,26 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
         throw new TimeoutException("Timed out waiting for dispatched outbox record.");
     }
 
-    private IBus CreateUnsubscribedPublisherBus()
-    {
-        var activator = new BuiltinHandlerActivator();
-
-        return Configure.With(activator)
-            .Transport(t => t.UsePostgreSqlAsOneWayClient(
-                fixture.PostgresConnectionString,
-                "rebus_messages",
-                expiredMessagesCleanupInterval: null,
-                schemaName: "messaging"))
-            .Subscriptions(s => s.StoreInPostgres(
-                fixture.PostgresConnectionString,
-                "rebus_subscriptions",
-                isCentralized: true,
-                automaticallyCreateTables: true,
-                additionalConnectionSetup: null))
-            .Serialization(ConfigureSerialization)
-            .Options(ConfigureOptions)
-            .Start();
-    }
-
-    private static void ConfigureSerialization(StandardConfigurer<ISerializer> serializationConfigurer)
-    {
-        serializationConfigurer.UseSystemTextJson();
-
-        var typeNameBuilder = serializationConfigurer.UseCustomMessageTypeNames();
-        foreach (var pair in EventTypeRegistry.GetTypeNames())
-        {
-            typeNameBuilder.AddWithCustomName(pair.Key, pair.Value);
-        }
-    }
-
-    private static void ConfigureOptions(OptionsConfigurer optionsConfigurer)
-    {
-        optionsConfigurer.Register(_ => new LogicalMessageTypeNameConvention(EventTypeRegistry));
-        optionsConfigurer.Decorate<ITopicNameConvention>(_ => new LogicalTopicNameConvention(EventTypeRegistry));
-    }
-
     private sealed class DurableMessagingHarness : IAsyncDisposable
     {
-        private readonly BuiltinHandlerActivator _publisherActivator;
-        private readonly BuiltinHandlerActivator _subscriberActivator = new();
+        private readonly BuiltinHandlerActivator _subscriberActivator;
         private readonly Channel<ReceivedTransportMessage> _messages = Channel.CreateUnbounded<ReceivedTransportMessage>();
 
-        private DurableMessagingHarness(BuiltinHandlerActivator publisherActivator, IBus publisherBus)
+        private DurableMessagingHarness(BuiltinHandlerActivator subscriberActivator, IBus subscriberBus)
         {
-            _publisherActivator = publisherActivator;
-            PublisherBus = publisherBus;
+            _subscriberActivator = subscriberActivator;
+            SubscriberBus = subscriberBus;
         }
 
-        public IBus PublisherBus { get; }
+        public IBus SubscriberBus { get; }
 
         public static async Task<DurableMessagingHarness> CreateAsync(string connectionString)
         {
-            var publisherActivator = new BuiltinHandlerActivator();
-            var publisherBus = Configure.With(publisherActivator)
-                .Transport(t => t.UsePostgreSqlAsOneWayClient(
-                    connectionString,
-                    "rebus_messages",
-                    expiredMessagesCleanupInterval: null,
-                    schemaName: "messaging"))
-                .Subscriptions(s => s.StoreInPostgres(
-                    connectionString,
-                    "rebus_subscriptions",
-                    isCentralized: true,
-                    automaticallyCreateTables: true,
-                    additionalConnectionSetup: null))
-                .Serialization(ConfigureSerialization)
-                .Options(ConfigureOptions)
-                .Start();
+            var queueName = $"verify-dispatch-{Guid.NewGuid():N}";
+            var subscriberActivator = new BuiltinHandlerActivator();
+            var harness = new DurableMessagingHarness(subscriberActivator, default!);
 
-            var harness = new DurableMessagingHarness(publisherActivator, publisherBus);
-
-            harness._subscriberActivator
+            subscriberActivator
                 .Handle<DrinkCreatedEvent>(async message =>
                 {
                     var context = MessageContext.Current
@@ -276,24 +253,14 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
                             [.. context.TransportMessage.Body]));
                 });
 
-            var subscriberBus = Configure.With(harness._subscriberActivator)
-                .Transport(t => t.UsePostgreSql(
-                    connectionString,
-                    "rebus_messages",
-                    $"verify-dispatch-{Guid.NewGuid():N}",
-                    expiredMessagesCleanupInterval: null,
-                    schemaName: "messaging"))
-                .Subscriptions(s => s.StoreInPostgres(
-                    connectionString,
-                    "rebus_subscriptions",
-                    isCentralized: true,
-                    automaticallyCreateTables: true,
-                    additionalConnectionSetup: null))
+            var subscriberBus = Configure.With(subscriberActivator)
+                .Transport(t => t.UseRabbitMq(connectionString, queueName))
                 .Serialization(ConfigureSerialization)
                 .Options(ConfigureOptions)
                 .Start();
 
-            await subscriberBus.Subscribe<DrinkCreatedEvent>();
+            harness = new DurableMessagingHarness(subscriberActivator, subscriberBus);
+            await harness.SubscriberBus.Subscribe<DrinkCreatedEvent>();
 
             return harness;
         }
@@ -314,11 +281,27 @@ public sealed class DurableMessagingTransportIntegrationTests(DurableMessagingFi
 
         public ValueTask DisposeAsync()
         {
-            _publisherActivator.Dispose();
             _subscriberActivator.Dispose();
             _messages.Writer.TryComplete();
             return ValueTask.CompletedTask;
         }
+    }
+
+    private static void ConfigureSerialization(StandardConfigurer<ISerializer> serializationConfigurer)
+    {
+        serializationConfigurer.UseSystemTextJson();
+
+        var typeNameBuilder = serializationConfigurer.UseCustomMessageTypeNames();
+        foreach (var pair in EventTypeRegistry.GetTypeNames())
+        {
+            typeNameBuilder.AddWithCustomName(pair.Key, pair.Value);
+        }
+    }
+
+    private static void ConfigureOptions(OptionsConfigurer optionsConfigurer)
+    {
+        optionsConfigurer.Register(_ => new LogicalMessageTypeNameConvention(EventTypeRegistry));
+        optionsConfigurer.Decorate<ITopicNameConvention>(_ => new LogicalTopicNameConvention(EventTypeRegistry));
     }
 
     private sealed record ReceivedTransportMessage(

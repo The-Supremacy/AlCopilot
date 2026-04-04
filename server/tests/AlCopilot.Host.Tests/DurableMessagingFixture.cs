@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
+using Testcontainers.RabbitMq;
 using Xunit;
 
 namespace AlCopilot.Host.Tests;
@@ -13,17 +14,22 @@ public sealed class DurableMessagingFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17-alpine")
         .Build();
+    private readonly RabbitMqContainer _rabbitMq = new RabbitMqBuilder("rabbitmq:3-management-alpine")
+        .Build();
 
     public string PostgresConnectionString => _postgres.GetConnectionString();
+    public string MessagingConnectionString => _rabbitMq.GetConnectionString();
 
     public async Task InitializeAsync()
     {
         await _postgres.StartAsync();
+        await _rabbitMq.StartAsync();
         await MigrateDatabaseAsync();
     }
 
     public async Task DisposeAsync()
     {
+        await _rabbitMq.DisposeAsync();
         await _postgres.DisposeAsync();
     }
 

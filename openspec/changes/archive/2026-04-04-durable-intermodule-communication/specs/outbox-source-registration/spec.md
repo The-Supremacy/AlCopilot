@@ -7,7 +7,7 @@ The system SHALL allow each participating module to register its own outbox sour
 #### Scenario: Module registers its outbox source during composition
 
 - **WHEN** a module that persists domain events is added to the Host service collection
-- **THEN** the module SHALL register an outbox source descriptor containing the owning `DbContext` type and the `domain_events` table identity needed by the worker
+- **THEN** the module SHALL register an outbox source descriptor containing the owning `DbContext` type needed by the worker to resolve the module's mapped `DomainEventRecord` set
 
 #### Scenario: Host resolves all registered sources at runtime
 

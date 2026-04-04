@@ -12,6 +12,7 @@
     <PackageReference Include="Mediator.Abstractions" />
     <PackageReference Include="Rebus" />
     <PackageReference Include="Rebus.AzureServiceBus" />
+    <PackageReference Include="Rebus.RabbitMq" />
     <PackageReference Include="Rebus.ServiceProvider" />
   </ItemGroup>
 
