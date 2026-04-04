@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.2](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.1...v0.1.2) (2026-04-04)
+
+
+### Features
+
+* ingredient management ([822da92](https://github.com/The-Supremacy/AlCopilot/commit/822da92b43efa56dedcd0189f57790145a75c8bc))
+
+
+### Bug Fixes
+
+* address code review issues in durable messaging outbox ([5388a34](https://github.com/The-Supremacy/AlCopilot/commit/5388a3498f20e004877ab819a6e8935e9d84fb3e))
+* address code review suggestions for durable messaging outbox ([0f5f35b](https://github.com/The-Supremacy/AlCopilot/commit/0f5f35b793ab0f0ff17047c0f440aead9eb2d27d))
+* durable messaging tests ([c8988c7](https://github.com/The-Supremacy/AlCopilot/commit/c8988c7bcd1a529381ae4871711f6c066a330215))
+
 ## [0.1.1](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.0...v0.1.1) (2026-04-04)
 
 
