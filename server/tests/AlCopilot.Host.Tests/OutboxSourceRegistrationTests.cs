@@ -13,14 +13,14 @@ public sealed class OutboxSourceRegistrationTests
     {
         var services = new ServiceCollection();
 
-        services.AddOutboxSource<TestDbContext>("drink-catalog", "drink_catalog", "domain_events");
-        services.AddOutboxSource<TestDbContext>("drink-catalog", "drink_catalog", "domain_events");
+        services.AddOutboxSource<TestDbContext>("drink-catalog");
+        services.AddOutboxSource<TestDbContext>("drink-catalog");
 
         services
             .Where(descriptor => descriptor.ServiceType == typeof(OutboxSourceDescriptor))
             .ShouldHaveSingleItem()
             .ImplementationInstance.ShouldBe(
-                new OutboxSourceDescriptor("drink-catalog", typeof(TestDbContext), "drink_catalog", "domain_events"));
+                new OutboxSourceDescriptor("drink-catalog", typeof(TestDbContext)));
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public sealed class OutboxSourceRegistrationTests
         var services = new ServiceCollection();
 
         Should.Throw<InvalidOperationException>(
-            () => services.AddOutboxSource("invalid", typeof(string), "drink_catalog", "domain_events"));
+            () => services.AddOutboxSource("invalid", typeof(string)));
     }
 
     private sealed class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(options);

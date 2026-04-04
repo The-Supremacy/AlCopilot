@@ -4,9 +4,7 @@ namespace AlCopilot.Shared.Data;
 
 public sealed record OutboxSourceDescriptor(
     string Name,
-    Type DbContextType,
-    string Schema,
-    string TableName)
+    Type DbContextType)
 {
     public void Validate()
     {

@@ -7,22 +7,18 @@ public static class OutboxServiceCollectionExtensions
 {
     public static IServiceCollection AddOutboxSource<TDbContext>(
         this IServiceCollection services,
-        string name,
-        string schema,
-        string tableName)
+        string name)
         where TDbContext : DbContext
     {
-        return services.AddOutboxSource(name, typeof(TDbContext), schema, tableName);
+        return services.AddOutboxSource(name, typeof(TDbContext));
     }
 
     public static IServiceCollection AddOutboxSource(
         this IServiceCollection services,
         string name,
-        Type dbContextType,
-        string schema,
-        string tableName)
+        Type dbContextType)
     {
-        var descriptor = new OutboxSourceDescriptor(name, dbContextType, schema, tableName);
+        var descriptor = new OutboxSourceDescriptor(name, dbContextType);
         descriptor.Validate();
 
         var alreadyRegistered = services
