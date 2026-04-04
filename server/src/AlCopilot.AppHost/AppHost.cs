@@ -28,7 +28,17 @@ var serviceBusEmulator = builder.AddContainer(
     .WithEndpoint(name: "management-https", targetPort: 9355)
     .WaitFor(serviceBusSql);
 
+var postgres = builder.AddPostgres("postgres");
+var drinkCatalogDb = postgres.AddDatabase("drink-catalog");
+
+var migrator = builder.AddProject<AlCopilot_Migrator>("alcopilot-migrator")
+    .WithReference(drinkCatalogDb)
+    .WaitFor(drinkCatalogDb);
+
 builder.AddProject<AlCopilot_Host>("alcopilot-host")
+    .WithReference(drinkCatalogDb)
+    .WaitFor(drinkCatalogDb)
+    .WaitForCompletion(migrator)
     .WaitFor(serviceBusEmulator)
     .WithEnvironment(
         "ConnectionStrings__messaging",

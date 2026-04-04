@@ -1,69 +1,74 @@
+using System.Collections.Frozen;
 using System.Reflection;
 
 namespace AlCopilot.Shared.Domain;
 
 public sealed class DomainEventTypeRegistry
 {
-    private readonly IReadOnlyDictionary<Type, string> _typeToName;
-    private readonly IReadOnlyDictionary<string, Type> _nameToType;
+    private readonly FrozenDictionary<Type, string> _typeToName;
+    private readonly FrozenDictionary<string, Type> _nameToType;
 
     private DomainEventTypeRegistry(
-        IReadOnlyDictionary<Type, string> typeToName,
-        IReadOnlyDictionary<string, Type> nameToType)
+        FrozenDictionary<Type, string> typeToName,
+        FrozenDictionary<string, Type> nameToType)
     {
         _typeToName = typeToName;
         _nameToType = nameToType;
     }
 
-    public static DomainEventTypeRegistry CreateFrom(Assembly assembly)
+    public string GetName(Type eventType) =>
+        _typeToName.TryGetValue(eventType, out var name)
+            ? name
+            : throw new InvalidOperationException(
+                $"Domain event type '{eventType.FullName}' is not registered. " +
+                $"Add [DomainEventName] attribute to the event class.");
+
+    public Type GetType(string eventName) =>
+        _nameToType.TryGetValue(eventName, out var type)
+            ? type
+            : throw new InvalidOperationException(
+                $"Domain event name '{eventName}' is not registered. " +
+                $"No event class with [DomainEventName(\"{eventName}\")] was found.");
+
+    public IReadOnlyDictionary<Type, string> GetTypeNames() => _typeToName;
+
+    public static DomainEventTypeRegistry CreateFrom(params Assembly[] assemblies)
     {
         var typeToName = new Dictionary<Type, string>();
         var nameToType = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var type in assembly.GetTypes())
+        foreach (var assembly in assemblies)
         {
-            if (type.IsAbstract || type.IsInterface || !typeof(IDomainEvent).IsAssignableFrom(type))
+            foreach (var type in assembly.GetTypes())
             {
-                continue;
+                var attribute = type.GetCustomAttribute<DomainEventNameAttribute>();
+                if (attribute is null)
+                {
+                    continue;
+                }
+
+                if (!typeof(IDomainEvent).IsAssignableFrom(type))
+                {
+                    throw new InvalidOperationException(
+                        $"Type '{type.FullName}' has [DomainEventName] but does not implement IDomainEvent.");
+                }
+
+                var fullName = attribute.FullName;
+
+                if (nameToType.TryGetValue(fullName, out var existing))
+                {
+                    throw new InvalidOperationException(
+                        $"Duplicate domain event name '{fullName}' on types " +
+                        $"'{existing.FullName}' and '{type.FullName}'.");
+                }
+
+                typeToName[type] = fullName;
+                nameToType[fullName] = type;
             }
-
-            var attribute = type.GetCustomAttribute<DomainEventNameAttribute>();
-            if (attribute is null || string.IsNullOrWhiteSpace(attribute.Name))
-            {
-                continue;
-            }
-
-            var logicalName = attribute.Name.EndsWith(".v1", StringComparison.OrdinalIgnoreCase)
-                ? attribute.Name
-                : $"{attribute.Name}.v1";
-
-            typeToName[type] = logicalName;
-            nameToType[logicalName] = type;
         }
 
-        return new DomainEventTypeRegistry(typeToName, nameToType);
+        return new DomainEventTypeRegistry(
+            typeToName.ToFrozenDictionary(),
+            nameToType.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase));
     }
-
-    public string GetName(Type eventType)
-    {
-        if (_typeToName.TryGetValue(eventType, out var name))
-        {
-            return name;
-        }
-
-        throw new InvalidOperationException(
-            $"Domain event type '{eventType.FullName}' is not registered.");
-    }
-
-    public Type GetType(string logicalName)
-    {
-        if (_nameToType.TryGetValue(logicalName, out var eventType))
-        {
-            return eventType;
-        }
-
-        throw new InvalidOperationException($"Domain event logical name '{logicalName}' is not registered.");
-    }
-
-    public IReadOnlyDictionary<Type, string> GetTypeNames() => _typeToName;
 }

@@ -109,7 +109,7 @@ A custom `IMessageTypeNameConvention` is used to produce human-readable, version
 
 ### Outbox pattern
 
-The outbox will be implemented manually when needed — approximately 150 lines: an `OutboxMessage` table plus a `BackgroundService` poller. This approach gives full control over which `DbContext`/transaction each outbox write participates in (one per module), and is more educational than depending on a framework implementation.
+A single `OutboxWorker` `BackgroundService` runs on the Host. Each module registers its outbox source (schema, table, DbContext) during `AddXxxModule()`. The worker polls each source for undispatched `DomainEventRecord` rows, deserializes via `DomainEventTypeRegistry`, and publishes to Rebus topics. This gives at-least-once delivery with per-consumer retry and dead-lettering handled natively by Azure Service Bus. See "Domain Events & Outbox" in the DDD section for full details.
 
 ---
 
@@ -233,6 +233,71 @@ alcopilot/
 
 ---
 
+## Domain-Driven Design
+
+Each module follows DDD principles. Domain logic lives in aggregates and domain services — never in handlers or infrastructure code.
+
+### Aggregates
+
+An **aggregate root** is the consistency boundary. Repositories load and persist the complete aggregate atomically. Child entities (e.g., `RecipeEntry` within `Drink`) are part of the aggregate and never accessed independently. Cross-aggregate references use IDs only.
+
+Base types live in `AlCopilot.Shared`:
+
+- `AggregateRoot<TId>` — base class with `Id`, `DomainEvents` list, protected `Raise(IDomainEvent)` method
+- `Entity<TId>` — base class for child entities within an aggregate
+- `ValueObject<T>` — base class with `Value` property, implicit conversion to `T`, equality by value
+
+### Value Objects
+
+Prefer value objects for any property with validation rules (length limits, format, non-empty). Value objects validate in their constructor/factory method — invalid values are structurally impossible. EF Core maps them via `HasConversion(v => v.Value, raw => TypeName.Create(raw))`.
+
+### Repositories & Unit of Work
+
+`IRepository<TRoot, TId>` provides `GetByIdAsync`, `Add`, `Remove`. One repository per aggregate root. Implementations are `internal sealed` classes wrapping the module's `DbContext`.
+
+`IUnitOfWork` provides `SaveChangesAsync`. The module's `DbContext` implements `IUnitOfWork`. Handlers call it once at the end — no mid-handler saves.
+
+### Domain Events & Outbox
+
+Aggregates raise domain events via `Raise(new SomeEvent(...))`. A `SaveChangesInterceptor` implements a **dispatch-before-commit loop**:
+
+1. Collect events from tracked aggregates, clear their lists
+2. Persist `DomainEventRecord` rows to the module's `domain_events` table
+3. Dispatch each event to registered `IDomainEventHandler<T>` implementations (in-process, same scope)
+4. Repeat (handlers may cause new events) — max depth 5, throw if exceeded
+5. Final `SaveChanges` commits everything atomically (state changes + event records)
+
+`DomainEventRecord` schema per module: `Id (long)`, `AggregateId (Guid)`, `AggregateType`, `EventType`, `Payload (jsonb)`, `OccurredAtUtc`. `EventType` stores a logical name from `[DomainEventName]` (e.g., `drink-catalog.drink-created.v1`), decoupled from CLR type names. Records serve as an audit log and event replay source. Indexes: `(AggregateId, Id)` for per-aggregate streams, `(OccurredAtUtc)` for time-range queries.
+
+#### Cross-Module Communication Patterns
+
+Two complementary patterns cover all cross-module interaction:
+
+| Pattern                         | Use case                                          | Transaction                                  | Coupling                           |
+| ------------------------------- | ------------------------------------------------- | -------------------------------------------- | ---------------------------------- |
+| **Mediator commands**           | Orchestration — "do this, tell me if it worked"   | Same transaction (rolls back together)       | Caller knows the Contracts command |
+| **Integration events + outbox** | Choreography — "this happened, react if you want" | Separate transactions (eventual consistency) | Publisher doesn't know consumers   |
+
+**Mediator commands** (via Contracts): Module A sends a command/query defined in Module B's Contracts project. Synchronous, in-process, request/response. Use when the caller needs a result or needs the operation to succeed atomically.
+
+**Integration events** (via outbox + Rebus): `DomainEventRecord` rows serve as the outbox. A single `OutboxWorker` `BackgroundService` on the Host polls each module's `domain_events` table, deserializes via `DomainEventTypeRegistry`, and publishes to Rebus topics (Azure Service Bus). Each consuming module subscribes independently — the broker handles per-consumer delivery, retry, and dead-lettering. The publishing module doesn't know or care who subscribes.
+
+**Outbox design:**
+
+- Single `OutboxWorker` on Host — each module registers its outbox source (schema, table, DbContext type) during `AddXxxModule()`
+- Worker processes sources round-robin: `WHERE "DispatchedAtUtc" IS NULL ORDER BY "Id" LIMIT N`
+- `DispatchedAtUtc` nullable column tracks dispatch status (added when the first cross-module consumer is built)
+- One Rebus bus instance on Host — all modules publish through it
+- Per-source isolation: if one module's table is unavailable, the worker skips it and continues
+
+**Module extraction:** Remove the module's outbox source registration from Host. The extracted service runs its own `OutboxWorker` with its own Rebus instance. Subscribers don't change — they listen to topics, not deployment topology.
+
+### Why Not Event Sourcing
+
+Event sourcing (Marten, EventStoreDB) introduces significant complexity for a project where a straightforward relational model is appropriate. Domain events are persisted for replay and outbox purposes, but the source of truth is the aggregate state in the relational tables — not the event stream.
+
+---
+
 ## Testing Strategy
 
 ### Backend (.NET)
@@ -276,3 +341,13 @@ alcopilot/
 - **Pact (contract testing)**: Cross-module contracts are shared via `.Contracts` projects — no HTTP boundary to test
 - **Snapshot tests**: Brittle and low-value for this kind of application
 - **FluentAssertions**: Commercial license
+
+---
+
+## AI Tooling
+
+AI agent configuration follows a portable hierarchy:
+
+- **AGENTS.md hierarchy**: Root [AGENTS.md](../AGENTS.md) indexes area-specific conventions; `AGENTS.md` files in `server/`, `web/`, `deploy/`, `docs/`, `.github/workflows/` contain per-area conventions
+- **SKILL gate**: `.github/skills/` authorizes code generation for repeatable patterns (enforced via `.github/copilot-instructions.md`)
+- **Hooks**: `.github/hooks/` enforce security and audit rules for the Copilot coding agent and CLI

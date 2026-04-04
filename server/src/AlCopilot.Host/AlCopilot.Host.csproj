@@ -5,7 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Mediator.SourceGenerator">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Mediator.Abstractions" />
     <PackageReference Include="Rebus" />
     <PackageReference Include="Rebus.AzureServiceBus" />
     <PackageReference Include="Rebus.ServiceProvider" />
@@ -14,7 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="../AlCopilot.ServiceDefaults/AlCopilot.ServiceDefaults.csproj" />
     <ProjectReference Include="../AlCopilot.Shared/AlCopilot.Shared.csproj" />
-    <ProjectReference Include="../Modules/AlCopilot.DrinkCatalog.Contracts/AlCopilot.DrinkCatalog.Contracts.csproj" />
     <ProjectReference Include="../Modules/AlCopilot.DrinkCatalog/AlCopilot.DrinkCatalog.csproj" />
   </ItemGroup>
 

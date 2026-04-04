@@ -6,6 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../AlCopilot.Migrator/AlCopilot.Migrator.csproj" />
     <ProjectReference Include="../AlCopilot.Host/AlCopilot.Host.csproj" />
   </ItemGroup>
 

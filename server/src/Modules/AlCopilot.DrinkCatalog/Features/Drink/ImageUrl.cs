@@ -1,6 +1,15 @@
+using AlCopilot.Shared.Domain;
+
 namespace AlCopilot.DrinkCatalog.Features.Drink;
 
-public readonly record struct ImageUrl(string? Value)
+public sealed class ImageUrl : ValueObject<string?>
 {
-    public static ImageUrl Create(string? value) => new(value);
+    private ImageUrl(string? value) : base(value) { }
+
+    public static ImageUrl Create(string? value)
+    {
+        if (value is not null && value.Length > 1000)
+            throw new ArgumentException("Image URL cannot exceed 1000 characters.", nameof(value));
+        return new ImageUrl(value);
+    }
 }

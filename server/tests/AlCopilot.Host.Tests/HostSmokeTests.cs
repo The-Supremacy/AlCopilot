@@ -1,12 +1,13 @@
 using System.Net;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Shouldly;
 using Xunit;
 
 namespace AlCopilot.Host.Tests;
 
-public sealed class HostSmokeTests(WebApplicationFactory<Program> factory)
-    : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HostSmokeTests(HostSmokeTests.SmokeTestFactory factory)
+    : IClassFixture<HostSmokeTests.SmokeTestFactory>
 {
     [Fact]
     public async Task Root_ReturnsSuccessStatusCode()
@@ -29,6 +30,15 @@ public sealed class HostSmokeTests(WebApplicationFactory<Program> factory)
         finally
         {
             Environment.SetEnvironmentVariable(connectionStringKey, originalValue);
+        }
+    }
+
+    public sealed class SmokeTestFactory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseEnvironment("Testing");
+            builder.UseSetting("ConnectionStrings:drink-catalog", "Host=localhost;Database=test;Username=test;Password=test");
         }
     }
 }

@@ -1,9 +1,21 @@
+using AlCopilot.Shared.Domain;
+
 namespace AlCopilot.DrinkCatalog.Features.Tag;
 
-public sealed class Tag
+public sealed class Tag : AggregateRoot<Guid>
 {
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
-    public List<AlCopilot.DrinkCatalog.Features.Drink.Drink> Drinks { get; set; } = [];
+    public TagName Name { get; private set; } = null!;
+    public DateTimeOffset CreatedAtUtc { get; private set; }
+
+    private Tag() { }
+
+    public static Tag Create(TagName name)
+    {
+        return new Tag
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            CreatedAtUtc = DateTimeOffset.UtcNow
+        };
+    }
 }

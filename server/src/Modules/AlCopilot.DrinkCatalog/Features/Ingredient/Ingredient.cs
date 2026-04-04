@@ -1,10 +1,30 @@
+using AlCopilot.Shared.Domain;
+
 namespace AlCopilot.DrinkCatalog.Features.Ingredient;
 
-public sealed class Ingredient
+public sealed class Ingredient : AggregateRoot<Guid>
 {
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public Guid IngredientCategoryId { get; set; }
-    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
-    public List<string> NotableBrands { get; set; } = [];
+    public IngredientName Name { get; private set; } = null!;
+    public Guid IngredientCategoryId { get; private set; }
+    public List<string> NotableBrands { get; private set; } = [];
+    public DateTimeOffset CreatedAtUtc { get; private set; }
+
+    private Ingredient() { }
+
+    public static Ingredient Create(IngredientName name, Guid ingredientCategoryId, List<string>? notableBrands = null)
+    {
+        return new Ingredient
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            IngredientCategoryId = ingredientCategoryId,
+            NotableBrands = notableBrands ?? [],
+            CreatedAtUtc = DateTimeOffset.UtcNow
+        };
+    }
+
+    public void UpdateBrands(List<string> brands)
+    {
+        NotableBrands = brands;
+    }
 }

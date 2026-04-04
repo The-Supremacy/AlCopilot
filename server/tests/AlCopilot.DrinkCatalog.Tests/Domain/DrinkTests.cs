@@ -12,18 +12,21 @@ public sealed class DrinkTests
     {
         var drink = Drink.Create(DrinkName.Create("Negroni"), null, ImageUrl.Create(null));
 
-        var domainEvent = drink.DequeueDomainEvents().ShouldHaveSingleItem();
+        var domainEvent = drink.DomainEvents.ShouldHaveSingleItem();
 
         domainEvent.ShouldBeOfType<DrinkCreatedEvent>()
             .DrinkId.ShouldBe(drink.Id);
     }
 
     [Fact]
-    public void DequeueDomainEvents_ClearsQueuedEvents()
+    public void ClearDomainEvents_RemovesQueuedEvents()
     {
         var drink = Drink.Create(DrinkName.Create("Americano"), null, ImageUrl.Create(null));
 
-        drink.DequeueDomainEvents().Count.ShouldBe(1);
-        drink.DequeueDomainEvents().ShouldBeEmpty();
+        drink.DomainEvents.Count.ShouldBe(1);
+
+        drink.ClearDomainEvents();
+
+        drink.DomainEvents.ShouldBeEmpty();
     }
 }

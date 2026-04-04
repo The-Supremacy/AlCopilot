@@ -1,0 +1,68 @@
+schema: spec-driven
+
+context: |
+  ## Project: AlCopilot — AI-powered drinks suggestion platform
+
+  Architecture: Modular monolith (.NET 10 + Aspire). Single deployable unit with strict
+  internal boundaries. Each module owns its own DbContext and Postgres schema. Modules
+  communicate via Contracts projects and Mediator — never cross-module EF entity references.
+  Each module follows DDD (aggregates, value objects, repositories, domain events).
+  See server/AGENTS.md for full DDD implementation conventions.
+
+  ### Approved Stack (deviations require updating docs/architecture.md)
+  - Backend: .NET 10 + Aspire, EF Core + PostgreSQL, Mediator (source-generated), Rebus
+  - Frontend: React + Vite + TypeScript, TanStack Router/Query, Zustand, Tailwind + shadcn/ui
+  - Identity: Keycloak (OIDC), BFF pattern in Host (HttpOnly; Secure; SameSite=Strict cookies)
+  - CI/CD: GitHub Actions, GHCR, Release Please, Flux GitOps
+  - Infrastructure: AKS (Free tier, B-series), Envoy Gateway, Azure Service Bus
+  - Testing: xUnit, Shouldly, NSubstitute, TestContainers, NetArchTest, Vitest, RTL, Playwright
+
+  ### Banned Dependencies (NON-NEGOTIABLE)
+  - MediatR (commercial license v13+) — use Mediator
+  - MassTransit (commercial license) — use Rebus
+  - Wolverine (deep framework coupling risk)
+  - FluentAssertions (commercial license) — use Shouldly
+  - Moq (SponsorLink telemetry) — use NSubstitute
+  - In-memory EF providers — use real Postgres via TestContainers
+
+  ### Core Principles
+  - Own dispatch (Mediator), outbox, deduplication; only rent transport (Rebus)
+  - BFF security: tokens stored server-side, SPA never sees them, OIDC via Keycloak
+  - Real testing: TestContainers + real Postgres, no fakes
+  - Cost consciousness: prefer self-hosted over high-floor managed services
+  - Local-first dev: everything runs via Aspire AppHost, no cloud dependency for inner loop
+  - TreatWarningsAsErrors, nullable reference types, sealed classes by default
+  - Semantic commits enforced (Husky + commitlint)
+  - Central Package Management (Directory.Packages.props)
+
+  ### Project Structure
+  - server/src/AlCopilot.{Module}/ — module projects
+  - server/src/AlCopilot.{Module}.Contracts/ — cross-module contracts (interfaces, DTOs, events)
+  - server/tests/AlCopilot.{Module}.Tests/ — tests per module
+  - web/apps/alcopilot-portal/ — React SPA
+  - Detailed conventions in AGENTS.md files throughout the repo
+
+rules:
+  proposal:
+    - Reference docs/architecture.md for existing design decisions
+    - Identify which modules are affected
+    - Note any new dependencies and verify they are MIT-licensed
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (SHALL, MUST, SHOULD, MAY)
+    - Reference existing module boundaries — do not cross them
+    - Every scenario implies both a unit test (handler logic in isolation, NSubstitute for dependencies) and an integration test (end-to-end with real Postgres via TestContainers)
+  design:
+    - Each module must have its own DbContext with dedicated Postgres schema
+    - Cross-module communication via Contracts projects only
+    - Module entry point must be Add{Module}Module(IServiceCollection) extension method
+    - Include rollback strategy for database migrations
+    - Follow DDD conventions from server/AGENTS.md (aggregates, value objects, repositories, UoW, domain events)
+    - Design must identify aggregate roots, value objects, and domain events for each module
+  tasks:
+    - Group tasks by module/layer (backend, frontend, infrastructure)
+    - Include architecture test updates for any new module boundaries
+    - Include unit tests per handler (isolated logic, NSubstitute for dependencies, Shouldly assertions)
+    - Include integration tests per feature (TestContainers Postgres, real database operations)
+    - Target full test coverage — every spec scenario must map to at least one unit test and one integration test
+    - Include tasks for DDD infrastructure (base types in Shared, repositories, value objects, domain events) when the module is the first to use them

@@ -3,43 +3,63 @@ using AlCopilot.Shared.Domain;
 
 namespace AlCopilot.DrinkCatalog.Features.Drink;
 
-public sealed class Drink
+public sealed class Drink : AggregateRoot<Guid>
 {
-    private readonly List<IDomainEvent> _domainEvents = [];
+    private readonly List<AlCopilot.DrinkCatalog.Features.Tag.Tag> _tags = [];
+    private readonly List<RecipeEntry> _recipeEntries = [];
 
-    private Drink()
-    {
-    }
-
-    public Guid Id { get; private set; }
-    public string Name { get; private set; } = string.Empty;
+    public DrinkName Name { get; private set; } = null!;
     public string? Description { get; private set; }
-    public string? ImageUrl { get; private set; }
+    public ImageUrl ImageUrl { get; private set; } = null!;
     public bool IsDeleted { get; private set; }
     public DateTimeOffset? DeletedAtUtc { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
-    public List<RecipeEntry> RecipeEntries { get; private set; } = [];
-    public List<AlCopilot.DrinkCatalog.Features.Tag.Tag> Tags { get; private set; } = [];
+
+    public IReadOnlyCollection<AlCopilot.DrinkCatalog.Features.Tag.Tag> Tags => _tags.AsReadOnly();
+    public IReadOnlyCollection<RecipeEntry> RecipeEntries => _recipeEntries.AsReadOnly();
+
+    private Drink() { }
 
     public static Drink Create(DrinkName name, string? description, ImageUrl imageUrl)
     {
         var drink = new Drink
         {
             Id = Guid.NewGuid(),
-            Name = name.Value,
+            Name = name,
             Description = description,
-            ImageUrl = imageUrl.Value,
+            ImageUrl = imageUrl,
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
 
-        drink._domainEvents.Add(new DrinkCreatedEvent(drink.Id));
+        drink.Raise(new DrinkCreatedEvent(drink.Id));
         return drink;
     }
 
-    public IReadOnlyList<IDomainEvent> DequeueDomainEvents()
+    public void Update(DrinkName name, string? description, ImageUrl imageUrl)
     {
-        var events = _domainEvents.ToArray();
-        _domainEvents.Clear();
-        return events;
+        Name = name;
+        Description = description;
+        ImageUrl = imageUrl;
+    }
+
+    public void SoftDelete()
+    {
+        if (IsDeleted) return;
+
+        IsDeleted = true;
+        DeletedAtUtc = DateTimeOffset.UtcNow;
+        Raise(new DrinkDeletedEvent(Id, DeletedAtUtc.Value));
+    }
+
+    public void SetTags(IEnumerable<AlCopilot.DrinkCatalog.Features.Tag.Tag> tags)
+    {
+        _tags.Clear();
+        _tags.AddRange(tags);
+    }
+
+    public void SetRecipeEntries(IEnumerable<RecipeEntry> entries)
+    {
+        _recipeEntries.Clear();
+        _recipeEntries.AddRange(entries);
     }
 }

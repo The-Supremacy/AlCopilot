@@ -1,14 +1,18 @@
+using AlCopilot.Shared.Domain;
+
 namespace AlCopilot.DrinkCatalog.Features.Drink;
 
-public readonly record struct DrinkName(string Value)
+public sealed class DrinkName : ValueObject<string>
 {
+    private DrinkName(string value) : base(value) { }
+
     public static DrinkName Create(string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            throw new ArgumentException("Drink name is required.", nameof(value));
-        }
-
-        return new DrinkName(value.Trim());
+        var trimmed = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            throw new ArgumentException("Drink name cannot be empty.", nameof(value));
+        if (trimmed.Length > 200)
+            throw new ArgumentException("Drink name cannot exceed 200 characters.", nameof(value));
+        return new DrinkName(trimmed);
     }
 }
