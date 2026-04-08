@@ -32,9 +32,6 @@ public static class DrinkCatalogModule
             options.AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>());
         });
 
-        services.AddOutboxSource<DrinkCatalogDbContext>(
-            name: "drink-catalog");
-
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<DrinkCatalogDbContext>());
         services.AddScoped<IDrinkRepository, DrinkRepository>();
         services.AddScoped<ITagRepository, TagRepository>();

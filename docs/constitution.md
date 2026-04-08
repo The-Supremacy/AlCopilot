@@ -19,6 +19,13 @@ Break work into small, reviewable steps.
 Get explicit approval before proceeding with non-trivial implementation.
 Use OpenSpec as the default workflow for changes that affect behavior, architecture, or delivery expectations.
 
+## Decision Records
+
+Use ADRs under `docs/adr/` for architectural decisions, deferred technical direction, and major workflow choices that do not describe supported product behavior on their own.
+Prefer creating a new ADR that supersedes an older one over rewriting decision history in place.
+Update architecture or workflow documents only when an ADR changes current guidance, not merely because an ADR exists.
+Follow the ADR structure and status rules in `docs/adr/README.md`.
+
 ## OpenSpec Artifact Boundaries
 
 Proposal artifacts capture intent.
@@ -26,6 +33,7 @@ Every proposal should explain the problem being solved, the desired outcome, and
 Specification artifacts capture observable behavior and acceptance criteria.
 Design artifacts capture technical intent, structure, trade-offs, and implementation approach.
 Task artifacts capture the concrete implementation sequence.
+If a change is purely architectural or deferred and does not define supported behavior, prefer an ADR over an OpenSpec capability change.
 Do not compensate for a weak proposal by stuffing motivation into specs.
 Do not compensate for a weak spec by inventing requirements during implementation.
 

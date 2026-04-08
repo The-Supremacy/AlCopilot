@@ -4,6 +4,7 @@
 
 Read [docs/constitution.md](../docs/constitution.md) for project-wide governance and workflow rules.
 Read [docs/architecture.md](../docs/architecture.md) for full architecture and tech stack decisions.
+Read [docs/adr/0003-frontend-stack.md](../docs/adr/0003-frontend-stack.md) for the accepted frontend stack decision.
 
 ## Stack
 

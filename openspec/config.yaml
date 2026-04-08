@@ -7,6 +7,8 @@ context: |
   artifact boundaries.
   See docs/architecture.md for full architecture, tech stack, module boundaries,
   and design decisions.
+  See docs/adr/ and docs/adr/README.md for architectural decisions, statuses,
+  and deferred technical direction.
   See server/AGENTS.md for .NET conventions, DDD implementation details, and testing standards.
   See web/AGENTS.md for frontend conventions.
 
@@ -15,6 +17,7 @@ context: |
 
 rules:
   proposal:
+    - If the change is purely architectural or deferred and does not define supported behavior, prefer an ADR over an OpenSpec capability change
     - Capture product intent explicitly: problem, desired outcome, and why this change matters now
     - Reference docs/constitution.md and docs/architecture.md for existing decisions instead of restating them
     - Identify which modules are affected

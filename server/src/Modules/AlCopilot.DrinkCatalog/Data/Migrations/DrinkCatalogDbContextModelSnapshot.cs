@@ -174,9 +174,6 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<DateTimeOffset?>("DispatchedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("EventType")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -194,9 +191,6 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                     b.HasIndex("OccurredAtUtc");
 
                     b.HasIndex("AggregateId", "Id");
-
-                    b.HasIndex("DispatchedAtUtc", "Id")
-                        .HasFilter("\"DispatchedAtUtc\" IS NULL");
 
                     b.ToTable("domain_events", "drink_catalog");
                 });
