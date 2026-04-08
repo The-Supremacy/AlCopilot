@@ -21,6 +21,7 @@ rules:
     - Note any new dependencies and verify they comply with project licensing and stack decisions
   specs:
     - Describe observable behavior and acceptance criteria, not broad narrative motivation
+    - Prefer existing capability names when the change extends or reshapes an existing behavior area; create a new capability only when the behavior is genuinely distinct
     - Use Given/When/Then format for scenarios
     - Use RFC 2119 keywords (SHALL, MUST, SHOULD, MAY)
     - Respect existing module boundaries — do not cross them
