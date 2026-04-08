@@ -32,18 +32,18 @@ Each module has its own EF Core `DbContext` and Postgres schema, keeping data bo
 
 ## Technology Stack
 
-| Layer                   | Choice                                                                   | Why                                                                                                                                                                                                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Runtime**             | .NET + Aspire                                                            | Aspire provides distributed app orchestration and observability (dashboard, OpenTelemetry) without the complexity of Kubernetes in development                                                                                                                                            |
-| **Data**                | EF Core + Postgres                                                       | Battle-tested ORM and database combination. Marten was considered but rejected — too opinionated and introduces too much magic via event sourcing                                                                                                                                         |
-| **In-process mediator** | Mediator (by Martin Othamar)                                             | Source-generated, MIT licensed. MediatR went commercial in v13+ (same author as MassTransit). Mediator has a nearly identical API, better performance (no reflection), and zero licensing concerns                                                                                        |
-| **Async messaging**     | Rebus                                                                    | Thin transport abstraction, MIT licensed, at-least-once delivery. Not added initially — there is no external messaging target in a monolith. Introduced when extracting services or when durable async processing is needed                                                               |
-| **Identity Provider**   | Keycloak                                                                 | Open-source, runs locally in Docker via Aspire, supports OIDC/OAuth 2.0. Avoids Entra External ID (no local dev story) and Authentik (complex setup). The Host handles OIDC code flow and issues cookies — the SPA never sees tokens                                                      |
-| **Frontend**            | React + Vite + Tanstack Query + shadcn + Zustand                         | Modern, low-magic frontend stack. Tanstack Query for server state, Zustand for the small amount of client-only state                                                                                                                                                                      |
-| **CI/CD**               | GitHub Actions + GHCR + Release Please                                   | Full pipeline from day one: build, test, coverage gate, Docker image push, automated versioning and changelog                                                                                                                                                                             |
-| **Infrastructure**      | AKS + Flux + Azure Service Bus + Blob Storage + Postgres Flexible Server | GitOps with Flux for deployment. Azure Service Bus (with local emulator for development) when async messaging is needed                                                                                                                                                                   |
-| **Gateway**             | Self-hosted Envoy Gateway                                                | Azure Application Gateway has a ~$130/month floor plus capacity units even at low traffic. Envoy Gateway is the Kubernetes Gateway API reference implementation, runs on existing AKS nodes at near-zero marginal cost, and uses standard `Gateway`/`HTTPRoute` resources for portability |
-| **Reverse proxy**       | YARP (when needed)                                                       | Built into the Host when a module is extracted into a separate service. Frontend remains unaware — same origin, same cookie, same routes. YARP forwards requests and attaches bearer tokens to proxied calls                                                                              |
+| Layer                   | Choice                                                                               | Why                                                                                                                                                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Runtime**             | .NET + Aspire                                                                        | Aspire provides distributed app orchestration and observability (dashboard, OpenTelemetry) without the complexity of Kubernetes in development                                                                                                                                            |
+| **Data**                | EF Core + Postgres                                                                   | Battle-tested ORM and database combination. Marten was considered but rejected — too opinionated and introduces too much magic via event sourcing                                                                                                                                         |
+| **In-process mediator** | Mediator (by Martin Othamar)                                                         | Source-generated, MIT licensed. MediatR went commercial in v13+ (same author as MassTransit). Mediator has a nearly identical API, better performance (no reflection), and zero licensing concerns                                                                                        |
+| **Async messaging**     | Deferred: Rebus                                                                      | Preferred future transport abstraction if durable async messaging becomes necessary. Not currently implemented because there is no approved use case yet                                                                                                                                  |
+| **Identity Provider**   | Keycloak                                                                             | Open-source, runs locally in Docker via Aspire, supports OIDC/OAuth 2.0. Avoids Entra External ID (no local dev story) and Authentik (complex setup). The Host handles OIDC code flow and issues cookies — the SPA never sees tokens                                                      |
+| **Frontend**            | React + Vite + TanStack Query + TanStack Router + shadcn/ui + Tailwind CSS + Zustand | Modern, low-magic frontend stack recorded in [ADR 0003](adr/0003-frontend-stack.md). TanStack Query handles server state, TanStack Router provides type-safe routing, Zustand covers the small amount of client-only state, and shadcn/ui plus Tailwind CSS support composable UI work    |
+| **CI/CD**               | GitHub Actions + GHCR + Release Please                                               | Full pipeline from day one: build, test, coverage gate, Docker image push, automated versioning and changelog                                                                                                                                                                             |
+| **Infrastructure**      | AKS + Flux + Blob Storage + Postgres Flexible Server                                 | GitOps with Flux for deployment. Azure Service Bus remains a deferred option if async messaging is introduced later                                                                                                                                                                       |
+| **Gateway**             | Self-hosted Envoy Gateway                                                            | Azure Application Gateway has a ~$130/month floor plus capacity units even at low traffic. Envoy Gateway is the Kubernetes Gateway API reference implementation, runs on existing AKS nodes at near-zero marginal cost, and uses standard `Gateway`/`HTTPRoute` resources for portability |
+| **Reverse proxy**       | YARP (when needed)                                                                   | Built into the Host when a module is extracted into a separate service. Frontend remains unaware — same origin, same cookie, same routes. YARP forwards requests and attaches bearer tokens to proxied calls                                                                              |
 
 ---
 
@@ -51,7 +51,7 @@ Each module has its own EF Core `DbContext` and Postgres schema, keeping data bo
 
 ### Not Wolverine
 
-Despite having a built-in outbox and durability features, Wolverine creates deep framework coupling. If Wolverine goes commercial (as MassTransit did), you lose the mediator, outbox, transport, deduplication, and routing in one move — the entire application nervous system. With Mediator + Rebus, we own dispatch, outbox, and deduplication, and only rent the transport abstraction.
+Despite having a built-in outbox and durability features, Wolverine creates deep framework coupling. If Wolverine goes commercial (as MassTransit did), you lose the mediator, outbox, transport, deduplication, and routing in one move — the entire application nervous system. The preferred future direction is Mediator + Rebus, recorded in `docs/adr/0001-durable-intermodule-messaging.md`.
 
 ### Not MassTransit
 
@@ -91,25 +91,15 @@ Significantly more complex setup than Keycloak for equivalent OIDC functionality
 
 ### Out-of-process (when needed)
 
-**Rebus** handles async messaging via Azure Service Bus when out-of-process communication is required. Rebus is not introduced initially because there is no external messaging target in a pure monolith.
+Durable out-of-process messaging is deferred until a concrete cross-module or extracted-service use case exists.
+The preferred future direction is recorded in [ADR 0001](adr/0001-durable-intermodule-messaging.md).
+Until then, the runtime stays focused on in-process coordination through Mediator.
 
-Key properties of Rebus in this stack:
+## Deferred Decisions
 
-- **Competing consumers**: Multiple instances on the same input queue compete for messages. One instance processes each message.
-- **At-least-once delivery**: Rebus guarantees delivery but not exactly-once. Handlers must be idempotent.
-- **Transport agnostic**: Rebus does not promote or require handlers to be in a specific host. For a monolith, handlers run in the same process as the API.
-- **Message format**: Rebus does not have its own wire protocol. Messages are clean JSON. Rebus metadata (`rbs2-*`) travels in transport headers only — not wrapped in the message payload — making messages portable to non-.NET consumers with no Rebus-specific deserialization required.
-- **Mixed transports**: Rebus supports configuring different transports for different endpoints. In-process dispatch goes through Mediator; external async messages go through Service Bus. The two are not mixed within Rebus itself — Mediator owns in-process, Rebus owns out-of-process.
-- **Interoperability**: Exporting to a non-Rebus system requires only that the consumer can read standard JSON and interpret the transport headers. No Rebus client is required on the receiving end. This contrasts with Wolverine, which has its own envelope protocol and requires Wolverine-specific handling for interoperability.
-- **Topic provisioning**: Topic creation is treated as external infrastructure responsibility. The Host publishes to pre-provisioned Azure Service Bus topics and does not auto-create them at runtime.
+The following ADRs are intentionally visible here for discoverability, but they are not implemented behavior:
 
-### Message type naming
-
-A custom `IMessageTypeNameConvention` is used to produce human-readable, version-stable message type names — for example `catalog.drink-added.v1` — instead of .NET assembly-qualified names. This ensures messages are readable by non-.NET consumers and remain stable across refactoring.
-
-### Outbox pattern
-
-A single `OutboxWorker` `BackgroundService` runs on the Host. Each module registers its outbox source (schema, table, DbContext) during `AddXxxModule()`. The worker polls each source for undispatched `DomainEventRecord` rows, deserializes via `DomainEventTypeRegistry`, and publishes to Rebus topics. This gives at-least-once delivery with per-consumer retry and dead-lettering handled natively by Azure Service Bus. See "Domain Events & Outbox" in the DDD section for full details.
+- [ADR 0001: Durable Intermodule Messaging](adr/0001-durable-intermodule-messaging.md) — deferred until a real async publisher/consumer use case or module extraction requires durable out-of-process communication.
 
 ---
 
@@ -191,7 +181,7 @@ Installed as a native AKS extension. Watches `deploy/flux/` in this repository a
 
 ### Local Development
 
-Aspire AppHost orchestrates the full local environment, including Keycloak, the Azure Service Bus emulator, and a Postgres instance. No Kubernetes required for development. The AppHost starts the Service Bus emulator, but it does not create application topics automatically; those remain part of environment provisioning.
+Aspire AppHost orchestrates the full local environment, including Keycloak and a Postgres instance. No Kubernetes required for development.
 
 ---
 
@@ -213,7 +203,7 @@ alcopilot/
 │   ├── src/
 │   │   ├── AlCopilot.AppHost/    # Aspire orchestrator
 │   │   ├── AlCopilot.ServiceDefaults/
-│   │   ├── AlCopilot.Host/        # ASP.NET Core host + BFF (composes modules, runs workers)
+│   │   ├── AlCopilot.Host/        # ASP.NET Core host + BFF (composes modules)
 │   │   ├── AlCopilot.Shared/     # Cross-cutting concerns
 │   │   ├── AlCopilot.Catalog/    # Module
 │   │   ├── AlCopilot.Catalog.Contracts/ # Module contracts
@@ -273,24 +263,15 @@ Aggregates raise domain events via `Raise(new SomeEvent(...))`. A `SaveChangesIn
 
 Two complementary patterns cover all cross-module interaction:
 
-| Pattern                         | Use case                                          | Transaction                                  | Coupling                           |
-| ------------------------------- | ------------------------------------------------- | -------------------------------------------- | ---------------------------------- |
-| **Mediator commands**           | Orchestration — "do this, tell me if it worked"   | Same transaction (rolls back together)       | Caller knows the Contracts command |
-| **Integration events + outbox** | Choreography — "this happened, react if you want" | Separate transactions (eventual consistency) | Publisher doesn't know consumers   |
+| Pattern                                    | Use case                                          | Transaction                                  | Coupling                           |
+| ------------------------------------------ | ------------------------------------------------- | -------------------------------------------- | ---------------------------------- |
+| **Mediator commands**                      | Orchestration — "do this, tell me if it worked"   | Same transaction (rolls back together)       | Caller knows the Contracts command |
+| **Integration events + outbox (deferred)** | Choreography — "this happened, react if you want" | Separate transactions (eventual consistency) | Publisher doesn't know consumers   |
 
 **Mediator commands** (via Contracts): Module A sends a command/query defined in Module B's Contracts project. Synchronous, in-process, request/response. Use when the caller needs a result or needs the operation to succeed atomically.
 
-**Integration events** (via outbox + Rebus): `DomainEventRecord` rows serve as the outbox. A single `OutboxWorker` `BackgroundService` on the Host polls each module's `domain_events` table, deserializes via `DomainEventTypeRegistry`, and publishes to Rebus topics (Azure Service Bus). Each consuming module subscribes independently — the broker handles per-consumer delivery, retry, and dead-lettering. The publishing module doesn't know or care who subscribes.
-
-**Outbox design:**
-
-- Single `OutboxWorker` on Host — each module registers its outbox source (schema, table, DbContext type) during `AddXxxModule()`
-- Worker processes sources round-robin: `WHERE "DispatchedAtUtc" IS NULL ORDER BY "Id" LIMIT N`
-- `DispatchedAtUtc` nullable column tracks dispatch status (added when the first cross-module consumer is built)
-- One Rebus bus instance on Host — all modules publish through it
-- Per-source isolation: if one module's table is unavailable, the worker skips it and continues
-
-**Module extraction:** Remove the module's outbox source registration from Host. The extracted service runs its own `OutboxWorker` with its own Rebus instance. Subscribers don't change — they listen to topics, not deployment topology.
+**Integration events** are a deferred direction, not a current runtime capability.
+If a real async use case appears, revisit the design in [ADR 0001](adr/0001-durable-intermodule-messaging.md) and approve a new change before implementation.
 
 ### Why Not Event Sourcing
 

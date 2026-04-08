@@ -1,12 +1,10 @@
 using AlCopilot.DrinkCatalog;
-using AlCopilot.Host.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
 builder.Services.AddDrinkCatalogModule(builder.Configuration);
-builder.Services.AddDurableMessaging(builder.Configuration);
 
 var app = builder.Build();
 

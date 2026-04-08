@@ -28,7 +28,10 @@
 		},
 		"files.eol": "\n",
 		"files.trimTrailingWhitespace": true,
-		"files.insertFinalNewline": true
+		"files.insertFinalNewline": true,
+		"markdown.marp.themes": [
+			"./docs/presentation/assets/theme-sigma.css"
+		]
 	},
 	"extensions": {
 		"recommendations": [

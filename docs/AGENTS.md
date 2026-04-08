@@ -10,7 +10,10 @@
 
 ## Architecture Docs
 
+- `docs/constitution.md` is the source of truth for project-wide governance and workflow rules
 - `docs/architecture.md` is the source of truth for design decisions
+- `docs/adr/` records architectural decisions and superseded choices over time
+- `docs/adr/README.md` defines ADR structure, statuses, and sync expectations
 - `docs/llm.md` covers local LLM and vector database setup
 - New documentation goes in `docs/` unless it's module-specific (then it lives in the module)
 

@@ -8,5 +8,4 @@ public sealed class DomainEventRecord
     public string EventType { get; set; } = string.Empty;
     public string Payload { get; set; } = string.Empty;
     public DateTimeOffset OccurredAtUtc { get; set; }
-    public DateTimeOffset? DispatchedAtUtc { get; set; }
 }
