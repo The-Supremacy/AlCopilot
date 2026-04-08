@@ -2,6 +2,7 @@
 
 ## Architecture Reference
 
+Read [docs/constitution.md](../docs/constitution.md) for project-wide governance and workflow rules.
 Read [docs/architecture.md](../docs/architecture.md) for full architecture and tech stack decisions.
 
 ## Stack

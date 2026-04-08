@@ -10,6 +10,7 @@
 
 ## Architecture Docs
 
+- `docs/constitution.md` is the source of truth for project-wide governance and workflow rules
 - `docs/architecture.md` is the source of truth for design decisions
 - `docs/llm.md` covers local LLM and vector database setup
 - New documentation goes in `docs/` unless it's module-specific (then it lives in the module)

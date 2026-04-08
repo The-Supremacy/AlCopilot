@@ -3,14 +3,8 @@
 ## Project
 
 AlCopilot is an AI-powered drinks suggestion platform built as a modular monolith.
+Read [docs/constitution.md](docs/constitution.md) for project-wide governance and workflow rules.
 Read [docs/architecture.md](docs/architecture.md) for the full architecture, tech stack, and design decisions.
-
-## Plan-First Default
-
-- Always present a plan before implementing anything non-trivial.
-- Break work into small, reviewable steps.
-- Get explicit approval before proceeding with implementation.
-- Reference architecture docs for design decisions — don't reinvent or contradict them.
 
 ## Area-Specific Conventions
 
