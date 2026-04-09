@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.2...v0.1.3) (2026-04-09)
+
+
+### Bug Fixes
+
+* further AI improvements ([c926168](https://github.com/The-Supremacy/AlCopilot/commit/c926168edec53828de8c87a422be91081fd7bab9))
+
 ## [0.1.2](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.1...v0.1.2) (2026-04-04)
 
 
