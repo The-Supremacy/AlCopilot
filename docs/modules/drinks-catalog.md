@@ -1,42 +1,65 @@
 # Drinks Catalog — Domain Overview
 
-The Catalog is AlCopilot's drinks database — the foundation module that every other module depends on. It owns the definition of what a drink is, what goes into it, and how drinks are organized.
+The Drinks Catalog is AlCopilot's shared source of drink knowledge.
+It gives the product a common language for what a drink is, what goes into it, and how drinks are grouped and described.
+
+---
+
+## Purpose
+
+The Drinks Catalog exists so the rest of AlCopilot can reason about drinks consistently.
+It provides the canonical vocabulary for drinks, ingredients, ingredient groupings, and drink labels used across browsing, suggestion, and future user-facing experiences.
+
+---
 
 ## Core Concepts
 
-- **Drink** — A named beverage with a recipe. Has a name, description, optional image, and one or more tags. A drink is defined by its recipe entries.
-- **Tag** — A flat label for drink classification (e.g., "Cocktail", "Mocktail", "Shot", "Beer", "Wine", "Hot Drink", "Rum-based"). Tags are many-to-many with drinks — a Mojito can be both "Cocktail" and "Rum-based".
-- **IngredientCategory** — A classification for ingredients (e.g., Spirit, Liqueur, Syrup, Juice, Garnish, Mixer). Organizes the ingredient library, not the drinks themselves.
-- **Ingredient** — A reusable component (e.g., "Vodka", "Lime Juice", "Simple Syrup"). Belongs to exactly one IngredientCategory. Shared across drinks — "Vodka" in a Martini is the same ingredient as "Vodka" in a Moscow Mule. May list notable brands as metadata (e.g., Vodka → ["Absolut", "Grey Goose", "Stolichnaya"]).
-- **Recipe** — Each drink has a recipe: a list of ingredients with quantities (e.g., "2 oz", "a splash", "to taste") and an optional recommended brand for that specific drink (e.g., "Captain Morgan" for a spiced rum cocktail).
+- **Drink** — A named beverage concept that users can browse, recognize, and learn about.
+- **Recipe** — The ingredient composition that explains what goes into a drink and in what quantity or style.
+- **Ingredient** — A reusable drink component such as vodka, lime juice, tonic water, or mint.
+- **Ingredient Category** — A business grouping for ingredients such as spirits, juices, syrups, mixers, or garnishes.
+- **Tag** — A reusable label that helps describe or classify drinks for discovery and understanding.
+
+---
 
 ## Relationships
 
-- A drink has one or more tags
-- A tag has zero or more drinks
-- A drink must have at least one ingredient in its recipe
-- An ingredient belongs to exactly one ingredient category
-- An ingredient can appear in many drinks
-- An ingredient exists independently of any drink (removing a drink does not remove its ingredients)
+- A drink is described through its recipe, tags, and descriptive presentation.
+- A recipe is made of one or more ingredients expressed in drink-specific proportions or notes.
+- An ingredient can appear in many different drinks.
+- Ingredient categories organize the ingredient library rather than the drink library.
+- Tags describe drinks, not ingredients.
+- Drinks and ingredients are reusable reference concepts for the rest of the product.
 
-## Business Rules
+---
 
-- Drink names are globally unique
-- Tag names are unique
-- Ingredient names are unique
-- Ingredient category names are unique
-- A drink must have at least one ingredient in its recipe
-- Drinks can be removed from browsing and search but are retained for history (ratings, recommendation records, etc.)
-- Tags, ingredient categories, and ingredients cannot be deleted if referenced by active drinks
+## Actors And Uses
 
-## Actors
+- **Guests and users** use the catalog to browse drinks, understand what a drink is, and recognize how drinks differ from one another.
+- **Product and AI features** use the catalog as shared reference data when presenting, filtering, or reasoning about drinks.
+- **Catalog managers** curate the drink library, ingredient library, and classification vocabulary.
 
-- **Anonymous user** — Can browse drinks by tag, view drink details, and search
-- **Authenticated user** — Same as anonymous (future: favorites, personal notes)
-- **Admin** — Can create, update, and soft-delete drinks; manage tags, ingredient categories, and ingredients
+---
 
-## Module Boundaries
+## Business Vocabulary
 
-- The Catalog **owns**: drinks, recipes, ingredients, ingredient categories, tags
-- The Catalog **does NOT own**: ratings/reviews (Social), AI suggestions (Recommendation), personal inventory (Inventory), user identity (Identity)
-- Other parts of AlCopilot reference drinks by ID
+- A drink can be both a concrete entry in the catalog and a recognizable beverage concept for users.
+- Ingredients are shared reference items, not drink-specific duplicates.
+- Recommended brands are drink-specific guidance layered onto an ingredient within a recipe context.
+- Tags are discovery language for drinks.
+- Ingredient categories are organization language for ingredients.
+
+---
+
+## Ownership Boundaries
+
+- The Drinks Catalog **owns** the business meaning of drinks, recipes, ingredients, ingredient categories, and tags.
+- The Drinks Catalog **does not own** social opinion, recommendation outcomes, personal collections, or identity.
+- Other modules should treat the catalog as the shared reference domain for drink-related terminology.
+
+---
+
+## OpenSpec Note
+
+Use this document to understand drinks-catalog language, concepts, and ownership before writing or reviewing OpenSpec changes.
+Use OpenSpec specs to define the observable behavior a feature must support.

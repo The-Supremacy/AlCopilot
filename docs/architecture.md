@@ -41,4 +41,5 @@ The system is a single deployable unit with internal module boundaries, one `DbC
 ## Related Guidance
 
 - [constitution.md](constitution.md) — thin governance index
+- [domain.md](domain.md) — thin domain index
 - [testing.md](testing.md) — thin testing index

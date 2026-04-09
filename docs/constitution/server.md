@@ -31,10 +31,12 @@ Use it together with the global constitution and the server architecture and tes
 - Update architecture tests when a change affects boundaries or conventions.
 - Record significant architecture or workflow decisions as ADRs.
 - Sync accepted ADRs into the detailed backend guidance that changed, not just into the root indexes.
+- Keep `docs/domain.md` and `docs/modules/*.md` business-facing only; do not use them for architecture guidance, implementation details, endpoint inventory, persistence details, or acceptance criteria.
 
 ---
 
 ## Related Guidance
 
+- [../domain.md](../domain.md)
 - [../architecture/server.md](../architecture/server.md)
 - [../testing/server.md](../testing/server.md)
