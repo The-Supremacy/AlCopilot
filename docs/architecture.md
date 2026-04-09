@@ -189,11 +189,12 @@ Aspire AppHost orchestrates the full local environment, including Keycloak and a
 
 ```
 alcopilot/
+├── .codex/                        # Codex skills and local agent workflow assets
+│   └── skills/                   # ADR and OpenSpec skills
 ├── .github/
 │   ├── workflows/                # CI/CD pipelines
-│   ├── instructions/             # Per-path Copilot instructions
-│   ├── skills/                   # SKILL files (created incrementally)
-│   └── copilot-instructions.md   # Core Copilot instructions (SKILL gate)
+│   ├── hooks/                    # Agent and GitHub-side enforcement scripts
+│   └── copilot-instructions.md   # Thin compatibility note for Copilot
 ├── deploy/                       # Infrastructure and deployment
 │   ├── helm/                     # Helm charts (future)
 │   ├── flux/                     # Flux GitOps manifests (future)
@@ -330,5 +331,6 @@ Event sourcing (Marten, EventStoreDB) introduces significant complexity for a pr
 AI agent configuration follows a portable hierarchy:
 
 - **AGENTS.md hierarchy**: Root [AGENTS.md](../AGENTS.md) indexes area-specific conventions; `AGENTS.md` files in `server/`, `web/`, `deploy/`, `docs/`, `.github/workflows/` contain per-area conventions
-- **SKILL gate**: `.github/skills/` authorizes code generation for repeatable patterns (enforced via `.github/copilot-instructions.md`)
-- **Hooks**: `.github/hooks/` enforce security and audit rules for the Copilot coding agent and CLI
+- **Codex skills**: `.codex/skills/` is the primary home for local repeatable workflows such as ADR management and OpenSpec helpers
+- **GitHub compatibility**: `.github/` contains workflows, hooks, and thin compatibility files rather than local custom skill, prompt, or agent definitions
+- **Hooks**: `.github/hooks/` enforce security and audit rules for supported agent workflows
