@@ -2,14 +2,24 @@
 
 ## Purpose
 
-This document is the project-wide governance source of truth for AlCopilot.
-Use it together with [architecture.md](architecture.md), not as a replacement for it.
-When guidance is duplicated elsewhere, prefer this document and remove the duplicate when practical.
+This document is the thin project-wide governance index for AlCopilot.
+Use it to understand the global rules and to navigate to area-specific workflow guidance.
 
 ## Project Identity
 
 AlCopilot is an AI-powered drinks suggestion platform built as a modular monolith.
 The product should stay approachable, practical, and grounded in clear user value rather than novelty for its own sake.
+
+---
+
+## Detailed Governance Guides
+
+| Area                                       | Detailed guide                                   |
+| ------------------------------------------ | ------------------------------------------------ |
+| Backend workflow and quality expectations  | [constitution/server.md](constitution/server.md) |
+| Frontend workflow and quality expectations | [constitution/web.md](constitution/web.md)       |
+
+---
 
 ## Delivery Workflow
 
@@ -23,7 +33,7 @@ Use OpenSpec as the default workflow for changes that affect behavior, architect
 
 Use ADRs under `docs/adr/` for architectural decisions, deferred technical direction, and major workflow choices that do not describe supported product behavior on their own.
 Prefer creating a new ADR that supersedes an older one over rewriting decision history in place.
-Update architecture or workflow documents only when an ADR changes current guidance, not merely because an ADR exists.
+Update root or area guidance documents only when an ADR changes current guidance, not merely because an ADR exists.
 Follow the ADR structure and status rules in `docs/adr/README.md`.
 
 ## OpenSpec Artifact Boundaries
@@ -39,7 +49,7 @@ Do not compensate for a weak spec by inventing requirements during implementatio
 
 ## Architecture Principles
 
-Honor the design decisions in [architecture.md](architecture.md).
+Honor the design decisions in [architecture.md](architecture.md) and the detailed area architecture guides it references.
 Preserve modular-monolith boundaries unless a change explicitly revisits them.
 Each module owns its own data model, `DbContext`, and database schema.
 Cross-module communication should follow the documented contracts, mediator, and integration-event patterns rather than ad hoc coupling.
@@ -51,6 +61,8 @@ Prefer the approved stack already documented for the project.
 Do not introduce dependencies that contradict architectural decisions without an explicit documented decision.
 Favor permissive licensing and verify new dependencies before adoption.
 Prefer simple, inspectable project guidance over opaque or high-risk automation.
+Apply YAGNI by default.
+Do not add dead code, unused helpers, or speculative abstractions without a current approved use case.
 
 ## Quality Principles
 
@@ -61,8 +73,9 @@ Testing guidance remains area-specific, but the baseline expectation is that imp
 
 ## Documentation Principles
 
-Avoid duplicating architecture and governance text across multiple files.
-Reference the source-of-truth document instead of restating it unless local context genuinely needs a short summary.
+Keep root docs thin and navigational.
+Avoid duplicating detailed architecture, governance, or testing text across multiple files.
+Reference the detailed area document instead of restating it unless local context genuinely needs a short summary.
 Keep decisions honest, concrete, and easy to audit later.
 When documenting brownfield changes, prefer coherent end-state descriptions over fragmented historical notes.
 
@@ -71,7 +84,7 @@ When documenting brownfield changes, prefer coherent end-state descriptions over
 Use this order when instructions overlap:
 
 1. This constitution.
-2. [architecture.md](architecture.md).
+2. [architecture.md](architecture.md) and the detailed documents it references.
 3. Root [AGENTS.md](../AGENTS.md).
 4. Area-specific `AGENTS.md` files.
 5. OpenSpec artifact-specific rules in [openspec/config.yaml](../openspec/config.yaml).

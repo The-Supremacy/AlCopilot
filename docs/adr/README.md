@@ -56,10 +56,12 @@ Use `Supersedes` and `Superseded by` when relevant.
 ## Sync Guidance
 
 ADRs are source records, not OpenSpec-style delta specs.
-Do not automatically copy every ADR into `docs/architecture.md` or `docs/constitution.md`.
+Do not automatically copy every ADR into the root index docs.
 
 Instead, sync only when the ADR changes current guidance:
 
-- Update `docs/architecture.md` when the ADR changes the current architectural narrative.
-- Update `docs/constitution.md` when the ADR changes team workflow or governance.
+- Update `docs/architecture/server.md` or `docs/architecture/web.md` when the ADR changes active area architecture.
+- Update `docs/testing/server.md` or `docs/testing/web.md` when the ADR changes active testing guidance.
+- Update `docs/constitution/server.md` or `docs/constitution/web.md` when the ADR changes active area workflow or quality expectations.
+- Update the root index docs only when the ADR changes genuinely global guidance or navigation.
 - Do not present `Deferred` ADRs as implemented behavior.

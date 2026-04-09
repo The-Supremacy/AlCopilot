@@ -23,8 +23,10 @@ They should only be reflected into active guidance when they change how the syst
 2. Read the ADR and identify its status.
 3. If the ADR is `Deferred`, `Rejected`, or `Superseded`, do not present it as implemented behavior.
 4. Decide which current guidance documents need updates:
-   - `docs/architecture.md` for current architecture
-   - `docs/constitution.md` for workflow/governance
+   - `docs/architecture/server.md` or `docs/architecture/web.md` for current area architecture
+   - `docs/testing/server.md` or `docs/testing/web.md` for current testing guidance
+   - `docs/constitution/server.md` or `docs/constitution/web.md` for current area workflow/governance
+   - root docs such as `docs/architecture.md`, `docs/constitution.md`, or `docs/testing.md` only when global guidance or navigation changes
    - `openspec/config.yaml` for artifact-writing rules
    - area-specific `AGENTS.md` files only when the change is truly area-local
 5. Update only the guidance that is materially changed by the ADR.
@@ -34,7 +36,7 @@ They should only be reflected into active guidance when they change how the syst
 
 - Do not copy ADRs wholesale into current guidance.
 - Do not treat `Deferred` ADRs as active runtime behavior.
-- `Deferred` ADRs may be listed in a dedicated deferred/future section of `docs/architecture.md` for discoverability.
-- Do not create a deferred catalog in `docs/constitution.md` unless the deferred ADR changes active team workflow.
+- `Deferred` ADRs may be listed in a dedicated deferred or future section of the detailed architecture docs for discoverability.
+- Do not create a deferred catalog in the constitution docs unless the deferred ADR changes active team workflow.
 - Treat an ADR as already synced if its intended guidance is already reflected in the relevant current docs.
 - Prefer short references to the ADR over repeated prose.

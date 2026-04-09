@@ -16,5 +16,6 @@
     <Project Path="tests/AlCopilot.Host.Tests/AlCopilot.Host.Tests.csproj" />
     <Project Path="tests/AlCopilot.Architecture.Tests/AlCopilot.Architecture.Tests.csproj" />
     <Project Path="tests/AlCopilot.DrinkCatalog.Tests/AlCopilot.DrinkCatalog.Tests.csproj" />
+    <Project Path="tests/AlCopilot.Testing.Shared/AlCopilot.Testing.Shared.csproj" />
   </Folder>
 </Solution>

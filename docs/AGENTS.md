@@ -10,12 +10,18 @@
 
 ## Architecture Docs
 
-- `docs/constitution.md` is the source of truth for project-wide governance and workflow rules
-- `docs/architecture.md` is the source of truth for design decisions
+- `docs/constitution.md`, `docs/architecture.md`, and `docs/testing.md` are thin root indexes
+- Detailed human-readable guidance should live in area docs under `docs/constitution/`, `docs/architecture/`, and `docs/testing/`
 - `docs/adr/` records architectural decisions and superseded choices over time
 - `docs/adr/README.md` defines ADR structure, statuses, and sync expectations
 - `docs/llm.md` covers local LLM and vector database setup
 - New documentation goes in `docs/` unless it's module-specific (then it lives in the module)
+
+## Information Architecture
+
+- Keep root docs concise and navigational
+- Do not duplicate area-specific detail between root docs and sub-docs
+- Prefer linking to a detailed sub-doc over restating its guidance
 
 ## Decision Records
 

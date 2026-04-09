@@ -1,0 +1,43 @@
+using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Features.Tag;
+using AlCopilot.Shared.Data;
+using NSubstitute;
+using Shouldly;
+
+namespace AlCopilot.DrinkCatalog.Tests.Handlers.Commands;
+
+public sealed class DeleteTagHandlerTests
+{
+    private readonly ITagRepository _tagRepository = Substitute.For<ITagRepository>();
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly DeleteTagHandler _handler;
+
+    public DeleteTagHandlerTests()
+    {
+        _handler = new DeleteTagHandler(_tagRepository, _unitOfWork);
+    }
+
+    [Fact]
+    public async Task Handle_UnreferencedTag_DeletesAndReturnsTrue()
+    {
+        var tag = Tag.Create(TagName.Create("Old"));
+        _tagRepository.GetByIdAsync(tag.Id, Arg.Any<CancellationToken>()).Returns(tag);
+        _tagRepository.IsReferencedByDrinksAsync(tag.Id, Arg.Any<CancellationToken>()).Returns(false);
+
+        var result = await _handler.Handle(new DeleteTagCommand(tag.Id), CancellationToken.None);
+
+        result.ShouldBeTrue();
+        _tagRepository.Received(1).Remove(tag);
+    }
+
+    [Fact]
+    public async Task Handle_ReferencedTag_Throws()
+    {
+        var tag = Tag.Create(TagName.Create("Active"));
+        _tagRepository.GetByIdAsync(tag.Id, Arg.Any<CancellationToken>()).Returns(tag);
+        _tagRepository.IsReferencedByDrinksAsync(tag.Id, Arg.Any<CancellationToken>()).Returns(true);
+
+        await Should.ThrowAsync<InvalidOperationException>(
+            () => _handler.Handle(new DeleteTagCommand(tag.Id), CancellationToken.None).AsTask());
+    }
+}

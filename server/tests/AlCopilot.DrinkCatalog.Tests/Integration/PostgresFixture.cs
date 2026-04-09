@@ -1,18 +1,16 @@
 using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.DrinkCatalog.Data;
+using AlCopilot.Testing.Shared;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Testcontainers.PostgreSql;
+using Xunit;
 
 namespace AlCopilot.DrinkCatalog.Tests.Integration;
 
-public sealed class PostgresFixture : IAsyncLifetime
+public sealed class PostgresFixture : PostgreSqlContainerFixture, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17-alpine")
-        .Build();
-
     public DrinkCatalogDbContext CreateDbContext()
     {
         // Intentionally empty service provider — no domain event handlers registered.
@@ -23,7 +21,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         var sp = services.BuildServiceProvider();
 
         var options = new DbContextOptionsBuilder<DrinkCatalogDbContext>()
-            .UseNpgsql(_container.GetConnectionString(), npgsql =>
+            .UseNpgsql(ConnectionString, npgsql =>
                 npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "drink_catalog"))
             .AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>())
             .Options;
@@ -31,15 +29,13 @@ public sealed class PostgresFixture : IAsyncLifetime
         return new DrinkCatalogDbContext(options);
     }
 
-    public async Task InitializeAsync()
+    protected override async Task InitializeDatabaseAsync()
     {
-        await _container.StartAsync();
         await using var dbContext = CreateDbContext();
         await dbContext.Database.MigrateAsync();
     }
 
-    public async Task DisposeAsync()
-    {
-        await _container.DisposeAsync();
-    }
+    Task IAsyncLifetime.InitializeAsync() => InitializeContainerAsync();
+
+    Task IAsyncLifetime.DisposeAsync() => DisposeContainerAsync();
 }

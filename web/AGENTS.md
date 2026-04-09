@@ -3,8 +3,12 @@
 ## Architecture Reference
 
 Read [docs/constitution.md](../docs/constitution.md) for project-wide governance and workflow rules.
-Read [docs/architecture.md](../docs/architecture.md) for full architecture and tech stack decisions.
+Read [docs/constitution/web.md](../docs/constitution/web.md) for frontend workflow and quality expectations.
+Read [docs/architecture.md](../docs/architecture.md) for the thin project-wide architecture index.
+Read [docs/architecture/web.md](../docs/architecture/web.md) for frontend architecture and stack decisions.
 Read [docs/adr/0003-frontend-stack.md](../docs/adr/0003-frontend-stack.md) for the accepted frontend stack decision.
+Read [docs/testing.md](../docs/testing.md) for the thin project-wide testing index.
+Read [docs/testing/web.md](../docs/testing/web.md) for the frontend test taxonomy and when to use each layer.
 
 ## Stack
 
@@ -37,11 +41,12 @@ Read [docs/adr/0003-frontend-stack.md](../docs/adr/0003-frontend-stack.md) for t
 
 ## Testing
 
-- **Vitest** for component testing — native to Vite, same config and transforms
+- **Vitest** for unit, component, and route-level integration testing — native to Vite, same config and transforms
 - **React Testing Library** for rendering and interaction assertions
 - **Playwright** for E2E tests — runs against deployed staging environment (nightly/pre-release, not every PR)
 - Colocate test files next to source: `Component.test.tsx` / `hook.test.ts`
 - Prefer user-centric queries (`getByRole`, `getByText`) over implementation details (`getByTestId`)
+- Build UI with accessible semantics and stable user-visible structure so flows can be automated cleanly later
 
 ## Review Checklist
 
