@@ -3,8 +3,12 @@
 ## Architecture Reference
 
 Read [docs/constitution.md](../docs/constitution.md) for project-wide governance and workflow rules.
-Read [docs/architecture.md](../docs/architecture.md) for full architecture, design decisions, and rationale.
+Read [docs/constitution/server.md](../docs/constitution/server.md) for backend workflow and quality expectations.
+Read [docs/architecture.md](../docs/architecture.md) for the thin project-wide architecture index.
+Read [docs/architecture/server.md](../docs/architecture/server.md) for backend architecture details and rationale.
 Read [docs/adr/0002-domain-driven-design-patterns.md](../docs/adr/0002-domain-driven-design-patterns.md) for the accepted backend DDD defaults.
+Read [docs/testing.md](../docs/testing.md) for the thin project-wide testing index.
+Read [docs/testing/server.md](../docs/testing/server.md) for backend test taxonomy, ownership, and placement rules.
 
 ## Stack
 
@@ -135,9 +139,13 @@ server/src/AlCopilot.Shared/
 - **NSubstitute** for mocking — NOT Moq (SponsorLink controversy)
 - **TestContainers** (Postgres) for integration tests — NOT in-memory EF providers
 - **NetArchTest.eNhanced** for architecture tests
-- Unit + integration tests in the same project: `AlCopilot.{Module}.Tests`
-- Integration tests marked with `[Trait("Category", "Integration")]`
-- Architecture tests in `AlCopilot.Architecture.Tests`
+- Architecture tests live in `AlCopilot.Architecture.Tests` only
+- Module tests in `AlCopilot.{Module}.Tests` cover unit, application, infrastructure integration, and module-owned HTTP integration tests
+- Module tests mock or substitute other module boundaries by default
+- Host-level auth, cross-module orchestration, and composition tests live in `AlCopilot.Host.Tests`
+- Shared backend HTTP integration infrastructure lives in `server/tests/AlCopilot.Testing.Shared`
+- Integration tests that use real infrastructure are marked with `[Trait("Category", "Integration")]`
+- Prefer one file per handler or behavior entry point under test
 - Test classes are `sealed`
 - Use primary constructors for fixture injection
 

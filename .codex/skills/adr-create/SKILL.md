@@ -34,8 +34,8 @@ Do not use this skill for changes that should become OpenSpec capabilities.
    - why it is deferred
    - what should trigger reconsideration
 7. After drafting the ADR, tell the user whether related docs should also be synced:
-   - `docs/architecture.md`
-   - `docs/constitution.md`
+   - root index docs such as `docs/architecture.md`, `docs/constitution.md`, and `docs/testing.md`
+   - detailed area docs such as `docs/architecture/server.md`, `docs/architecture/web.md`, `docs/constitution/server.md`, `docs/constitution/web.md`, `docs/testing/server.md`, and `docs/testing/web.md`
    - `openspec/config.yaml`
 
 ## Guardrails

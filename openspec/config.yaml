@@ -5,8 +5,10 @@ context: |
 
   See docs/constitution.md for project-wide governance, workflow rules, and
   artifact boundaries.
-  See docs/architecture.md for full architecture, tech stack, module boundaries,
-  and design decisions.
+  See docs/architecture.md for the project-wide architecture index and
+  docs/architecture/server.md plus docs/architecture/web.md for detailed area architecture.
+  See docs/testing.md for the project-wide testing index and docs/testing/server.md
+  plus docs/testing/web.md for detailed testing guidance.
   See docs/adr/ and docs/adr/README.md for architectural decisions, statuses,
   and deferred technical direction.
   See server/AGENTS.md for .NET conventions, DDD implementation details, and testing standards.
@@ -19,7 +21,7 @@ rules:
   proposal:
     - If the change is purely architectural or deferred and does not define supported behavior, prefer an ADR over an OpenSpec capability change
     - Capture product intent explicitly: problem, desired outcome, and why this change matters now
-    - Reference docs/constitution.md and docs/architecture.md for existing decisions instead of restating them
+    - Reference docs/constitution.md, docs/architecture.md, and docs/testing.md for existing decisions instead of restating them
     - Identify which modules are affected
     - Note any new dependencies and verify they comply with project licensing and stack decisions
   specs:
@@ -33,7 +35,7 @@ rules:
     - Start with the technical approach and intent needed to understand the implementation
     - Include rollback strategy for database migrations
     - Identify aggregate roots, value objects, and domain events for each affected module
-    - Reference docs/constitution.md, docs/architecture.md, and server/AGENTS.md for module boundaries and DDD conventions — do not restate them
+    - Reference docs/constitution.md, docs/architecture.md, docs/testing/server.md, and server/AGENTS.md for module boundaries, testing ownership, and DDD conventions — do not restate them
   tasks:
     - Group tasks by module/layer (backend, frontend, infrastructure)
     - Include architecture test updates for any new module boundaries
