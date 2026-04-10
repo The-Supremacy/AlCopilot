@@ -12,6 +12,7 @@ Use it together with the global constitution and the web architecture and testin
 - Build user-facing flows with clear semantics and stable structure.
 - Prefer maintainable composition over tightly coupled component trees.
 - Keep frontend state responsibilities clear between router state, server state, and client-only state.
+- Maintain persistent portal design guides at the portal app boundary (`web/apps/<portal>/DESIGN.md`) for layout, navigation, content ownership, and UI composition rules.
 
 ---
 
@@ -28,6 +29,9 @@ Use it together with the global constitution and the web architecture and testin
 
 - Record significant frontend architecture or workflow decisions as ADRs.
 - Sync accepted ADRs into the detailed frontend guidance that changed, not just into the root indexes.
+- For UI-affecting changes, update the affected portal `DESIGN.md` guides before implementation (`/opsx:apply`) starts.
+- OpenSpec artifacts for UI-affecting changes must reference the affected portal `DESIGN.md` guides and stay aligned with them before archive.
+- Use `/design:new` for first-time portal design guide creation, `/design:change` for invariant-focused updates, and `/design:lint` before apply when design docs changed.
 
 ---
 

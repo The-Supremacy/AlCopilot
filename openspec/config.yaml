@@ -23,6 +23,9 @@ rules:
     - Capture product intent explicitly: problem, desired outcome, and why this change matters now
     - Reference docs/constitution.md, docs/architecture.md, and docs/testing.md for existing decisions instead of restating them
     - Identify which modules are affected
+    - For frontend UI-affecting changes, list impacted portal apps explicitly and link each affected portal DESIGN.md guide
+    - If a frontend UI-affecting change lacks an affected portal DESIGN.md, mark the proposal as blocked and create that design guide before apply
+    - For first-time portal design guides, use `/design:new`; for invariant updates, use `/design:change`; run `/design:lint` when design docs changed before apply
     - Note any new dependencies and verify they comply with project licensing and stack decisions
   specs:
     - Describe observable behavior and acceptance criteria, not broad narrative motivation
@@ -30,6 +33,8 @@ rules:
     - Use Given/When/Then format for scenarios
     - Use RFC 2119 keywords (SHALL, MUST, SHOULD, MAY)
     - Respect existing module boundaries — do not cross them
+    - Do not add portal-level UI behavior deltas unless the proposal and design artifacts reference the affected portal DESIGN.md guides
+    - UI scenarios SHOULD align with approved portal layout and navigation patterns documented in portal DESIGN.md guides
     - Every scenario implies both a unit test (handler logic in isolation, NSubstitute for dependencies) and an integration test (end-to-end with real Postgres via TestContainers)
   design:
     - Start with the technical approach and intent needed to understand the implementation
@@ -38,6 +43,8 @@ rules:
     - Reference docs/constitution.md, docs/architecture.md, docs/testing/server.md, and server/AGENTS.md for module boundaries, testing ownership, and DDD conventions — do not restate them
   tasks:
     - Group tasks by module/layer (backend, frontend, infrastructure)
+    - For frontend UI-affecting changes, include a pre-apply checklist task confirming affected portal DESIGN.md guides were updated and aligned
+    - Frontend tasks should not treat DESIGN.md as behavior spec; feature behavior and acceptance remain in OpenSpec specs
     - Include architecture test updates for any new module boundaries
     - Include unit tests per handler (isolated logic, NSubstitute for dependencies, Shouldly assertions)
     - Include integration tests per feature (TestContainers Postgres, real database operations)

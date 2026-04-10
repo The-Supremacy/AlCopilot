@@ -23,7 +23,8 @@ The system is a single deployable unit with internal module boundaries, one `DbC
 
 - The backend is a modular monolith built on .NET, Aspire, EF Core, PostgreSQL, and Mediator.
 - The Host is the current web-facing backend boundary and composes module endpoints in-process.
-- The web app is a React and Vite SPA that talks to the Host and stays unaware of future module extraction.
+- The frontend direction is portal-level separation with independently deployable user and management portals in the `web/` workspace.
+- Portal UI invariants are documented in portal-level `web/apps/*/DESIGN.md` guides and evolve separately from OpenSpec behavior specs.
 - Durable out-of-process messaging remains deferred until there is a concrete approved use case.
 
 ---
@@ -35,6 +36,9 @@ The system is a single deployable unit with internal module boundaries, one `DbC
 - [ADR 0003: Frontend Stack](adr/0003-frontend-stack.md) — accepted frontend stack
 - [ADR 0004: Thin Index Documentation Structure](adr/0004-thin-index-documentation-structure.md) — accepted documentation information architecture
 - [ADR 0005: Testing Strategy And Shared Integration Harness](adr/0005-testing-strategy-and-shared-integration-harness.md) — accepted testing strategy and backend harness direction
+- [ADR 0006: AI Recommendation Retrieval And Catalog Storage](adr/0006-ai-recommendation-retrieval-and-catalog-storage.md) — deferred AI retrieval and storage direction
+- [ADR 0007: Management Portal Architecture And Envoy Host Routing](adr/0007-management-portal-architecture-and-envoy-host-routing.md) — accepted portal boundary and AKS ingress direction
+- [ADR 0008: Capability-Level Microfrontends Inside Management Portal](adr/0008-capability-level-microfrontends-inside-management-portal.md) — deferred capability-level runtime MFE direction
 
 ---
 

@@ -7,8 +7,11 @@ Read [docs/constitution/web.md](../docs/constitution/web.md) for frontend workfl
 Read [docs/architecture.md](../docs/architecture.md) for the thin project-wide architecture index.
 Read [docs/architecture/web.md](../docs/architecture/web.md) for frontend architecture and stack decisions.
 Read [docs/adr/0003-frontend-stack.md](../docs/adr/0003-frontend-stack.md) for the accepted frontend stack decision.
+Read [docs/adr/0007-management-portal-architecture-and-envoy-host-routing.md](../docs/adr/0007-management-portal-architecture-and-envoy-host-routing.md) for portal-level frontend boundary and ingress routing direction.
+Read portal design guides in `web/apps/*/DESIGN.md` for persistent layout, navigation, and UI composition rules.
 Read [docs/testing.md](../docs/testing.md) for the thin project-wide testing index.
 Read [docs/testing/web.md](../docs/testing/web.md) for the frontend test taxonomy and when to use each layer.
+Use `/design:new` to create a new portal design guide, `/design:change` to refine existing portal design invariants, and `/design:lint` to verify low-drift compliance.
 
 ## Stack
 
@@ -21,8 +24,9 @@ Read [docs/testing/web.md](../docs/testing/web.md) for the frontend test taxonom
 
 ## Workspace Structure
 
-- `web/apps/alcopilot-portal/` — main user-facing application
-- `web/packages/` — shared packages (future: `@alcopilot/ui`, etc.)
+- `web/apps/` — portal apps workspace (user and management portal boundaries)
+- `web/apps/web-portal/` — planned user-facing app path
+- `web/packages/` — shared cross-cutting packages (for example API contracts, shared UI primitives, reusable service clients)
 - Root `pnpm-workspace.yaml` defines workspace packages
 
 ## Conventions
@@ -32,6 +36,10 @@ Read [docs/testing/web.md](../docs/testing/web.md) for the frontend test taxonom
 - Prefer named exports over default exports (except page components)
 - Colocate tests next to source files (`.test.tsx` / `.test.ts`)
 - Use `function` declarations for components, not arrow functions
+- For UI-affecting changes, update the impacted portal `DESIGN.md` before implementation work starts
+- OpenSpec proposal/design/spec/task artifacts for UI-affecting changes should reference impacted portal `DESIGN.md` guides
+- Use `DESIGN.md` only for durable UI invariants; keep behavior and acceptance logic in OpenSpec
+- Run `/design:lint` before `/opsx:apply` for UI-affecting changes when design docs were modified
 
 ## API Communication
 
