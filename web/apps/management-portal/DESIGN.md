@@ -3,7 +3,7 @@
 ## Purpose and Audience
 
 This guide defines the persistent UI and information-architecture baseline for the management portal.
-The primary audience is catalog managers and operators performing data curation, import actualization, and operational review workflows.
+The primary audience is catalog managers and operators performing data curation, import sync, and operational review workflows.
 Use this as the long-lived source of truth for management layout and navigation decisions that are not tied to one OpenSpec change.
 
 ## Scope and Non-Scope
@@ -21,7 +21,7 @@ When global UI invariants change, update this DESIGN.md.
 - Header invariants:
   - portal title
   - environment badge
-  - placeholder user menu slot (auth behavior deferred)
+  - utility slot
 - Footer policy: optional/minimal.
 - Default landing page: Dashboard.
 - Primary page action placement: top-right area of the page header.
@@ -33,14 +33,21 @@ When global UI invariants change, update this DESIGN.md.
   - Catalog
   - Imports
   - Audit
+- Catalog navigation expands into aggregate submenus:
+  - Overview
+  - Drinks
+  - Tags
+  - Ingredients
 - Navigation is designed for operator workflows, not end-user discovery journeys.
 - Breadcrumbs are optional and appear only when hierarchy depth warrants orientation support.
 
 ## Page Template Invariants
 
-- List template: operational lists with consistent filter, sort, status, and action affordance zones.
-- Detail template: primary object context at top, supporting sections in predictable order.
+- List template: operational list views use a shared data table surface with sorting, filtering, and row actions.
+- List view commands: a primary `New` action lives in the list view command bar and routes to a dedicated create form.
+- Detail template: create/edit forms are separate pages that reuse a single form component per aggregate.
 - Workspace template: action-oriented pages with clear primary/secondary action separation.
+- Import template: the Imports page emphasizes a single "current import" report surface with a supporting history list below; deeper row-level review lives on a dedicated Review page.
 - Template definitions here describe layout patterns only, not feature flow steps.
 
 ## Interaction and Feedback Invariants
@@ -67,7 +74,6 @@ When global UI invariants change, update this DESIGN.md.
 
 ## Deferred Items and Future Considerations
 
-- Authentication behavior and full user profile flows remain deferred.
 - Dashboard operational metrics such as suggestion acceptance/decline are future product backlog/OpenSpec concerns, not design invariants yet.
 - Expanded branding and broader design-system evolution are deferred until explicitly prioritized.
 

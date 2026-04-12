@@ -10,6 +10,6 @@ public sealed class GetIngredientsHandler(IIngredientRepository ingredientReposi
     public async ValueTask<List<IngredientDto>> Handle(
         GetIngredientsQuery request, CancellationToken cancellationToken)
     {
-        return await ingredientRepository.GetAllAsync(request.CategoryId, cancellationToken);
+        return await ingredientRepository.GetAllAsync(cancellationToken);
     }
 }

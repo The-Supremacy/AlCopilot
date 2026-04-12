@@ -1,4 +1,5 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.Shared.Data;
 using NSubstitute;
@@ -9,18 +10,19 @@ namespace AlCopilot.DrinkCatalog.Tests.Handlers.Commands;
 public sealed class DeleteDrinkHandlerTests
 {
     private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
+    private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly DeleteDrinkHandler _handler;
 
     public DeleteDrinkHandlerTests()
     {
-        _handler = new DeleteDrinkHandler(_drinkRepository, _unitOfWork);
+        _handler = new DeleteDrinkHandler(_drinkRepository, new AuditLogWriter(_auditRepository), _unitOfWork);
     }
 
     [Fact]
     public async Task Handle_WhenFound_SoftDeletesAndReturnsTrue()
     {
-        var drink = Drink.Create(DrinkName.Create("Test"), null, ImageUrl.Create(null));
+        var drink = Drink.Create(DrinkName.Create("Test"), DrinkCategory.Create(null), null, null, null, ImageUrl.Create(null));
         _drinkRepository.GetByIdAsync(drink.Id, Arg.Any<CancellationToken>()).Returns(drink);
 
         var result = await _handler.Handle(new DeleteDrinkCommand(drink.Id), CancellationToken.None);

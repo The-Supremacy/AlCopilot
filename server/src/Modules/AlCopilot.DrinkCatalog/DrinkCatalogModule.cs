@@ -1,8 +1,10 @@
 using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.DrinkCatalog.Data;
+using AlCopilot.DrinkCatalog.Features.Audit;
+using AlCopilot.DrinkCatalog.Features.ImportSync;
+using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
-using AlCopilot.DrinkCatalog.Features.IngredientCategory;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Domain;
@@ -36,7 +38,12 @@ public static class DrinkCatalogModule
         services.AddScoped<IDrinkRepository, DrinkRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<IIngredientRepository, IngredientRepository>();
-        services.AddScoped<IIngredientCategoryRepository, IngredientCategoryRepository>();
+        services.AddScoped<IImportBatchRepository, ImportBatchRepository>();
+        services.AddScoped<IAuditLogEntryRepository, AuditLogEntryRepository>();
+        services.AddScoped<AuditLogWriter>();
+        services.AddScoped<ImportBatchWorkflowService>();
+        services.AddScoped<IImportSourceStrategy, IbaCocktailsSnapshotImportSourceStrategy>();
+        services.AddScoped<IImportSourceStrategyResolver, ImportSourceStrategyResolver>();
 
         return services;
     }

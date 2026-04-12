@@ -122,3 +122,36 @@ The system SHALL support soft-deleting drinks. Soft-deleted drinks are excluded 
 - Given tags exist
 - When a consumer requests the tag list
 - Then the system SHALL return all tags with their names
+
+### Requirement: Update Tag
+
+The system SHALL allow a manager to rename an existing tag while preserving tag identity.
+
+**Scenario: Rename existing tag**
+
+- Given a tag exists with name "Refreshing"
+- When a manager updates the tag name to "Crisp"
+- Then the system SHALL persist the new name for the same tag ID
+
+**Scenario: Rename tag to duplicate name**
+
+- Given tags named "Refreshing" and "Classic" exist
+- When a manager renames "Classic" to "Refreshing"
+- Then the system SHALL reject the request with a conflict error
+
+### Requirement: Management Portal Drink Curation
+
+The system SHALL expose manager-oriented drink curation behavior through the management portal workflow.
+
+**Scenario: Manager creates and immediately curates drink composition**
+
+- Given valid ingredient and tag references exist
+- When a manager creates a drink and includes recipe entries and tags
+- Then the system SHALL persist the drink as an active catalog entry
+- And the drink SHALL be available for subsequent manager edits in the management workflow
+
+**Scenario: Manager deletes drink from curation workflow**
+
+- Given an active drink exists
+- When a manager deletes the drink from management workflow
+- Then the system SHALL apply soft delete behavior consistent with drink management requirements

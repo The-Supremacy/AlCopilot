@@ -20,21 +20,9 @@ public sealed class GetIngredientsHandlerTests
     public async Task Handle_ReturnsIngredients()
     {
         var expected = new List<IngredientDto>();
-        _repository.GetAllAsync(null, Arg.Any<CancellationToken>()).Returns(expected);
+        _repository.GetAllAsync(Arg.Any<CancellationToken>()).Returns(expected);
 
         var result = await _handler.Handle(new GetIngredientsQuery(), CancellationToken.None);
-
-        result.ShouldBe(expected);
-    }
-
-    [Fact]
-    public async Task Handle_WithCategoryFilter_PassesCategoryId()
-    {
-        var categoryId = Guid.NewGuid();
-        var expected = new List<IngredientDto>();
-        _repository.GetAllAsync(categoryId, Arg.Any<CancellationToken>()).Returns(expected);
-
-        var result = await _handler.Handle(new GetIngredientsQuery(categoryId), CancellationToken.None);
 
         result.ShouldBe(expected);
     }

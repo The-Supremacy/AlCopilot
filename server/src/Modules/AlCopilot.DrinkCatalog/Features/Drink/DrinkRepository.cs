@@ -32,7 +32,10 @@ internal sealed class DrinkRepository(DrinkCatalogDbContext dbContext) : IDrinkR
 
             query = query.Where(d =>
                 EF.Functions.ILike(d.Name, pattern) ||
+                (d.Category != null && EF.Functions.ILike(d.Category!, pattern)) ||
                 (d.Description != null && EF.Functions.ILike(d.Description, pattern)) ||
+                (d.Method != null && EF.Functions.ILike(d.Method, pattern)) ||
+                (d.Garnish != null && EF.Functions.ILike(d.Garnish, pattern)) ||
                 d.Tags.Any(t => EF.Functions.ILike(t.Name, pattern)) ||
                 d.RecipeEntries.Any(re =>
                     dbContext.Ingredients.Any(i => i.Id == re.IngredientId && EF.Functions.ILike(i.Name, pattern))));
@@ -52,12 +55,41 @@ internal sealed class DrinkRepository(DrinkCatalogDbContext dbContext) : IDrinkR
             .Select(d => new DrinkDto(
                 d.Id,
                 d.Name,
+                d.Category,
                 d.Description,
+                d.Method,
+                d.Garnish,
                 d.ImageUrl,
                 d.Tags.Select(t => new TagDto(t.Id, t.Name, dbContext.Drinks.Count(d2 => d2.Tags.Any(dt => dt.Id == t.Id)))).ToList()))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<DrinkDto>(items, totalCount, filter.Page, filter.PageSize);
+    }
+
+    public async Task<List<DrinkDetailDto>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Drinks
+            .OrderBy(d => d.Name)
+            .Select(d => new DrinkDetailDto(
+                d.Id,
+                d.Name,
+                d.Category,
+                d.Description,
+                d.Method,
+                d.Garnish,
+                d.ImageUrl,
+                d.Tags.Select(t => new TagDto(t.Id, t.Name, dbContext.Drinks.Count(d2 => d2.Tags.Any(dt => dt.Id == t.Id)))).ToList(),
+                d.RecipeEntries.Select(re => new RecipeEntryDto(
+                    dbContext.Ingredients
+                        .Where(i => i.Id == re.IngredientId)
+                        .Select(i => new IngredientDto(
+                            i.Id,
+                            i.Name,
+                            i.NotableBrands))
+                        .First(),
+                    re.Quantity,
+                    re.RecommendedBrand)).ToList()))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default)
@@ -75,7 +107,10 @@ internal sealed class DrinkRepository(DrinkCatalogDbContext dbContext) : IDrinkR
             .Select(d => new DrinkDetailDto(
                 d.Id,
                 d.Name,
+                d.Category,
                 d.Description,
+                d.Method,
+                d.Garnish,
                 d.ImageUrl,
                 d.Tags.Select(t => new TagDto(t.Id, t.Name, dbContext.Drinks.Count(d2 => d2.Tags.Any(dt => dt.Id == t.Id)))).ToList(),
                 d.RecipeEntries.Select(re => new RecipeEntryDto(
@@ -84,14 +119,22 @@ internal sealed class DrinkRepository(DrinkCatalogDbContext dbContext) : IDrinkR
                         .Select(i => new IngredientDto(
                             i.Id,
                             i.Name,
-                            dbContext.IngredientCategories
-                                .Where(c => c.Id == i.IngredientCategoryId)
-                                .Select(c => new IngredientCategoryDto(c.Id, c.Name))
-                                .First(),
                             i.NotableBrands))
                         .First(),
                     re.Quantity,
                     re.RecommendedBrand)).ToList()))
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<Drink?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        var local = dbContext.Drinks.Local.FirstOrDefault(d => d.Name == name);
+        if (local is not null)
+            return local;
+
+        return await dbContext.Drinks
+            .Include(d => d.Tags)
+            .Include(d => d.RecipeEntries)
+            .FirstOrDefaultAsync(d => d.Name == name, cancellationToken);
     }
 }

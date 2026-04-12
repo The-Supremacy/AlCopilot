@@ -25,6 +25,7 @@ rules:
     - Identify which modules are affected
     - For frontend UI-affecting changes, list impacted portal apps explicitly and link each affected portal DESIGN.md guide
     - If a frontend UI-affecting change lacks an affected portal DESIGN.md, mark the proposal as blocked and create that design guide before apply
+    - For new frontend UI work, explicitly confirm use of the accepted frontend stack (Tailwind CSS + shadcn/ui, with Zustand when needed) or document the approved exception
     - For first-time portal design guides, use `/design:new`; for invariant updates, use `/design:change`; run `/design:lint` when design docs changed before apply
     - Note any new dependencies and verify they comply with project licensing and stack decisions
   specs:
@@ -40,10 +41,12 @@ rules:
     - Start with the technical approach and intent needed to understand the implementation
     - Include rollback strategy for database migrations
     - Identify aggregate roots, value objects, and domain events for each affected module
+    - For frontend UI-affecting changes, state how the implementation uses the accepted frontend stack and call out any approved exception explicitly
     - Reference docs/constitution.md, docs/architecture.md, docs/testing/server.md, and server/AGENTS.md for module boundaries, testing ownership, and DDD conventions — do not restate them
   tasks:
     - Group tasks by module/layer (backend, frontend, infrastructure)
     - For frontend UI-affecting changes, include a pre-apply checklist task confirming affected portal DESIGN.md guides were updated and aligned
+    - For frontend UI-affecting changes, include a task verifying the implementation uses Tailwind CSS + shadcn/ui unless an approved exception was documented
     - Frontend tasks should not treat DESIGN.md as behavior spec; feature behavior and acceptance remain in OpenSpec specs
     - Include architecture test updates for any new module boundaries
     - Include unit tests per handler (isolated logic, NSubstitute for dependencies, Shouldly assertions)

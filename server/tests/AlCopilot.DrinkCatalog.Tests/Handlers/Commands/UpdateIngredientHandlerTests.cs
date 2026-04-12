@@ -1,4 +1,5 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.Shared.Data;
 using NSubstitute;
@@ -9,24 +10,26 @@ namespace AlCopilot.DrinkCatalog.Tests.Handlers.Commands;
 public sealed class UpdateIngredientHandlerTests
 {
     private readonly IIngredientRepository _ingredientRepository = Substitute.For<IIngredientRepository>();
+    private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly UpdateIngredientHandler _handler;
 
     public UpdateIngredientHandlerTests()
     {
-        _handler = new UpdateIngredientHandler(_ingredientRepository, _unitOfWork);
+        _handler = new UpdateIngredientHandler(_ingredientRepository, new AuditLogWriter(_auditRepository), _unitOfWork);
     }
 
     [Fact]
-    public async Task Handle_WhenFound_UpdatesBrandsAndReturnsTrue()
+    public async Task Handle_WhenFound_UpdatesNameAndBrandsAndReturnsTrue()
     {
-        var ingredient = Ingredient.Create(IngredientName.Create("Vodka"), Guid.NewGuid(), ["Absolut"]);
+        var ingredient = Ingredient.Create(IngredientName.Create("Vodka"), ["Absolut"]);
         _ingredientRepository.GetByIdAsync(ingredient.Id, Arg.Any<CancellationToken>()).Returns(ingredient);
 
         var result = await _handler.Handle(
-            new UpdateIngredientCommand(ingredient.Id, ["Grey Goose"]), CancellationToken.None);
+            new UpdateIngredientCommand(ingredient.Id, "Premium Vodka", ["Grey Goose"]), CancellationToken.None);
 
         result.ShouldBeTrue();
+        ingredient.Name.Value.ShouldBe("Premium Vodka");
         ingredient.NotableBrands.ShouldBe(["Grey Goose"]);
     }
 
@@ -36,7 +39,7 @@ public sealed class UpdateIngredientHandlerTests
         _ingredientRepository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Ingredient?)null);
 
         var result = await _handler.Handle(
-            new UpdateIngredientCommand(Guid.NewGuid(), []), CancellationToken.None);
+            new UpdateIngredientCommand(Guid.NewGuid(), "Vodka", []), CancellationToken.None);
 
         result.ShouldBeFalse();
     }

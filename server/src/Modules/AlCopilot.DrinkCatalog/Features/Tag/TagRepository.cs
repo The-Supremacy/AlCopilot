@@ -31,9 +31,10 @@ internal sealed class TagRepository(DrinkCatalogDbContext dbContext) : ITagRepos
         return await dbContext.Drinks.AnyAsync(d => d.Tags.Any(t => t.Id == tagId), cancellationToken);
     }
 
-    public async Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsByNameAsync(string name, Guid? excludeTagId = null, CancellationToken cancellationToken = default)
     {
-        return await dbContext.Tags.AnyAsync(t => t.Name == name, cancellationToken);
+        return await dbContext.Tags
+            .AnyAsync(t => t.Name == name && (!excludeTagId.HasValue || t.Id != excludeTagId.Value), cancellationToken);
     }
 
     public async Task<List<Tag>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
@@ -41,5 +42,14 @@ internal sealed class TagRepository(DrinkCatalogDbContext dbContext) : ITagRepos
         return await dbContext.Tags
             .Where(t => ids.Contains(t.Id))
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Tag?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        var local = dbContext.Tags.Local.FirstOrDefault(t => t.Name == name);
+        if (local is not null)
+            return local;
+
+        return await dbContext.Tags.FirstOrDefaultAsync(t => t.Name == name, cancellationToken);
     }
 }

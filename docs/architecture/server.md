@@ -42,6 +42,7 @@ AlCopilot follows the accepted DDD defaults recorded in [ADR 0002](../adr/0002-d
 Domain logic belongs in aggregates and domain services rather than handlers.
 Repositories load complete aggregates.
 `IUnitOfWork.SaveChangesAsync` is called once at the end of a handler flow.
+Domain events improve traceability, but they do not replace explicit audit logging of successful mutating commands.
 
 ---
 
@@ -66,6 +67,15 @@ Module endpoints are registered into the Host, but module behavior remains modul
 Local development uses Aspire orchestration.
 Production deployment is designed around GitHub Actions, GHCR, AKS, Flux, and PostgreSQL.
 Envoy Gateway is the external ingress layer.
+Operationally queryable audit records should be stored in the owning module when mutation history must be reviewed directly by operators.
+
+---
+
+## JSONB Usage Guidance
+
+JSONB is allowed as a narrow workflow-storage exception, not as the default persistence style for domain aggregates.
+The current approved example is import-batch review state in the Drinks Catalog, where provenance, diagnostics, review rows, conflict summaries, and apply summaries need flexible operator-facing storage.
+Core aggregates should continue using explicit relational columns and child tables by default because that keeps migrations, query intent, and aggregate evolution clearer over time.
 
 ---
 

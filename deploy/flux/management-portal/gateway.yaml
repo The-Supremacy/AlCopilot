@@ -1,0 +1,15 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: alcopilot-gateway
+  namespace: alcopilot
+spec:
+  gatewayClassName: envoy
+  listeners:
+    - name: management-http
+      hostname: management.alcopilot.com
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same

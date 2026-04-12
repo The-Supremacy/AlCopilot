@@ -1,6 +1,5 @@
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
-using AlCopilot.DrinkCatalog.Features.IngredientCategory;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using Shouldly;
 
@@ -90,21 +89,6 @@ public sealed class IngredientNameTests
     public void Create_ExceedingMaxLength_Throws()
     {
         Should.Throw<ArgumentException>(() => IngredientName.Create(new string('a', 201)));
-    }
-}
-
-public sealed class CategoryNameTests
-{
-    [Fact]
-    public void Create_WithValidName_ReturnsValueObject()
-    {
-        CategoryName.Create("Spirits").Value.ShouldBe("Spirits");
-    }
-
-    [Fact]
-    public void Create_ExceedingMaxLength_Throws()
-    {
-        Should.Throw<ArgumentException>(() => CategoryName.Create(new string('a', 101)));
     }
 }
 

@@ -2,7 +2,6 @@ using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
-using AlCopilot.DrinkCatalog.Features.IngredientCategory;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +24,7 @@ public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsync
     public async Task DisposeAsync()
     {
         // Clean up seeded data
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM drink_catalog.\"DrinkTag\"; DELETE FROM drink_catalog.\"RecipeEntries\"; DELETE FROM drink_catalog.\"Drinks\"; DELETE FROM drink_catalog.\"Tags\"; DELETE FROM drink_catalog.\"Ingredients\"; DELETE FROM drink_catalog.\"IngredientCategories\";");
+        await _db.Database.ExecuteSqlRawAsync("DELETE FROM drink_catalog.\"DrinkTag\"; DELETE FROM drink_catalog.\"RecipeEntries\"; DELETE FROM drink_catalog.\"Drinks\"; DELETE FROM drink_catalog.\"Tags\"; DELETE FROM drink_catalog.\"Ingredients\";");
         await _db.DisposeAsync();
     }
 
@@ -36,11 +35,11 @@ public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsync
         _db.Tags.Add(tag1);
         _db.Tags.Add(tag2);
 
-        var drink1 = Drink.Create(DrinkName.Create("Margarita"), "A tequila classic", ImageUrl.Create(null));
+        var drink1 = Drink.Create(DrinkName.Create("Margarita"), DrinkCategory.Create("The Unforgettables"), "A tequila classic", "Shake", "Salt rim", ImageUrl.Create(null));
         drink1.SetTags([tag1]);
-        var drink2 = Drink.Create(DrinkName.Create("Old Fashioned"), "Whiskey cocktail", ImageUrl.Create(null));
+        var drink2 = Drink.Create(DrinkName.Create("Old Fashioned"), DrinkCategory.Create("The Unforgettables"), "Whiskey cocktail", "Stir", "Orange peel", ImageUrl.Create(null));
         drink2.SetTags([tag1, tag2]);
-        var deleted = Drink.Create(DrinkName.Create("Deleted Drink"), null, ImageUrl.Create(null));
+        var deleted = Drink.Create(DrinkName.Create("Deleted Drink"), DrinkCategory.Create(null), null, null, null, ImageUrl.Create(null));
         deleted.SoftDelete();
 
         _db.Drinks.Add(drink1);
@@ -86,7 +85,7 @@ public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsync
         // Arrange: add a third tag and a drink that has ONLY that tag
         var tag3 = Tag.Create(TagName.Create("Fruity"));
         _db.Tags.Add(tag3);
-        var drink3 = Drink.Create(DrinkName.Create("Daiquiri"), "Rum and lime", ImageUrl.Create(null));
+        var drink3 = Drink.Create(DrinkName.Create("Daiquiri"), DrinkCategory.Create("Contemporary Classics"), "Rum and lime", "Shake", "Lime", ImageUrl.Create(null));
         drink3.SetTags([tag3]);
         _db.Drinks.Add(drink3);
         await _db.SaveChangesAsync();
@@ -115,15 +114,13 @@ public sealed class DrinkRepositoryFilterTests(PostgresFixture fixture) : IAsync
     public async Task InitializeAsync()
     {
         _db = fixture.CreateDbContext();
-        var category = IngredientCategory.Create(CategoryName.Create("Spirits"));
-        _db.IngredientCategories.Add(category);
-        var ingredient = Ingredient.Create(IngredientName.Create("Tequila"), category.Id, ["Patron"]);
+        var ingredient = Ingredient.Create(IngredientName.Create("Tequila"), ["Patron"]);
         _db.Ingredients.Add(ingredient);
 
         var tag = Tag.Create(TagName.Create("Tropical"));
         _db.Tags.Add(tag);
 
-        var drink = Drink.Create(DrinkName.Create("Margarita"), "A tequila classic", ImageUrl.Create(null));
+        var drink = Drink.Create(DrinkName.Create("Margarita"), DrinkCategory.Create("The Unforgettables"), "A tequila classic", "Shake", "Salt rim", ImageUrl.Create(null));
         drink.SetTags([tag]);
         drink.SetRecipeEntries([RecipeEntry.Create(drink.Id, ingredient.Id, Quantity.Create("2 oz"), null)]);
         _db.Drinks.Add(drink);
@@ -132,7 +129,7 @@ public sealed class DrinkRepositoryFilterTests(PostgresFixture fixture) : IAsync
 
     public async Task DisposeAsync()
     {
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM drink_catalog.\"DrinkTag\"; DELETE FROM drink_catalog.\"RecipeEntries\"; DELETE FROM drink_catalog.\"Drinks\"; DELETE FROM drink_catalog.\"Tags\"; DELETE FROM drink_catalog.\"Ingredients\"; DELETE FROM drink_catalog.\"IngredientCategories\";");
+        await _db.Database.ExecuteSqlRawAsync("DELETE FROM drink_catalog.\"DrinkTag\"; DELETE FROM drink_catalog.\"RecipeEntries\"; DELETE FROM drink_catalog.\"Drinks\"; DELETE FROM drink_catalog.\"Tags\"; DELETE FROM drink_catalog.\"Ingredients\";");
         await _db.DisposeAsync();
     }
 
@@ -174,12 +171,10 @@ public sealed class DrinkRepositoryDetailTests(PostgresFixture fixture) : IAsync
     public async Task InitializeAsync()
     {
         _db = fixture.CreateDbContext();
-        var category = IngredientCategory.Create(CategoryName.Create("Citrus"));
-        _db.IngredientCategories.Add(category);
-        var ingredient = Ingredient.Create(IngredientName.Create("Lime Juice"), category.Id, ["Nellie & Joe's"]);
+        var ingredient = Ingredient.Create(IngredientName.Create("Lime Juice"), ["Nellie & Joe's"]);
         _db.Ingredients.Add(ingredient);
 
-        var drink = Drink.Create(DrinkName.Create("Gimlet"), "Gin and lime", ImageUrl.Create(null));
+        var drink = Drink.Create(DrinkName.Create("Gimlet"), DrinkCategory.Create("Contemporary Classics"), "Gin and lime", "Shake", "Lime", ImageUrl.Create(null));
         drink.SetRecipeEntries([RecipeEntry.Create(drink.Id, ingredient.Id, Quantity.Create("1 oz"), "Fresh")]);
         _db.Drinks.Add(drink);
         _drinkId = drink.Id;
@@ -188,7 +183,7 @@ public sealed class DrinkRepositoryDetailTests(PostgresFixture fixture) : IAsync
 
     public async Task DisposeAsync()
     {
-        await _db.Database.ExecuteSqlRawAsync("DELETE FROM drink_catalog.\"DrinkTag\"; DELETE FROM drink_catalog.\"RecipeEntries\"; DELETE FROM drink_catalog.\"Drinks\"; DELETE FROM drink_catalog.\"Tags\"; DELETE FROM drink_catalog.\"Ingredients\"; DELETE FROM drink_catalog.\"IngredientCategories\";");
+        await _db.Database.ExecuteSqlRawAsync("DELETE FROM drink_catalog.\"DrinkTag\"; DELETE FROM drink_catalog.\"RecipeEntries\"; DELETE FROM drink_catalog.\"Drinks\"; DELETE FROM drink_catalog.\"Tags\"; DELETE FROM drink_catalog.\"Ingredients\";");
         await _db.DisposeAsync();
     }
 

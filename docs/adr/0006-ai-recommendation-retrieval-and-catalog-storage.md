@@ -11,7 +11,7 @@ Deferred
 ## Context
 
 AlCopilot's first implemented drinks capability is the `DrinkCatalog` module.
-It currently provides a relational catalog for drinks, ingredients, ingredient categories, tags, recipes, browse, search, and CRUD behavior backed by PostgreSQL.
+It currently provides a relational catalog for drinks, ingredients, tags, recipes, browse, search, and CRUD behavior backed by PostgreSQL.
 
 The product direction is for future drink recommendation to use an LLM for reasoning over user context such as preferences, home bar inventory, venue menu availability, and natural-language request input.
 That raised a design question early: whether the Drinks Catalog needs to be modeled in a special AI-first way now, such as storing the catalog primarily in markdown files, shaping the module around a vector database from the start, or introducing MCP-specific storage and access patterns before recommendation work begins.

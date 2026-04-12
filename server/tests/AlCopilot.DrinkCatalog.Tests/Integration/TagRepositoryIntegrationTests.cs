@@ -53,7 +53,7 @@ public sealed class TagRepositoryIntegrationTests(PostgresFixture fixture) : IAs
         var tag = Tag.Create(TagName.Create("Referenced"));
         repo.Add(tag);
 
-        var drink = Drink.Create(DrinkName.Create("RefDrink"), null, ImageUrl.Create(null));
+        var drink = Drink.Create(DrinkName.Create("RefDrink"), DrinkCategory.Create(null), null, null, null, ImageUrl.Create(null));
         drink.SetTags([tag]);
         _db.Drinks.Add(drink);
         await _db.SaveChangesAsync();

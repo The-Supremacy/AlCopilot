@@ -22,7 +22,7 @@ For now:
 
 - Management capabilities remain modular within a single management portal deployment.
 - Shared workspace packages define stable contracts and reusable primitives.
-- Runtime composition, remote module federation, and independent capability deployments are not part of v1.
+- Runtime composition, remote module federation, and independent capability deployments are not part of the current portal direction.
 
 ## Reason
 
@@ -37,7 +37,7 @@ Reconsider this ADR when one or more triggers appear:
 
 ## Consequences
 
-- v1 avoids federation-style runtime complexity while retaining internal modular boundaries.
+- The current portal direction avoids federation-style runtime complexity while retaining internal modular boundaries.
 - Shared contracts and package boundaries must remain disciplined to preserve extraction readiness.
 - A future revisit may still introduce capability-level MFEs if operational pressure justifies it.
 

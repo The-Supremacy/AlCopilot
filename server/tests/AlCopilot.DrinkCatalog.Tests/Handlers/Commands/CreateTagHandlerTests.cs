@@ -1,6 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
+using AlCopilot.Shared.Errors;
 using NSubstitute;
 using Shouldly;
 
@@ -9,18 +11,19 @@ namespace AlCopilot.DrinkCatalog.Tests.Handlers.Commands;
 public sealed class CreateTagHandlerTests
 {
     private readonly ITagRepository _tagRepository = Substitute.For<ITagRepository>();
+    private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly CreateTagHandler _handler;
 
     public CreateTagHandlerTests()
     {
-        _handler = new CreateTagHandler(_tagRepository, _unitOfWork);
+        _handler = new CreateTagHandler(_tagRepository, new AuditLogWriter(_auditRepository), _unitOfWork);
     }
 
     [Fact]
     public async Task Handle_ValidCommand_CreatesTag()
     {
-        _tagRepository.ExistsByNameAsync("Classic", Arg.Any<CancellationToken>()).Returns(false);
+        _tagRepository.ExistsByNameAsync("Classic", Arg.Any<Guid?>(), Arg.Any<CancellationToken>()).Returns(false);
 
         var id = await _handler.Handle(new CreateTagCommand("Classic"), CancellationToken.None);
 
@@ -31,9 +34,9 @@ public sealed class CreateTagHandlerTests
     [Fact]
     public async Task Handle_DuplicateName_Throws()
     {
-        _tagRepository.ExistsByNameAsync("Classic", Arg.Any<CancellationToken>()).Returns(true);
+        _tagRepository.ExistsByNameAsync("Classic", Arg.Any<Guid?>(), Arg.Any<CancellationToken>()).Returns(true);
 
-        await Should.ThrowAsync<InvalidOperationException>(
+        await Should.ThrowAsync<ConflictException>(
             () => _handler.Handle(new CreateTagCommand("Classic"), CancellationToken.None).AsTask());
     }
 }

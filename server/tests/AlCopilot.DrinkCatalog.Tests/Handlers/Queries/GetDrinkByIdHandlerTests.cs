@@ -20,7 +20,7 @@ public sealed class GetDrinkByIdHandlerTests
     public async Task Handle_WhenFound_ReturnsDetail()
     {
         var id = Guid.NewGuid();
-        var expected = new DrinkDetailDto(id, "Test", null, null, [], []);
+        var expected = new DrinkDetailDto(id, "Test", null, null, null, null, null, [], []);
         _drinkRepository.GetDetailByIdAsync(id, Arg.Any<CancellationToken>()).Returns(expected);
 
         var result = await _handler.Handle(new GetDrinkByIdQuery(id), CancellationToken.None);

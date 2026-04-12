@@ -10,7 +10,7 @@ public sealed class DrinkTests
     [Fact]
     public void Create_RaisesDrinkCreatedDomainEvent()
     {
-        var drink = Drink.Create(DrinkName.Create("Negroni"), null, ImageUrl.Create(null));
+        var drink = Drink.Create(DrinkName.Create("Negroni"), DrinkCategory.Create(null), null, null, null, ImageUrl.Create(null));
 
         var domainEvent = drink.DomainEvents.ShouldHaveSingleItem();
 
@@ -21,7 +21,7 @@ public sealed class DrinkTests
     [Fact]
     public void ClearDomainEvents_RemovesQueuedEvents()
     {
-        var drink = Drink.Create(DrinkName.Create("Americano"), null, ImageUrl.Create(null));
+        var drink = Drink.Create(DrinkName.Create("Americano"), DrinkCategory.Create(null), null, null, null, ImageUrl.Create(null));
 
         drink.DomainEvents.Count.ShouldBe(1);
 
