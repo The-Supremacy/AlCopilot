@@ -12,7 +12,7 @@ export function AuditPage() {
     <div className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Audit</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
           Review command history and import batch outcomes
         </h1>
       </header>

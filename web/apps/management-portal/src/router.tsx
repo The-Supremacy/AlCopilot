@@ -45,17 +45,17 @@ function RootLayout() {
 
   return (
     <div className="min-h-screen p-4 md:p-6">
-      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-7xl overflow-hidden rounded-[28px] border border-border/60 bg-white/70 shadow-soft backdrop-blur md:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="border-b border-border/70 bg-slate-950 px-5 py-6 text-slate-100 md:border-b-0 md:border-r">
+      <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-7xl overflow-hidden rounded-[28px] border border-border/60 bg-card/72 shadow-soft backdrop-blur md:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="border-b border-border/70 bg-shell px-5 py-6 text-shell-foreground md:border-b-0 md:border-r">
           <div className="space-y-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.32em] text-amber-200/80">AlCopilot</p>
-              <h1 className="mt-2 text-2xl font-semibold">Management Portal</h1>
+              <p className="text-xs uppercase tracking-[0.32em] text-brand-malt/80">AlCopilot</p>
+              <h1 className="mt-2 font-display text-2xl font-semibold">Management Portal</h1>
             </div>
-            <div className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+            <div className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-shell-foreground/75">
               Anonymous access
             </div>
-            <p className="text-sm leading-6 text-slate-300">
+            <p className="text-sm leading-6 text-shell-foreground/78">
               Catalog curation, import sync review, and audit visibility for operator workflows.
             </p>
           </div>
@@ -70,11 +70,11 @@ function RootLayout() {
                     to={item.to}
                     activeOptions={item.to === '/' ? { exact: true } : undefined}
                     className={cn(
-                      'inline-flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-300 transition-colors hover:bg-white/10 hover:text-white',
+                      'inline-flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-shell-foreground/75 transition-colors hover:bg-white/10 hover:text-shell-foreground',
                     )}
                     activeProps={{
                       className:
-                        'inline-flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-amber-500/25 to-cyan-400/15 px-4 py-3 text-sm text-white',
+                        'inline-flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-primary/25 to-brand-glass/20 px-4 py-3 text-sm text-shell-foreground',
                     }}
                   >
                     <Icon className="h-4 w-4" />
@@ -88,11 +88,11 @@ function RootLayout() {
                           to={child.to}
                           activeOptions={child.to === '/catalog' ? { exact: true } : undefined}
                           className={cn(
-                            'rounded-lg px-3 py-2 text-xs font-medium uppercase tracking-wide text-slate-400 transition-colors hover:bg-white/10 hover:text-white',
+                            'rounded-lg px-3 py-2 text-xs font-medium uppercase tracking-wide text-shell-foreground/55 transition-colors hover:bg-white/10 hover:text-shell-foreground',
                           )}
                           activeProps={{
                             className:
-                              'rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white',
+                              'rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-shell-foreground',
                           }}
                         >
                           {child.label}
@@ -106,13 +106,13 @@ function RootLayout() {
           </nav>
         </aside>
 
-        <div className="min-w-0 bg-white/40">
+        <div className="min-w-0 bg-card/40">
           <header className="flex flex-col gap-4 border-b border-border/70 px-6 py-5 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
                 Operator Console
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+              <h2 className="mt-2 font-display text-2xl font-semibold text-foreground">
                 Catalog curation and import sync
               </h2>
             </div>

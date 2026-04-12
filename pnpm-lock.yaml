@@ -26,6 +26,9 @@ importers:
 
   web/apps/management-portal:
     dependencies:
+      '@alcopilot/frontend-theme':
+        specifier: workspace:*
+        version: link:../../packages/frontend-theme
       '@alcopilot/management-api-client':
         specifier: workspace:*
         version: link:../../packages/management-api-client
@@ -111,6 +114,8 @@ importers:
       zustand:
         specifier: ^5.0.8
         version: 5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
+
+  web/packages/frontend-theme: {}
 
   web/packages/management-api-client: {}
 

@@ -36,7 +36,7 @@ export function ImportsPage() {
     <div className="space-y-6">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Imports</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
           Review current imports, then apply when ready
         </h1>
       </header>
@@ -67,7 +67,7 @@ export function ImportsPage() {
                 applySummary={currentBatch.applySummary}
               />
               <div className="rounded-2xl border border-border bg-background/80 p-4 text-sm">
-                <h3 className="font-semibold text-slate-950">Current report</h3>
+                <h3 className="font-display font-semibold text-foreground">Current report</h3>
                 {currentBatch.reviewSummary ? (
                   <p className="mt-2 text-muted-foreground">
                     Review recorded: create {currentBatch.reviewSummary.createCount}, update{' '}

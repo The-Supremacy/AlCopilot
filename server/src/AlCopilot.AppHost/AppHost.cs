@@ -2,7 +2,9 @@ using Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgres("postgres");
+var postgres = builder.AddPostgres("postgres")
+    .WithDataVolume("postgres-data")
+    .WithPgAdmin();
 var drinkCatalogDb = postgres.AddDatabase("drink-catalog");
 
 var migrator = builder.AddProject<AlCopilot_Migrator>("alcopilot-migrator")

@@ -7,13 +7,15 @@ type StatusPillProps = {
 
 export function StatusPill(props: StatusPillProps) {
   const variant =
-    props.tone === 'success'
-      ? 'success'
-      : props.tone === 'warning'
-        ? 'warning'
-        : props.tone === 'danger'
-          ? 'destructive'
-          : 'default';
+    props.tone === 'neutral'
+      ? 'neutral'
+      : props.tone === 'success'
+        ? 'success'
+        : props.tone === 'warning'
+          ? 'warning'
+          : props.tone === 'danger'
+            ? 'destructive'
+            : 'default';
 
   return <Badge variant={variant}>{props.children}</Badge>;
 }

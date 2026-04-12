@@ -53,7 +53,7 @@ This direction is captured in [ADR 0007](../adr/0007-management-portal-architect
 
 - `web/apps/` — portal apps (user portal and management portal boundaries)
 - `web/apps/web-portal/` — planned user-facing application path
-- `web/packages/` — shared cross-cutting packages when needed (API contracts, shared UI primitives, reusable service clients)
+- `web/packages/` — shared cross-cutting packages when needed (API contracts, shared UI primitives, reusable service clients, shared styling foundations)
 - Route-level React files should live in `src/pages/`
 - Large route files should decompose into feature sections and colocated page hooks rather than accumulating all logic in one page
 
@@ -63,6 +63,8 @@ This direction is captured in [ADR 0007](../adr/0007-management-portal-architect
 
 - `web/apps/management-portal/DESIGN.md` — persistent UI and information-architecture guidance for the management portal
 - `operations/management-portal-runtime.md` — current runtime and import workflow operating notes for the management portal
+
+Cross-portal brand foundations should be shared from a pnpm workspace package and expressed through Tailwind theme tokens plus semantic roles rather than app-local duplicated palette logic.
 
 For UI-affecting changes, update affected existing portal design guides before implementation starts and keep OpenSpec artifacts aligned with those guides.
 User portal design guidance for `web-portal` can be added when that app implementation starts.

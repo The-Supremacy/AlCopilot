@@ -63,6 +63,18 @@ When global UI invariants change, update this DESIGN.md.
 - Keep visual hierarchy focused on scanability, status clarity, and operational confidence.
 - Reuse shared primitives and avoid ad hoc visual variants without a documented global reason.
 
+## Brand Expression Invariants
+
+- The management portal expresses the shared AlCopilot brand through a grounded, operational mode referred to as `Cellar Ledger`.
+- Shared AlCopilot brand foundations should come from a pnpm workspace package rather than portal-local token ownership.
+- Shared branding should flow through Tailwind theme tokens and semantic roles rather than duplicated hard-coded palette decisions.
+- The shell provides the strongest brand signal through dark ink-toned framing around warm neutral work surfaces.
+- Primary emphasis uses restrained copper and amber tones for actions, active navigation, and key decision points.
+- Secondary emphasis uses mineral or glass-teal tones for supporting states, informational grouping, and non-primary interaction cues.
+- The management experience should feel structured, calm, and scanable rather than promotional or decorative.
+- Typography should pair the shared AlCopilot heading voice with the shared UI sans, using expressive display treatment sparingly in management contexts.
+- Management-specific styling must remain consistent with the shared cross-portal brand foundation rather than establishing a separate visual identity.
+
 ## Accessibility and Responsive Baseline
 
 - Navigation behavior by breakpoint:

@@ -179,7 +179,7 @@ export function ImportReviewPage() {
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Review</p>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
             {data.source.displayName || data.strategyKey}
           </h1>
           <StatusPill

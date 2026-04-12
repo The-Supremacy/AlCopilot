@@ -15,6 +15,22 @@ const deleteDrinkMutation = {
 };
 
 let drinkId = 'drink-1';
+type DrinkDetails = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  method: string;
+  garnish: string;
+  imageUrl: string;
+  tags: Array<{ id: string; name: string }>;
+  recipeEntries: Array<{
+    ingredient: { id: string; name: string };
+    quantity: string;
+    recommendedBrand: string;
+  }>;
+};
+
 const drinkQuery = {
   data: {
     id: 'drink-1',
@@ -32,7 +48,7 @@ const drinkQuery = {
         recommendedBrand: 'Tanqueray',
       },
     ],
-  },
+  } as DrinkDetails | null,
   isLoading: false,
 };
 

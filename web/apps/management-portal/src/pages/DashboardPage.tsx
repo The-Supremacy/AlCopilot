@@ -28,11 +28,11 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[24px] border border-border/70 bg-white/80 p-6 shadow-soft">
+      <section className="rounded-[24px] border border-border/70 bg-card/80 p-6 shadow-soft">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Overview</p>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-3">
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+            <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
               Review catalog health, recent imports, and mutation visibility in one place.
             </h1>
             <p className="text-sm leading-6 text-muted-foreground">
@@ -74,10 +74,10 @@ export function DashboardPage() {
         {metrics.map((metric) => (
           <div
             key={metric.label}
-            className="rounded-2xl border border-border/70 bg-white/85 p-5 shadow-soft"
+            className="rounded-2xl border border-border/70 bg-card/85 p-5 shadow-soft"
           >
             <p className="text-sm text-muted-foreground">{metric.label}</p>
-            <strong className="mt-3 block text-4xl font-semibold tracking-tight text-slate-950">
+            <strong className="mt-3 block text-4xl font-semibold tracking-tight text-foreground">
               {metric.value}
             </strong>
           </div>
@@ -110,7 +110,7 @@ export function DashboardPage() {
           {latestAudit ? (
             <div className="space-y-3 rounded-xl border border-border bg-background/80 p-4 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <strong className="text-slate-950">{latestAudit.summary}</strong>
+                <strong className="text-foreground">{latestAudit.summary}</strong>
                 <StatusPill tone="neutral">{latestAudit.actor}</StatusPill>
               </div>
               <p className="text-muted-foreground">
