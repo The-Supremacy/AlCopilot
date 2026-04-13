@@ -1,20 +1,26 @@
+using AlCopilot.Shared.Models;
+
 namespace AlCopilot.DrinkCatalog.Features.Audit;
 
-public sealed class AuditLogWriter(IAuditLogEntryRepository repository)
+public sealed class AuditLogWriter(IAuditLogEntryRepository repository, ICurrentActorAccessor? currentActorAccessor = null)
 {
     public void Write(
         string action,
         string subjectType,
         string? subjectKey,
         string summary,
-        string actor = "anonymous")
+        string? actor = null,
+        string? actorUserId = null)
     {
+        var currentActor = currentActorAccessor?.GetCurrent() ?? CurrentActor.Anonymous;
+
         repository.Add(new AuditLogEntry
         {
             Action = Normalize(action, nameof(action)),
             SubjectType = Normalize(subjectType, nameof(subjectType)),
             SubjectKey = NormalizeOptional(subjectKey),
-            Actor = Normalize(actor, nameof(actor)),
+            ActorUserId = NormalizeOptional(actorUserId ?? currentActor.UserId),
+            Actor = Normalize(actor ?? currentActor.DisplayName, nameof(actor)),
             Summary = Normalize(summary, nameof(summary)),
             OccurredAtUtc = DateTimeOffset.UtcNow,
         });

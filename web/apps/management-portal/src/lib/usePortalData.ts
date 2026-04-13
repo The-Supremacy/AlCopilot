@@ -30,6 +30,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const portalKeys = {
+  session: ['management-session'] as const,
   drinks: ['drinks'] as const,
   drink: (id: string) => ['drink', id] as const,
   tags: ['tags'] as const,

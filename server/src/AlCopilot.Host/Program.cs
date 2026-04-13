@@ -1,10 +1,13 @@
 using AlCopilot.DrinkCatalog;
+using AlCopilot.Host.Authentication;
 using AlCopilot.Shared.Errors;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
+builder.Services.AddManagementAuthentication(builder.Configuration, builder.Environment);
+builder.Services.AddManagementAuthorization();
 builder.Services.AddDrinkCatalogModule(builder.Configuration);
 builder.Services.AddProblemDetails(options =>
 {
@@ -36,9 +39,13 @@ else
     app.UseExceptionHandler();
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapDefaultEndpoints();
 
-app.MapDrinkCatalogEndpoints();
+app.MapManagementAuthEndpoints();
+app.MapDrinkCatalogEndpoints(ManagementAuthorizationPolicies.CanAccessManagementPortal);
 app.MapGet("/", () => "Hello World!");
 
 app.Run();

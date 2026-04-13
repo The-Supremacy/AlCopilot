@@ -112,9 +112,18 @@ export type AuditLogEntryDto = {
   action: string;
   subjectType: string;
   subjectKey: string | null;
+  actorUserId: string | null;
   actor: string;
   summary: string;
   occurredAtUtc: string;
+};
+
+export type ManagementSessionDto = {
+  isAuthenticated: boolean;
+  displayName: string | null;
+  roles: string[];
+  isAdmin: boolean;
+  canAccessManagementPortal: boolean;
 };
 
 export type PagedResult<T> = {
@@ -170,8 +179,19 @@ export type ApplyImportBatchInput = {
 
 const baseUrl = '';
 
+export class ManagementApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ManagementApiError';
+    this.status = status;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, {
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
       ...(init?.headers ?? {}),
@@ -192,7 +212,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       }
     }
 
-    throw new Error(message || `Request failed with status ${response.status}`);
+    throw new ManagementApiError(
+      response.status,
+      message || `Request failed with status ${response.status}`,
+    );
   }
 
   if (response.status === 204) {
@@ -200,6 +223,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T;
+}
+
+export function buildManagementLoginUrl(returnUrl = '/') {
+  const search = new URLSearchParams({ returnUrl });
+  return `/api/auth/management/login?${search.toString()}`;
+}
+
+export function getManagementSession() {
+  return request<ManagementSessionDto>(`/api/auth/management/session`);
+}
+
+export function logoutManagement() {
+  return request<void>(`/api/auth/management/logout`, {
+    method: 'POST',
+  });
 }
 
 export function listDrinks(params?: { q?: string; tagIds?: string[] }) {

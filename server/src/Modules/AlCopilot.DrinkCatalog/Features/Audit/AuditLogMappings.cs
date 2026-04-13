@@ -10,6 +10,7 @@ internal static class AuditLogMappings
             entry.Action,
             entry.SubjectType,
             entry.SubjectKey,
+            entry.ActorUserId,
             entry.Actor,
             entry.Summary,
             entry.OccurredAtUtc);

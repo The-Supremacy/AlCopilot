@@ -38,6 +38,7 @@ In this repo, shadcn/ui means app-owned local components under `src/components/u
 Each portal talks to the Host rather than directly to individual modules.
 The Host owns the external web boundary, session behavior, and future reverse-proxy behavior.
 Frontend code should depend on stable application APIs rather than backend implementation details.
+The management portal authentication direction is Host-managed Keycloak login with secure cookie sessions rather than browser-managed bearer tokens, as accepted in [ADR 0009](../adr/0009-management-portal-authentication-with-keycloak-and-host-cookies.md).
 
 ---
 
@@ -88,6 +89,7 @@ The current management portal implementation uses polling-friendly persisted imp
 Local development uses Vite proxying to the Host.
 Production direction uses a dedicated management host and service wiring described in [operations/management-portal-runtime.md](../operations/management-portal-runtime.md).
 The management portal now follows the accepted Tailwind CSS, shadcn/ui, and Zustand stack direction.
+Management auth should preserve host parity across environments so cookie and OIDC callback behavior stay predictable.
 
 ---
 

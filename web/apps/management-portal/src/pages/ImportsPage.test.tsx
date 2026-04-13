@@ -7,12 +7,14 @@ import { ImportsPage } from '@/pages/ImportsPage';
 const startImportMutation = {
   mutateAsync: vi.fn().mockResolvedValue({ id: 'batch-1' }),
   error: null,
+  isPending: false,
 };
 
 const noopMutation = {
   mutate: vi.fn(),
   mutateAsync: vi.fn(),
   error: null,
+  isPending: false,
 };
 
 vi.mock('@/lib/usePortalData', () => ({

@@ -21,7 +21,7 @@ When global UI invariants change, update this DESIGN.md.
 - Header invariants:
   - portal title
   - environment badge
-  - utility slot
+  - utility slot for session state and sign-in or sign-out actions
 - Footer policy: optional/minimal.
 - Default landing page: Dashboard.
 - Primary page action placement: top-right area of the page header.
@@ -55,6 +55,7 @@ When global UI invariants change, update this DESIGN.md.
 - Global feedback pattern: inline status plus toast confirmation.
 - Destructive or high-impact actions require explicit confirmation affordances.
 - Status communication should favor clear, plain-language operator-facing messaging.
+- Protected management access uses a consistent local "sign in required" state before redirecting to the identity provider.
 
 ## Visual and Density Principles
 

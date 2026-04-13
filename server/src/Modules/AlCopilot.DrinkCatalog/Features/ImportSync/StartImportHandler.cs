@@ -3,6 +3,7 @@ using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
 using AlCopilot.Shared.Data;
+using AlCopilot.Shared.Models;
 using Mediator;
 
 namespace AlCopilot.DrinkCatalog.Features.ImportSync;
@@ -12,10 +13,12 @@ public sealed class StartImportHandler(
     IImportBatchRepository importBatchRepository,
     ImportBatchWorkflowService workflowService,
     AuditLogWriter auditLogWriter,
+    ICurrentActorAccessor currentActorAccessor,
     IUnitOfWork unitOfWork) : IRequestHandler<StartImportCommand, ImportBatchDto>
 {
     public async ValueTask<ImportBatchDto> Handle(StartImportCommand request, CancellationToken cancellationToken)
     {
+        var currentActor = currentActorAccessor.GetCurrent();
         var strategy = strategyResolver.GetRequired(request.StrategyKey);
         var strategyResult = await strategy.CreateImportAsync(
             new ImportSourceStrategyRequest(
@@ -24,12 +27,19 @@ public sealed class StartImportHandler(
                     request.Source.SourceReference,
                     request.Source.DisplayName,
                     request.Source.ContentType,
-                    request.Source.Metadata ?? [])),
+                    request.Source.Metadata ?? [],
+                    currentActor.UserId,
+                    currentActor.DisplayName)),
             cancellationToken);
+        var provenance = strategyResult.Provenance with
+        {
+            InitiatedByUserId = currentActor.UserId,
+            InitiatedByDisplayName = currentActor.DisplayName,
+        };
 
         var batch = ImportBatch.Create(
             strategy.Key,
-            strategyResult.Provenance,
+            provenance,
             strategyResult.Import,
             strategyResult.SourceFingerprint);
 

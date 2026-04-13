@@ -1,6 +1,7 @@
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
-import type { ButtonHTMLAttributes } from 'react';
+import { LoaderCircle } from 'lucide-react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
@@ -30,6 +31,8 @@ const buttonVariants = cva(
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  loading?: boolean;
+  loadingText?: ReactNode;
 }
 
 export function Button({
@@ -38,10 +41,31 @@ export function Button({
   variant,
   size,
   type = 'button',
+  children,
+  disabled,
+  loading = false,
+  loadingText,
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot : 'button';
+  const content = loading ? (
+    <>
+      <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
+      <span>{loadingText ?? children}</span>
+    </>
+  ) : (
+    children
+  );
+
   return (
-    <Comp type={type} className={cn(buttonVariants({ variant, size }), className)} {...props} />
+    <Comp
+      type={type}
+      className={cn(buttonVariants({ variant, size }), className)}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      {...props}
+    >
+      {content}
+    </Comp>
   );
 }

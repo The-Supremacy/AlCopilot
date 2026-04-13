@@ -5,9 +5,14 @@ import { Button } from '@/components/ui/button';
 type ImportPresetSectionProps = {
   strategyKey: string;
   onSubmit: () => Promise<void>;
+  isSubmitting: boolean;
 };
 
-export function ImportPresetSection({ strategyKey, onSubmit }: ImportPresetSectionProps) {
+export function ImportPresetSection({
+  strategyKey,
+  onSubmit,
+  isSubmitting,
+}: ImportPresetSectionProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await onSubmit();
@@ -27,7 +32,9 @@ export function ImportPresetSection({ strategyKey, onSubmit }: ImportPresetSecti
         </div>
 
         <form onSubmit={handleSubmit}>
-          <Button type="submit">Import default preset</Button>
+          <Button type="submit" loading={isSubmitting} loadingText="Starting import...">
+            Import default preset
+          </Button>
         </form>
       </div>
     </SectionCard>

@@ -14,6 +14,7 @@ using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Errors;
+using AlCopilot.Shared.Models;
 
 namespace AlCopilot.DrinkCatalog.Features.ImportSync;
 
@@ -186,6 +187,7 @@ public sealed class ImportBatchWorkflowService(
     public async Task<ImportApplySummary> ApplyAsync(
         ImportBatch batch,
         IReadOnlyDictionary<string, ImportDecisionInput> decisions,
+        CurrentActor currentActor,
         CancellationToken cancellationToken)
     {
         var created = 0;
@@ -234,12 +236,12 @@ public sealed class ImportBatchWorkflowService(
             {
                 existing.Update(IngredientNameValue.Create(ingredientImport.Name), ingredientImport.NotableBrands);
                 updated++;
-                audit.Add(new ImportDecisionAuditEntry("ingredient", ingredientImport.Name, decision.Decision, decision.Reason, DateTimeOffset.UtcNow));
+                audit.Add(new ImportDecisionAuditEntry("ingredient", ingredientImport.Name, decision.Decision, decision.Reason, currentActor.UserId, currentActor.DisplayName, DateTimeOffset.UtcNow));
             }
             else
             {
                 rejected++;
-                audit.Add(new ImportDecisionAuditEntry("ingredient", ingredientImport.Name, decision.Decision, decision.Reason, DateTimeOffset.UtcNow));
+                audit.Add(new ImportDecisionAuditEntry("ingredient", ingredientImport.Name, decision.Decision, decision.Reason, currentActor.UserId, currentActor.DisplayName, DateTimeOffset.UtcNow));
             }
         }
 
@@ -287,12 +289,12 @@ public sealed class ImportBatchWorkflowService(
                 existing.SetTags(tags);
                 existing.SetRecipeEntries(await ResolveRecipeEntriesAsync(existing.Id, drinkImport.RecipeEntries, cancellationToken));
                 updated++;
-                audit.Add(new ImportDecisionAuditEntry("drink", drinkImport.Name, decision.Decision, decision.Reason, DateTimeOffset.UtcNow));
+                audit.Add(new ImportDecisionAuditEntry("drink", drinkImport.Name, decision.Decision, decision.Reason, currentActor.UserId, currentActor.DisplayName, DateTimeOffset.UtcNow));
             }
             else
             {
                 rejected++;
-                audit.Add(new ImportDecisionAuditEntry("drink", drinkImport.Name, decision.Decision, decision.Reason, DateTimeOffset.UtcNow));
+                audit.Add(new ImportDecisionAuditEntry("drink", drinkImport.Name, decision.Decision, decision.Reason, currentActor.UserId, currentActor.DisplayName, DateTimeOffset.UtcNow));
             }
         }
 

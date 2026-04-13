@@ -23,6 +23,9 @@ internal sealed class AuditLogEntryConfiguration : IEntityTypeConfiguration<Audi
         builder.Property(entry => entry.SubjectKey)
             .HasMaxLength(200);
 
+        builder.Property(entry => entry.ActorUserId)
+            .HasMaxLength(200);
+
         builder.Property(entry => entry.Actor)
             .HasMaxLength(100)
             .IsRequired();

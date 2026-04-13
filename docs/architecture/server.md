@@ -58,6 +58,8 @@ If a real async choreography or extracted-service use case appears, revisit [ADR
 
 The Host currently acts as the BFF for the SPA.
 It owns the external HTTP boundary, session management, and future reverse-proxy behavior if modules are extracted.
+Management authentication uses Keycloak with Host-managed OpenID Connect and secure cookie sessions, as accepted in [ADR 0009](../adr/0009-management-portal-authentication-with-keycloak-and-host-cookies.md).
+When module-owned write paths need operator traceability, the Host resolves the authenticated principal into a shared `CurrentActor` abstraction and exposes it through `ICurrentActorAccessor` so modules can persist stable actor IDs without depending on `HttpContext`.
 Module endpoints are registered into the Host, but module behavior remains module-owned.
 
 ---

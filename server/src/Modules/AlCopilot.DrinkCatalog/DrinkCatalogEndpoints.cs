@@ -6,9 +6,10 @@ namespace AlCopilot.DrinkCatalog;
 
 public static class DrinkCatalogEndpoints
 {
-    public static IEndpointRouteBuilder MapDrinkCatalogEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapDrinkCatalogEndpoints(this IEndpointRouteBuilder app, string authorizationPolicy)
     {
-        var group = app.MapGroup("/api/drink-catalog");
+        var group = app.MapGroup("/api/drink-catalog")
+            .RequireAuthorization(authorizationPolicy);
 
         DrinkCatalogDrinkEndpoints.Map(group);
         DrinkCatalogTagEndpoints.Map(group);

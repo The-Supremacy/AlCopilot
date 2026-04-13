@@ -7,6 +7,7 @@ using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
+using AlCopilot.Shared.Models;
 using NSubstitute;
 using Shouldly;
 
@@ -19,6 +20,7 @@ public sealed class ApplyImportBatchHandlerTests
     private readonly IIngredientRepository _ingredientRepository = Substitute.For<IIngredientRepository>();
     private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
+    private readonly ICurrentActorAccessor _currentActorAccessor = Substitute.For<ICurrentActorAccessor>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly ApplyImportBatchHandler _handler;
 
@@ -28,10 +30,12 @@ public sealed class ApplyImportBatchHandlerTests
             _tagRepository,
             _ingredientRepository,
             _drinkRepository);
+        _currentActorAccessor.GetCurrent().Returns(new CurrentActor("user-123", "manager@alcopilot.local", true));
         _handler = new ApplyImportBatchHandler(
             _importBatchRepository,
             workflowService,
-            new AuditLogWriter(_auditRepository),
+            new AuditLogWriter(_auditRepository, _currentActorAccessor),
+            _currentActorAccessor,
             _unitOfWork);
     }
 

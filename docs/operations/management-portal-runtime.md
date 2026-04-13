@@ -10,9 +10,11 @@ It complements the portal design guide and the OpenSpec change artifacts with en
 ## Portal Runtime Model
 
 - The management portal is a standalone frontend app in `web/apps/management-portal`.
-- Local development runs through Vite with `/api` proxied to the Host at `http://localhost:5243` by default.
+- Management authentication is owned by `AlCopilot.Host` through OpenID Connect plus a secure HTTP-only cookie session.
+- Local development runs through Vite on the management host with `/api` auth and management routes proxied to the Host at `http://localhost:5243` by default.
 - Production direction is a dedicated service fronted by Envoy Gateway on `management.alcopilot.com`.
 - The backend Host remains the API boundary for all portal requests.
+- Local auth parity depends on the browser using the management host shape so login callbacks and cookie behavior stay aligned with production expectations.
 
 ---
 
@@ -65,8 +67,10 @@ The strategy normalizes that upstream shape into AlCopilot-owned drink, ingredie
 
 ## Current Access Posture
 
-- The application currently allows anonymous access.
-- Temporary ingress restrictions, if applied in a deployment environment, are operational controls rather than product behavior.
+- Protected management workflows require an authenticated Keycloak session with the `manager` or `admin` role.
+- The management portal shows a local "sign in required" state before redirecting unauthenticated users into the Host-managed login flow.
+- Authenticated `user` accounts without management roles are denied access to management APIs and portal workflows.
+- The first rollout keeps standard cookie ticket behavior and minimal claims; Redis-backed `ITicketStore` remains a follow-up only if operational pressure justifies it.
 
 ---
 
@@ -74,4 +78,4 @@ The strategy normalizes that upstream shape into AlCopilot-owned drink, ingredie
 
 - `web/apps/management-portal/DESIGN.md`
 - `deploy/flux/management-portal/`
-- `openspec/changes/add-management-portal-and-actualize/`
+- `openspec/changes/add-management-portal-authentication/`

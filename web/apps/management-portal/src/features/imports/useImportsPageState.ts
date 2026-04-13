@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import {
   useApplyImportBatchMutation,
   useCancelImportBatchMutation,
@@ -36,43 +37,62 @@ export function useImportsPageState() {
     : false;
 
   async function startImport() {
-    await startImportMutation.mutateAsync({
-      strategyKey,
-      payload: '',
-      source: {
-        sourceReference: null,
-        displayName: null,
-        contentType: 'application/json',
-        metadata: {},
+    await toast.promise(
+      startImportMutation.mutateAsync({
+        strategyKey,
+        payload: '',
+        source: {
+          sourceReference: null,
+          displayName: null,
+          contentType: 'application/json',
+          metadata: {},
+        },
+      }),
+      {
+        loading: 'Starting import preset...',
+        success: 'Import preset started.',
+        error: getErrorMessage,
       },
-    });
+    );
   }
 
-  function applyBatch() {
+  async function applyBatch() {
     if (!currentBatch) {
       return;
     }
 
     const decisions = getStoredBatchDecisions(currentBatch.id);
-
-    applyMutation.mutate(
-      {
+    const applyPromise = applyMutation
+      .mutateAsync({
         id: currentBatch.id,
         input: { overrideDuplicateFingerprint: false, decisions },
-      },
-      {
-        onSuccess: () => clearBatchDecisions(currentBatch.id),
-      },
-    );
+      })
+      .then((result) => {
+        clearBatchDecisions(currentBatch.id);
+        return result;
+      });
+
+    await toast.promise(applyPromise, {
+      loading: 'Applying import changes...',
+      success: 'Import applied successfully.',
+      error: getErrorMessage,
+    });
   }
 
-  function cancelBatch() {
+  async function cancelBatch() {
     if (!currentBatch) {
       return;
     }
 
-    cancelMutation.mutate(currentBatch.id, {
-      onSuccess: () => clearBatchDecisions(currentBatch.id),
+    const cancelPromise = cancelMutation.mutateAsync(currentBatch.id).then((result) => {
+      clearBatchDecisions(currentBatch.id);
+      return result;
+    });
+
+    await toast.promise(cancelPromise, {
+      loading: 'Cancelling current import...',
+      success: 'Import cancelled.',
+      error: getErrorMessage,
     });
   }
 
@@ -83,8 +103,19 @@ export function useImportsPageState() {
     currentBatch,
     activeError,
     hasStoredDecisionForAllConflicts,
+    isStartingImport: startImportMutation.isPending,
+    isApplyingBatch: applyMutation.isPending,
+    isCancellingBatch: cancelMutation.isPending,
     startImport,
     applyBatch,
     cancelBatch,
   };
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Something went wrong.';
 }

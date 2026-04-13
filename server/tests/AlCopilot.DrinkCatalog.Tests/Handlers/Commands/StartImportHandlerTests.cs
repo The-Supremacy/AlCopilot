@@ -5,6 +5,7 @@ using AlCopilot.DrinkCatalog.Features.ImportSync;
 using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.Shared.Data;
+using AlCopilot.Shared.Models;
 using NSubstitute;
 using Shouldly;
 
@@ -18,6 +19,7 @@ public sealed class StartImportHandlerTests
     private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
     private readonly ImportBatchWorkflowService _workflowService;
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
+    private readonly ICurrentActorAccessor _currentActorAccessor = Substitute.For<ICurrentActorAccessor>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly StartImportHandler _handler;
 
@@ -27,7 +29,8 @@ public sealed class StartImportHandlerTests
             Substitute.For<AlCopilot.DrinkCatalog.Features.Tag.ITagRepository>(),
             Substitute.For<AlCopilot.DrinkCatalog.Features.Ingredient.IIngredientRepository>(),
             _drinkRepository);
-        _handler = new StartImportHandler(_strategyResolver, _repository, _workflowService, new AuditLogWriter(_auditRepository), _unitOfWork);
+        _currentActorAccessor.GetCurrent().Returns(new CurrentActor("user-123", "manager@alcopilot.local", true));
+        _handler = new StartImportHandler(_strategyResolver, _repository, _workflowService, new AuditLogWriter(_auditRepository, _currentActorAccessor), _currentActorAccessor, _unitOfWork);
     }
 
     [Fact]
@@ -56,6 +59,12 @@ public sealed class StartImportHandlerTests
         result.ReviewSummary.ShouldNotBeNull();
         result.ReviewSummary.CreateCount.ShouldBe(1);
         result.ReviewConflicts.ShouldBeEmpty();
+        _repository.Received(1).Add(Arg.Is<ImportBatch>(batch =>
+            batch.Provenance.InitiatedByUserId == "user-123" &&
+            batch.Provenance.InitiatedByDisplayName == "manager@alcopilot.local"));
+        _auditRepository.Received().Add(Arg.Is<AuditLogEntry>(entry =>
+            entry.ActorUserId == "user-123" &&
+            entry.Actor == "manager@alcopilot.local"));
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

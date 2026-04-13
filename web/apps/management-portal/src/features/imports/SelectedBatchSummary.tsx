@@ -20,6 +20,8 @@ type SelectedBatchSummaryProps = {
   canApply: boolean;
   canCancel: boolean;
   applyHint?: string | null;
+  isApplying: boolean;
+  isCancelling: boolean;
 };
 
 export function SelectedBatchSummary({
@@ -30,7 +32,11 @@ export function SelectedBatchSummary({
   canApply,
   canCancel,
   applyHint,
+  isApplying,
+  isCancelling,
 }: SelectedBatchSummaryProps) {
+  const isBusy = isApplying || isCancelling;
+
   return (
     <>
       <div className="flex flex-col gap-4 rounded-2xl border border-border bg-background/80 p-4 md:flex-row md:items-start md:justify-between">
@@ -56,15 +62,26 @@ export function SelectedBatchSummary({
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" disabled={isBusy}>
           <Link to="/imports/$batchId/review" params={{ batchId: reviewBatchId }}>
             Review
           </Link>
         </Button>
-        <Button onClick={onApply} disabled={!canApply}>
+        <Button
+          onClick={onApply}
+          disabled={!canApply || isBusy}
+          loading={isApplying}
+          loadingText="Applying..."
+        >
           Apply
         </Button>
-        <Button variant="outline" onClick={onCancel} disabled={!canCancel}>
+        <Button
+          variant="outline"
+          onClick={onCancel}
+          disabled={!canCancel || isBusy}
+          loading={isCancelling}
+          loadingText="Cancelling..."
+        >
           Cancel
         </Button>
       </div>

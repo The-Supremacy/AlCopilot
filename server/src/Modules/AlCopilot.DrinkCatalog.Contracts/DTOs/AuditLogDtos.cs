@@ -5,6 +5,7 @@ public sealed record AuditLogEntryDto(
     string Action,
     string SubjectType,
     string? SubjectKey,
+    string? ActorUserId,
     string Actor,
     string Summary,
     DateTimeOffset OccurredAtUtc);

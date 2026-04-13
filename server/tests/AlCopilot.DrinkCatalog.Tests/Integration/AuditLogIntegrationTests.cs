@@ -7,6 +7,7 @@ using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.ImportSync;
 using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
 using AlCopilot.DrinkCatalog.Features.Tag;
+using AlCopilot.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
 
@@ -35,7 +36,8 @@ public sealed class AuditLogIntegrationTests(PostgresFixture fixture) : IAsyncLi
     public async Task SuccessfulMutations_PersistAuditEntries()
     {
         var auditRepository = new AuditLogEntryRepository(_db);
-        var auditWriter = new AuditLogWriter(auditRepository);
+        var currentActorAccessor = new StubCurrentActorAccessor(new CurrentActor("manager-123", "manager@alcopilot.local", true));
+        var auditWriter = new AuditLogWriter(auditRepository, currentActorAccessor);
 
         var createTagHandler = new CreateTagHandler(new TagRepository(_db), auditWriter, _db);
         await createTagHandler.Handle(new CreateTagCommand("Classic"), CancellationToken.None);
@@ -47,7 +49,7 @@ public sealed class AuditLogIntegrationTests(PostgresFixture fixture) : IAsyncLi
             new IngredientRepository(_db),
             new DrinkRepository(_db));
 
-        var createImportDraftHandler = new StartImportHandler(strategyResolver, importBatchRepository, workflowService, auditWriter, _db);
+        var createImportDraftHandler = new StartImportHandler(strategyResolver, importBatchRepository, workflowService, auditWriter, currentActorAccessor, _db);
 
         var draft = await createImportDraftHandler.Handle(
             new StartImportCommand(
@@ -61,5 +63,11 @@ public sealed class AuditLogIntegrationTests(PostgresFixture fixture) : IAsyncLi
         entries.ShouldContain(entry => entry.Action == "tag.create" && entry.SubjectType == "tag");
         entries.ShouldContain(entry => entry.Action == "import-batch.create" && entry.SubjectType == "import-batch");
         entries.ShouldContain(entry => entry.Action == "import-batch.validate" && entry.SubjectType == "import-batch");
+        entries.ShouldAllBe(entry => entry.ActorUserId == "manager-123");
+    }
+
+    private sealed class StubCurrentActorAccessor(CurrentActor actor) : ICurrentActorAccessor
+    {
+        public CurrentActor GetCurrent() => actor;
     }
 }

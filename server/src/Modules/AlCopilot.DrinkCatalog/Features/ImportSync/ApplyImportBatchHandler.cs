@@ -3,6 +3,7 @@ using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
+using AlCopilot.Shared.Models;
 using Mediator;
 
 namespace AlCopilot.DrinkCatalog.Features.ImportSync;
@@ -11,10 +12,12 @@ public sealed class ApplyImportBatchHandler(
     IImportBatchRepository importBatchRepository,
     ImportBatchWorkflowService workflowService,
     AuditLogWriter auditLogWriter,
+    ICurrentActorAccessor currentActorAccessor,
     IUnitOfWork unitOfWork) : IRequestHandler<ApplyImportBatchCommand, ImportBatchDto>
 {
     public async ValueTask<ImportBatchDto> Handle(ApplyImportBatchCommand request, CancellationToken cancellationToken)
     {
+        var currentActor = currentActorAccessor.GetCurrent();
         var batch = await importBatchRepository.GetByIdAsync(request.BatchId, cancellationToken)
             ?? throw new NotFoundException($"Import batch '{request.BatchId}' not found.");
 
@@ -52,7 +55,7 @@ public sealed class ApplyImportBatchHandler(
                 d => ImportBatchWorkflowService.BuildDecisionKey(d.TargetType, d.TargetKey),
                 StringComparer.OrdinalIgnoreCase);
 
-        var summary = await workflowService.ApplyAsync(batch, decisions, cancellationToken);
+        var summary = await workflowService.ApplyAsync(batch, decisions, currentActor, cancellationToken);
         auditLogWriter.Write(
             "import-batch.apply",
             "import-batch",

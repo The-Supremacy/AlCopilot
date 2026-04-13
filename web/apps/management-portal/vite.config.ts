@@ -10,11 +10,12 @@ export default defineConfig({
     },
   },
   server: {
+    host: process.env.MANAGEMENT_PORTAL_HOST ?? 'localhost',
     port: 4173,
     proxy: {
       '/api': {
         target: process.env.MANAGEMENT_API_PROXY_TARGET ?? 'http://localhost:5243',
-        changeOrigin: true,
+        changeOrigin: false,
         secure: false,
       },
     },

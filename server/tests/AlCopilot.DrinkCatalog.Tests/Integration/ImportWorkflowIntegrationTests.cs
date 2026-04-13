@@ -9,6 +9,7 @@ using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Errors;
+using AlCopilot.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
 
@@ -22,6 +23,7 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     private ImportBatchRepository _importBatchRepository = null!;
     private AuditLogEntryRepository _auditLogEntryRepository = null!;
     private AuditLogWriter _auditLogWriter = null!;
+    private ICurrentActorAccessor _currentActorAccessor = null!;
     private TagRepository _tagRepository = null!;
     private IngredientRepository _ingredientRepository = null!;
     private DrinkRepository _drinkRepository = null!;
@@ -33,7 +35,8 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         _db = fixture.CreateDbContext();
         _importBatchRepository = new ImportBatchRepository(_db);
         _auditLogEntryRepository = new AuditLogEntryRepository(_db);
-        _auditLogWriter = new AuditLogWriter(_auditLogEntryRepository);
+        _currentActorAccessor = new StubCurrentActorAccessor(new CurrentActor("manager-123", "manager@alcopilot.local", true));
+        _auditLogWriter = new AuditLogWriter(_auditLogEntryRepository, _currentActorAccessor);
         _tagRepository = new TagRepository(_db);
         _ingredientRepository = new IngredientRepository(_db);
         _drinkRepository = new DrinkRepository(_db);
@@ -56,9 +59,9 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     [Fact]
     public async Task SnapshotImportLifecycle_CreatesCatalogEntitiesAndHistory()
     {
-        var createHandler = new StartImportHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _db);
+        var createHandler = new StartImportHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
         var reviewHandler = new ReviewImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
-        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
+        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
         var historyHandler = new GetImportHistoryHandler(_importBatchRepository);
 
         const string payload = """
@@ -102,6 +105,11 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         applied.ApplySummary.ShouldNotBeNull();
         applied.ApplySummary.CreatedCount.ShouldBeGreaterThan(0);
 
+        var persistedBatch = await _importBatchRepository.GetByIdAsync(draft.Id, CancellationToken.None);
+        persistedBatch.ShouldNotBeNull();
+        persistedBatch!.Provenance.InitiatedByUserId.ShouldBe("manager-123");
+        persistedBatch.Provenance.InitiatedByDisplayName.ShouldBe("manager@alcopilot.local");
+
         var drink = await _drinkRepository.GetByNameAsync("Daiquiri");
         drink.ShouldNotBeNull();
 
@@ -125,9 +133,9 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         _db.Drinks.Add(drink);
         await _db.SaveChangesAsync();
 
-        var createHandler = new StartImportHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _db);
+        var createHandler = new StartImportHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
         var reviewHandler = new ReviewImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
-        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
+        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
 
         const string payload = """
         [
@@ -167,6 +175,12 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         applied.Status.ShouldBe(nameof(ImportBatchStatus.Completed));
         applied.ApplySummary!.UpdatedCount.ShouldBe(2);
 
+        var persistedBatch = await _importBatchRepository.GetByIdAsync(draft.Id, CancellationToken.None);
+        persistedBatch.ShouldNotBeNull();
+        persistedBatch!.DecisionAuditTrail.ShouldAllBe(entry =>
+            entry.ActorUserId == "manager-123" &&
+            entry.ActorDisplayName == "manager@alcopilot.local");
+
         var updatedDrink = await _drinkRepository.GetDetailByIdAsync(drink.Id);
         updatedDrink.ShouldNotBeNull();
         updatedDrink!.Category.ShouldBe("The Unforgettables");
@@ -181,9 +195,9 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     [Fact]
     public async Task Apply_DuplicateFingerprintWithoutOverride_IsRejected()
     {
-        var createHandler = new StartImportHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _db);
+        var createHandler = new StartImportHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
         var reviewHandler = new ReviewImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
-        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
+        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
 
         const string payload = """
         [
@@ -236,5 +250,10 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
 
         await reviewHandler.Handle(new ReviewImportBatchCommand(draft.Id), CancellationToken.None);
         return await applyHandler.Handle(new ApplyImportBatchCommand(draft.Id, false, []), CancellationToken.None);
+    }
+
+    private sealed class StubCurrentActorAccessor(CurrentActor actor) : ICurrentActorAccessor
+    {
+        public CurrentActor GetCurrent() => actor;
     }
 }

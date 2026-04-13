@@ -65,7 +65,7 @@ public sealed class ImportBatchRepositoryIntegrationTests(PostgresFixture fixtur
             [new ImportReviewRow("drink", "mai-tai", "create", "Create drink 'Mai Tai'.", false, false)]);
         batch.MarkCompleted(
             new ImportApplySummary(3, 1, 1, 1),
-            [new ImportDecisionAuditEntry("drink", "mai-tai", "reject", "manual override", DateTimeOffset.UtcNow)]);
+            [new ImportDecisionAuditEntry("drink", "mai-tai", "reject", "manual override", "manager-123", "manager@alcopilot.local", DateTimeOffset.UtcNow)]);
         await _db.SaveChangesAsync();
 
         var loaded = await repository.GetByIdAsync(batch.Id);
@@ -77,6 +77,7 @@ public sealed class ImportBatchRepositoryIntegrationTests(PostgresFixture fixtur
         loaded.AppliedAtUtc.ShouldNotBeNull();
         loaded.Diagnostics.ShouldHaveSingleItem().Code.ShouldBe("name-normalized");
         loaded.DecisionAuditTrail.ShouldHaveSingleItem().Decision.ShouldBe("reject");
+        loaded.DecisionAuditTrail.Single().ActorUserId.ShouldBe("manager-123");
         loaded.ReviewSummary.ShouldNotBeNull();
         loaded.ReviewSummary.CreateCount.ShouldBe(3);
         loaded.ReviewRows.ShouldHaveSingleItem().TargetKey.ShouldBe("mai-tai");

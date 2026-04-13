@@ -5,6 +5,7 @@ import { DiagnosticsSection } from '@/features/imports/DiagnosticsSection';
 import { ImportPresetSection } from '@/features/imports/ImportPresetSection';
 import { SelectedBatchSummary } from '@/features/imports/SelectedBatchSummary';
 import { useImportsPageState } from '@/features/imports/useImportsPageState';
+import { LoaderCircle } from 'lucide-react';
 
 export function ImportsPage() {
   const state = useImportsPageState();
@@ -50,7 +51,20 @@ export function ImportsPage() {
           title="Current import"
           description="Start validates immediately. Review is optional and completion stays blocked until errors and conflicts are cleared."
         >
-          <div className="space-y-6">
+          <div className="relative space-y-6">
+            {state.isApplyingBatch ? (
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl border border-border/70 bg-background/75 backdrop-blur-sm">
+                <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-soft">
+                  <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Applying import changes</p>
+                    <p className="text-xs text-muted-foreground">
+                      The workspace is temporarily locked while the apply step completes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <SelectedBatchSummary
               batch={currentBatch}
               reviewBatchId={currentBatch.id}
@@ -59,6 +73,8 @@ export function ImportsPage() {
               canApply={Boolean(canApply)}
               canCancel={Boolean(canCancel)}
               applyHint={applyHint}
+              isApplying={state.isApplyingBatch}
+              isCancelling={state.isCancellingBatch}
             />
 
             <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
@@ -90,7 +106,11 @@ export function ImportsPage() {
           </div>
         </SectionCard>
       ) : (
-        <ImportPresetSection strategyKey={state.strategyKey} onSubmit={state.startImport} />
+        <ImportPresetSection
+          strategyKey={state.strategyKey}
+          onSubmit={state.startImport}
+          isSubmitting={state.isStartingImport}
+        />
       )}
 
       <BatchHistorySection batches={state.importHistory.data ?? []} />
