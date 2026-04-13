@@ -25,7 +25,7 @@ export function ImportPresetSection({
     >
       <div className="space-y-4 text-sm text-muted-foreground">
         <div className="rounded-2xl border border-border bg-background/80 p-4">
-          <p className="font-medium text-slate-950">Preset source</p>
+          <p className="font-medium text-foreground">Preset source</p>
           <p className="mt-2">Repository: `rasmusab/iba-cocktails`</p>
           <p>Snapshot file: `iba-web/iba-cocktails-web.json`</p>
           <p>Strategy key: `{strategyKey}`</p>

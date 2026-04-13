@@ -32,7 +32,7 @@ export function BatchHistorySection({ batches }: BatchHistorySectionProps) {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <strong className="text-sm text-slate-950">
+                <strong className="text-sm text-foreground">
                   {batch.source.displayName || batch.strategyKey}
                 </strong>
                 <p className="mt-1 text-sm text-muted-foreground">

@@ -21,7 +21,7 @@ const ingredientsQuery = {
 
 let ingredientId = 'ingredient-1';
 
-vi.mock('@/lib/usePortalData', () => ({
+vi.mock('@/features/catalog/useCatalogData', () => ({
   useIngredients: () => ingredientsQuery,
   useUpdateIngredientMutation: () => updateIngredientMutation,
   useDeleteIngredientMutation: () => deleteIngredientMutation,
@@ -50,14 +50,6 @@ beforeEach(() => {
   updateIngredientMutation.error = null;
   deleteIngredientMutation.mutate.mockReset();
   deleteIngredientMutation.error = null;
-  vi.stubGlobal(
-    'confirm',
-    vi.fn(() => true),
-  );
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
 });
 
 test('hydrates and submits parsed notable brands for the selected ingredient', async () => {
@@ -94,8 +86,12 @@ test('confirms and deletes the selected ingredient', async () => {
   renderPage();
 
   await user.click(await screen.findByRole('button', { name: 'Delete' }));
+  expect(screen.getByRole('heading', { name: 'Delete ingredient' })).toBeInTheDocument();
+  expect(
+    screen.getByText('Delete ingredient "Gin"? This action cannot be undone.'),
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Delete ingredient' }));
 
-  expect(globalThis.confirm).toHaveBeenCalledWith('Delete ingredient "Gin"?');
   expect(deleteIngredientMutation.mutate).toHaveBeenCalledWith('ingredient-1', expect.any(Object));
   expect(navigateSpy).toHaveBeenCalledWith({ to: '/catalog/ingredients' });
 });

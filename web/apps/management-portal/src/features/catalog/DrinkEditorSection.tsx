@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -110,20 +111,19 @@ export function DrinkEditorSection({
         </div>
 
         <fieldset className="space-y-3">
-          <legend className="text-sm font-semibold text-slate-950">Tags</legend>
+          <legend className="text-sm font-semibold text-foreground">Tags</legend>
           <div className="grid gap-3 md:grid-cols-2">
             {tags.map((tag) => (
               <label
                 key={tag.id}
                 className="flex items-center gap-3 rounded-xl border border-border bg-background/80 px-3 py-3 text-sm"
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={drinkForm.tagIds.includes(tag.id)}
-                  onChange={(event) =>
+                  onCheckedChange={(checked) =>
                     onDrinkFormChange((current) => ({
                       ...current,
-                      tagIds: event.target.checked
+                      tagIds: checked
                         ? [...current.tagIds, tag.id]
                         : current.tagIds.filter((item) => item !== tag.id),
                     }))
@@ -137,10 +137,11 @@ export function DrinkEditorSection({
 
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-slate-950">Recipe</h3>
+            <h3 className="text-sm font-semibold text-foreground">Recipe</h3>
             <Button
               variant="outline"
               size="sm"
+              type="button"
               onClick={() =>
                 onDrinkFormChange((current) => ({
                   ...current,
@@ -209,6 +210,7 @@ export function DrinkEditorSection({
               <Button
                 variant="ghost"
                 size="sm"
+                type="button"
                 onClick={() =>
                   onDrinkFormChange((current) => ({
                     ...current,

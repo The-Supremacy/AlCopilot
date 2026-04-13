@@ -1,14 +1,10 @@
 import { SectionCard } from '@/components/SectionCard';
 import { StatusPill } from '@/components/StatusPill';
+import { useAuditLogEntries } from '@/features/audit/useAuditData';
+import { useDrinks, useIngredients, useTags } from '@/features/catalog/useCatalogData';
+import { useImportHistory } from '@/features/imports/useImportData';
 import { formatTimestamp } from '@/lib/format';
 import { formatImportBatchStatus } from '@/lib/importStatus';
-import {
-  useAuditLogEntries,
-  useDrinks,
-  useImportHistory,
-  useIngredients,
-  useTags,
-} from '@/lib/usePortalData';
 
 export function DashboardPage() {
   const drinks = useDrinks();

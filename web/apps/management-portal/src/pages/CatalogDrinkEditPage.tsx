@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { InlineMessage } from '@/components/InlineMessage';
 import { Button } from '@/components/ui/button';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
@@ -11,7 +21,7 @@ import {
   useIngredients,
   useTags,
   useUpdateDrinkMutation,
-} from '@/lib/usePortalData';
+} from '@/features/catalog/useCatalogData';
 
 export function CatalogDrinkEditPage() {
   const { drinkId } = useParams({ from: '/catalog/drinks/$drinkId' });
@@ -22,6 +32,7 @@ export function CatalogDrinkEditPage() {
   const updateDrink = useUpdateDrinkMutation();
   const deleteDrink = useDeleteDrinkMutation();
   const [drinkForm, setDrinkForm] = useState<DrinkFormState>(emptyDrinkForm);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!drink.data) {
@@ -67,9 +78,7 @@ export function CatalogDrinkEditPage() {
   }
 
   function handleDelete() {
-    if (confirm(`Delete drink "${drinkForm.name}"?`)) {
-      deleteDrink.mutate(drinkId, { onSuccess: () => navigate({ to: '/catalog/drinks' }) });
-    }
+    setIsDeleteDialogOpen(true);
   }
 
   if (drink.isLoading) {
@@ -110,6 +119,34 @@ export function CatalogDrinkEditPage() {
         onDelete={handleDelete}
         onCancel={() => navigate({ to: '/catalog/drinks' })}
       />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete drink</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete drink "{drinkForm.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button variant="outline">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  deleteDrink.mutate(drinkId, {
+                    onSuccess: () => navigate({ to: '/catalog/drinks' }),
+                  })
+                }
+              >
+                Delete drink
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </CatalogShell>
   );
 }

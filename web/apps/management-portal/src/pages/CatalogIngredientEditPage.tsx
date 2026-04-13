@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { InlineMessage } from '@/components/InlineMessage';
 import { Button } from '@/components/ui/button';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
@@ -8,7 +18,7 @@ import {
   useDeleteIngredientMutation,
   useIngredients,
   useUpdateIngredientMutation,
-} from '@/lib/usePortalData';
+} from '@/features/catalog/useCatalogData';
 
 export function CatalogIngredientEditPage() {
   const { ingredientId } = useParams({ from: '/catalog/ingredients/$ingredientId' });
@@ -18,6 +28,7 @@ export function CatalogIngredientEditPage() {
   const deleteIngredient = useDeleteIngredientMutation();
   const [name, setName] = useState('');
   const [notableBrands, setNotableBrands] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const ingredient = (ingredients.data ?? []).find((item) => item.id === ingredientId) ?? null;
 
@@ -44,11 +55,7 @@ export function CatalogIngredientEditPage() {
 
   function handleDelete() {
     if (!ingredient) return;
-    if (confirm(`Delete ingredient "${ingredient.name}"?`)) {
-      deleteIngredient.mutate(ingredient.id, {
-        onSuccess: () => navigate({ to: '/catalog/ingredients' }),
-      });
-    }
+    setIsDeleteDialogOpen(true);
   }
 
   if (!ingredient && !ingredients.isLoading) {
@@ -81,6 +88,38 @@ export function CatalogIngredientEditPage() {
         onDelete={handleDelete}
         onCancel={() => navigate({ to: '/catalog/ingredients' })}
       />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete ingredient</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete ingredient "{name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button variant="outline">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!ingredient) {
+                    return;
+                  }
+
+                  deleteIngredient.mutate(ingredient.id, {
+                    onSuccess: () => navigate({ to: '/catalog/ingredients' }),
+                  });
+                }}
+              >
+                Delete ingredient
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </CatalogShell>
   );
 }

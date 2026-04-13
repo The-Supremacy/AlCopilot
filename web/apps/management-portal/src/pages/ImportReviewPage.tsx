@@ -9,6 +9,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { DiagnosticsSection } from '@/features/imports/DiagnosticsSection';
+import { useImportBatch, useReviewImportBatchMutation } from '@/features/imports/useImportData';
 import {
   getBatchDecisions,
   useBatchDecisionMap,
@@ -16,7 +17,6 @@ import {
 } from '@/features/imports/useImportDecisionStore';
 import { formatTimestamp } from '@/lib/format';
 import { formatImportBatchStatus } from '@/lib/importStatus';
-import { useImportBatch, useReviewImportBatchMutation } from '@/lib/usePortalData';
 
 export function ImportReviewPage() {
   const { batchId } = useParams({ from: '/imports/$batchId/review' });
@@ -95,7 +95,7 @@ export function ImportReviewPage() {
         header: 'Target',
         meta: { label: 'Target' },
         cell: ({ row }) => (
-          <span className="font-medium text-slate-950">{row.original.targetKey}</span>
+          <span className="font-medium text-foreground">{row.original.targetKey}</span>
         ),
       },
       {
@@ -132,7 +132,7 @@ export function ImportReviewPage() {
 
           if (!row.original.hasConflict) {
             if (row.original.hasError) {
-              return <span className="text-sm text-amber-700">See diagnostics</span>;
+              return <span className="text-sm text-warning">See diagnostics</span>;
             }
 
             return <span className="text-sm text-muted-foreground">No decision required</span>;

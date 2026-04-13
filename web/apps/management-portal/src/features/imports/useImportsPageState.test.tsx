@@ -39,7 +39,7 @@ const currentBatch = {
   reviewConflicts: [{ targetType: 'drink', targetKey: 'Negroni' }],
 };
 
-vi.mock('@/lib/usePortalData', () => ({
+vi.mock('@/features/imports/useImportData', () => ({
   useImportHistory: () => ({
     data: [{ id: 'batch-hook', status: 'InProgress' }],
   }),

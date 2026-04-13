@@ -4,7 +4,7 @@ import { InlineMessage } from '@/components/InlineMessage';
 import { Button } from '@/components/ui/button';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
 import { IngredientFormSection } from '@/features/catalog/IngredientFormSection';
-import { useCreateIngredientMutation } from '@/lib/usePortalData';
+import { useCreateIngredientMutation } from '@/features/catalog/useCatalogData';
 
 export function CatalogIngredientCreatePage() {
   const navigate = useNavigate();

@@ -33,6 +33,7 @@ type DataTableProps<TData> = {
   searchPlaceholder?: string;
   toolbarAction?: ReactNode;
   onRowClick?: (row: TData) => void;
+  getRowAriaLabel?: (row: TData) => string;
   enableColumnToggle?: boolean;
 };
 
@@ -42,6 +43,7 @@ export function DataTable<TData>({
   searchPlaceholder = 'Search',
   toolbarAction,
   onRowClick,
+  getRowAriaLabel,
   enableColumnToggle = true,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -128,15 +130,19 @@ export function DataTable<TData>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : (
+                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
                       <Button
                         variant="ghost"
                         className="h-auto gap-2 px-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                         onClick={header.column.getToggleSortingHandler()}
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() ? <ArrowUpDown className="h-3 w-3" /> : null}
+                        <ArrowUpDown className="h-3 w-3" />
                       </Button>
+                    ) : (
+                      <span className="inline-flex h-auto px-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                      </span>
                     )}
                   </TableHead>
                 ))}
@@ -150,6 +156,19 @@ export function DataTable<TData>({
                   key={row.id}
                   className={cn(onRowClick ? 'cursor-pointer' : undefined)}
                   onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            onRowClick(row.original);
+                          }
+                        }
+                      : undefined
+                  }
+                  tabIndex={onRowClick ? 0 : undefined}
+                  role={onRowClick ? 'link' : undefined}
+                  aria-label={onRowClick ? getRowAriaLabel?.(row.original) : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

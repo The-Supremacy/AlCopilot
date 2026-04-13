@@ -1,26 +1,37 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { DrinkDto } from '@alcopilot/management-api-client';
 import { InlineMessage } from '@/components/InlineMessage';
 import { SectionCard } from '@/components/SectionCard';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
+import { useDeleteDrinkMutation, useDrinks } from '@/features/catalog/useCatalogData';
 import { joinLines } from '@/lib/format';
-import { useDeleteDrinkMutation, useDrinks } from '@/lib/usePortalData';
 
 export function CatalogDrinksPage() {
   const navigate = useNavigate();
   const drinks = useDrinks();
   const deleteDrinkMutation = useDeleteDrinkMutation();
+  const [drinkPendingDelete, setDrinkPendingDelete] = useState<DrinkDto | null>(null);
 
   const columns = useMemo<ColumnDef<DrinkDto>[]>(
     () => [
       {
         accessorKey: 'name',
         header: 'Name',
-        cell: ({ row }) => <span className="font-medium text-slate-950">{row.original.name}</span>,
+        cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
       },
       {
         accessorKey: 'category',
@@ -51,9 +62,7 @@ export function CatalogDrinksPage() {
             size="sm"
             onClick={(event) => {
               event.stopPropagation();
-              if (confirm(`Delete drink "${row.original.name}"?`)) {
-                deleteDrinkMutation.mutate(row.original.id);
-              }
+              setDrinkPendingDelete(row.original);
             }}
           >
             Delete
@@ -78,6 +87,7 @@ export function CatalogDrinksPage() {
           columns={columns}
           data={drinks.data?.items ?? []}
           searchPlaceholder="Search drinks"
+          getRowAriaLabel={(row) => `Open drink ${row.name}`}
           toolbarAction={
             <Button asChild>
               <Link to="/catalog/drinks/new">New</Link>
@@ -88,6 +98,47 @@ export function CatalogDrinksPage() {
           }
         />
       </SectionCard>
+
+      <AlertDialog
+        open={drinkPendingDelete !== null}
+        onOpenChange={(open: boolean) => {
+          if (!open) {
+            setDrinkPendingDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete drink</AlertDialogTitle>
+            <AlertDialogDescription>
+              {drinkPendingDelete
+                ? `Delete drink "${drinkPendingDelete.name}"? This action cannot be undone.`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button variant="outline">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!drinkPendingDelete) {
+                    return;
+                  }
+
+                  deleteDrinkMutation.mutate(drinkPendingDelete.id, {
+                    onSuccess: () => setDrinkPendingDelete(null),
+                  });
+                }}
+              >
+                Delete drink
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </CatalogShell>
   );
 }

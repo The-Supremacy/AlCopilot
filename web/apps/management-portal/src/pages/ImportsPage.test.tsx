@@ -17,7 +17,7 @@ const noopMutation = {
   isPending: false,
 };
 
-vi.mock('@/lib/usePortalData', () => ({
+vi.mock('@/features/imports/useImportData', () => ({
   useImportHistory: () => ({ data: [] }),
   useImportBatch: () => ({ data: null }),
   useStartImportMutation: () => startImportMutation,

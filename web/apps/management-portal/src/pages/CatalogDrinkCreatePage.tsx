@@ -4,8 +4,8 @@ import { InlineMessage } from '@/components/InlineMessage';
 import { Button } from '@/components/ui/button';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
 import { DrinkEditorSection } from '@/features/catalog/DrinkEditorSection';
+import { useCreateDrinkMutation, useIngredients, useTags } from '@/features/catalog/useCatalogData';
 import { emptyDrinkForm, type DrinkFormState } from '@/features/catalog/types';
-import { useCreateDrinkMutation, useIngredients, useTags } from '@/lib/usePortalData';
 
 export function CatalogDrinkCreatePage() {
   const navigate = useNavigate();

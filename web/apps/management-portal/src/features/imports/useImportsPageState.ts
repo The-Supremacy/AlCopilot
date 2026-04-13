@@ -6,7 +6,7 @@ import {
   useImportBatch,
   useImportHistory,
   useStartImportMutation,
-} from '@/lib/usePortalData';
+} from '@/features/imports/useImportData';
 import {
   getStoredBatchDecisions,
   useBatchDecisionMap,

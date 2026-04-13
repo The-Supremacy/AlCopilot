@@ -22,7 +22,7 @@ export function DiagnosticsSection({ diagnostics, applySummary }: DiagnosticsSec
   return (
     <div className="space-y-4">
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-950">Diagnostics</h3>
+        <h3 className="text-sm font-semibold text-foreground">Diagnostics</h3>
         {diagnostics.length > 0 ? (
           diagnostics.map((diagnostic) => (
             <div
@@ -30,7 +30,7 @@ export function DiagnosticsSection({ diagnostics, applySummary }: DiagnosticsSec
               className="rounded-xl border border-border bg-background/80 p-4"
             >
               <div className="flex items-center justify-between gap-3">
-                <strong className="text-sm text-slate-950">{diagnostic.code}</strong>
+                <strong className="text-sm text-foreground">{diagnostic.code}</strong>
                 <StatusPill
                   tone={
                     diagnostic.severity === 'warning'
@@ -53,7 +53,7 @@ export function DiagnosticsSection({ diagnostics, applySummary }: DiagnosticsSec
 
       {applySummary ? (
         <div className="rounded-xl border border-border bg-background/80 p-4 text-sm">
-          <h3 className="font-semibold text-slate-950">Apply summary</h3>
+          <h3 className="font-semibold text-foreground">Apply summary</h3>
           <p className="mt-2 text-muted-foreground">
             Created {applySummary.createdCount}, updated {applySummary.updatedCount}, skipped{' '}
             {applySummary.skippedCount}, rejected {applySummary.rejectedCount}.

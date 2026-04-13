@@ -1,6 +1,6 @@
 import { logoutManagement, getManagementSession } from '@alcopilot/management-api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { portalKeys } from '@/lib/usePortalData';
+import { portalKeys } from '@/lib/queryKeys';
 
 export function useManagementSession() {
   return useQuery({
@@ -18,9 +18,11 @@ export function useLogoutManagementMutation() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.removeQueries({ queryKey: portalKeys.drinks }),
+        queryClient.removeQueries({ queryKey: ['drink'] }),
         queryClient.removeQueries({ queryKey: portalKeys.tags }),
         queryClient.removeQueries({ queryKey: portalKeys.ingredients }),
         queryClient.removeQueries({ queryKey: portalKeys.imports }),
+        queryClient.removeQueries({ queryKey: ['import-batch'] }),
         queryClient.removeQueries({ queryKey: portalKeys.audit }),
       ]);
       await queryClient.invalidateQueries({ queryKey: portalKeys.session });

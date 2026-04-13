@@ -3,7 +3,7 @@ import { CupSoda, Tags, Wheat } from 'lucide-react';
 import { SectionCard } from '@/components/SectionCard';
 import { Button } from '@/components/ui/button';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
-import { useDrinks, useIngredients, useTags } from '@/lib/usePortalData';
+import { useDrinks, useIngredients, useTags } from '@/features/catalog/useCatalogData';
 
 const sections = [
   {
@@ -70,7 +70,7 @@ export function CatalogPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Current records</p>
-                  <strong className="text-2xl font-semibold text-slate-950">{count}</strong>
+                  <strong className="text-2xl font-semibold text-foreground">{count}</strong>
                 </div>
               </div>
             </SectionCard>

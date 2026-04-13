@@ -1,8 +1,9 @@
 import { SectionCard } from '@/components/SectionCard';
 import { StatusPill } from '@/components/StatusPill';
+import { useAuditLogEntries } from '@/features/audit/useAuditData';
+import { useImportHistory } from '@/features/imports/useImportData';
 import { formatTimestamp } from '@/lib/format';
 import { formatImportBatchStatus } from '@/lib/importStatus';
-import { useAuditLogEntries, useImportHistory } from '@/lib/usePortalData';
 
 export function AuditPage() {
   const auditLog = useAuditLogEntries();
@@ -30,7 +31,7 @@ export function AuditPage() {
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-1">
-                    <strong className="text-sm text-slate-950">{entry.summary}</strong>
+                    <strong className="text-sm text-foreground">{entry.summary}</strong>
                     <p className="text-sm text-muted-foreground">
                       {entry.action} · {entry.subjectType}
                       {entry.subjectKey ? ` · ${entry.subjectKey}` : ''}
@@ -60,7 +61,7 @@ export function AuditPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <strong className="text-sm text-slate-950">
+                    <strong className="text-sm text-foreground">
                       {batch.source.displayName || batch.strategyKey}
                     </strong>
                     <p className="mt-1 text-sm text-muted-foreground">

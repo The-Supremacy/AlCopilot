@@ -1,25 +1,36 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { TagDto } from '@alcopilot/management-api-client';
 import { InlineMessage } from '@/components/InlineMessage';
 import { SectionCard } from '@/components/SectionCard';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
-import { useDeleteTagMutation, useTags } from '@/lib/usePortalData';
+import { useDeleteTagMutation, useTags } from '@/features/catalog/useCatalogData';
 
 export function CatalogTagsPage() {
   const navigate = useNavigate();
   const tags = useTags();
   const deleteTagMutation = useDeleteTagMutation();
+  const [tagPendingDelete, setTagPendingDelete] = useState<TagDto | null>(null);
 
   const columns = useMemo<ColumnDef<TagDto>[]>(
     () => [
       {
         accessorKey: 'name',
         header: 'Name',
-        cell: ({ row }) => <span className="font-medium text-slate-950">{row.original.name}</span>,
+        cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
       },
       {
         accessorKey: 'drinkCount',
@@ -35,9 +46,7 @@ export function CatalogTagsPage() {
             size="sm"
             onClick={(event) => {
               event.stopPropagation();
-              if (confirm(`Delete tag "${row.original.name}"?`)) {
-                deleteTagMutation.mutate(row.original.id);
-              }
+              setTagPendingDelete(row.original);
             }}
           >
             Delete
@@ -62,6 +71,7 @@ export function CatalogTagsPage() {
           columns={columns}
           data={tags.data ?? []}
           searchPlaceholder="Search tags"
+          getRowAriaLabel={(row) => `Open tag ${row.name}`}
           toolbarAction={
             <Button asChild>
               <Link to="/catalog/tags/new">New</Link>
@@ -70,6 +80,47 @@ export function CatalogTagsPage() {
           onRowClick={(row) => navigate({ to: '/catalog/tags/$tagId', params: { tagId: row.id } })}
         />
       </SectionCard>
+
+      <AlertDialog
+        open={tagPendingDelete !== null}
+        onOpenChange={(open: boolean) => {
+          if (!open) {
+            setTagPendingDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete tag</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tagPendingDelete
+                ? `Delete tag "${tagPendingDelete.name}"? This action cannot be undone.`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button variant="outline">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!tagPendingDelete) {
+                    return;
+                  }
+
+                  deleteTagMutation.mutate(tagPendingDelete.id, {
+                    onSuccess: () => setTagPendingDelete(null),
+                  });
+                }}
+              >
+                Delete tag
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </CatalogShell>
   );
 }

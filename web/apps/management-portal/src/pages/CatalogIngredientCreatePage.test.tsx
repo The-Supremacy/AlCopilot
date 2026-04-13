@@ -10,7 +10,7 @@ const createIngredientMutation = {
   error: null as null | Error,
 };
 
-vi.mock('@/lib/usePortalData', () => ({
+vi.mock('@/features/catalog/useCatalogData', () => ({
   useCreateIngredientMutation: () => createIngredientMutation,
 }));
 

@@ -52,7 +52,7 @@ const drinkQuery = {
   isLoading: false,
 };
 
-vi.mock('@/lib/usePortalData', () => ({
+vi.mock('@/features/catalog/useCatalogData', () => ({
   useDrink: () => drinkQuery,
   useTags: () => ({ data: [{ id: 'tag-1', name: 'Classic' }] }),
   useIngredients: () => ({ data: [{ id: 'ingredient-1', name: 'Gin' }] }),
@@ -101,14 +101,6 @@ beforeEach(() => {
       },
     ],
   };
-  vi.stubGlobal(
-    'confirm',
-    vi.fn(() => true),
-  );
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
 });
 
 test('hydrates and submits a normalized update payload', async () => {
@@ -158,8 +150,12 @@ test('confirms and deletes the selected drink', async () => {
   renderPage();
 
   await user.click(await screen.findByRole('button', { name: 'Delete' }));
+  expect(screen.getByRole('heading', { name: 'Delete drink' })).toBeInTheDocument();
+  expect(
+    screen.getByText('Delete drink "Negroni"? This action cannot be undone.'),
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Delete drink' }));
 
-  expect(globalThis.confirm).toHaveBeenCalledWith('Delete drink "Negroni"?');
   expect(deleteDrinkMutation.mutate).toHaveBeenCalledWith('drink-1', expect.any(Object));
   expect(navigateSpy).toHaveBeenCalledWith({ to: '/catalog/drinks' });
 });

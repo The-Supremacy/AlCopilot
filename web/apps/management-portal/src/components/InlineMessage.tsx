@@ -7,8 +7,12 @@ type InlineMessageProps = {
 };
 
 export function InlineMessage(props: InlineMessageProps) {
+  const liveRole = props.tone === 'danger' ? 'alert' : 'status';
+
   return (
     <div
+      role={liveRole}
+      aria-live={props.tone === 'danger' ? 'assertive' : 'polite'}
       className={cn(
         'flex items-start gap-3 rounded-xl border px-4 py-3 text-sm',
         props.tone === 'danger' && 'border-destructive/25 bg-destructive-muted/80 text-destructive',

@@ -44,7 +44,7 @@ const importBatchQuery = {
   isLoading: false,
 };
 
-vi.mock('@/lib/usePortalData', () => ({
+vi.mock('@/features/imports/useImportData', () => ({
   useImportBatch: () => importBatchQuery,
   useReviewImportBatchMutation: () => reviewImportBatchMutation,
 }));

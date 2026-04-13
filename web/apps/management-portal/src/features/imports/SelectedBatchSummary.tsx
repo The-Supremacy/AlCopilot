@@ -41,7 +41,7 @@ export function SelectedBatchSummary({
     <>
       <div className="flex flex-col gap-4 rounded-2xl border border-border bg-background/80 p-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-slate-950">
+          <h3 className="text-lg font-semibold text-foreground">
             {batch.source.displayName || batch.strategyKey}
           </h3>
           <p className="text-sm text-muted-foreground">
