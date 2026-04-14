@@ -12,6 +12,7 @@ namespace AlCopilot.DrinkCatalog.Tests.Handlers.Commands;
 public sealed class UpdateDrinkHandlerTests
 {
     private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
+    private readonly IDrinkRecipeIntegrityValidator _drinkRecipeIntegrityValidator = Substitute.For<IDrinkRecipeIntegrityValidator>();
     private readonly ITagRepository _tagRepository = Substitute.For<ITagRepository>();
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
@@ -21,6 +22,7 @@ public sealed class UpdateDrinkHandlerTests
     {
         _handler = new UpdateDrinkHandler(
             _drinkRepository,
+            _drinkRecipeIntegrityValidator,
             _tagRepository,
             new AuditLogWriter(_auditRepository),
             _unitOfWork);
@@ -65,5 +67,33 @@ public sealed class UpdateDrinkHandlerTests
             () => _handler.Handle(
                 new UpdateDrinkCommand(drink.Id, "Taken", null, null, null, null, null, [], []),
                 CancellationToken.None).AsTask());
+    }
+
+    [Fact]
+    public async Task Handle_MissingIngredient_ThrowsNotFound()
+    {
+        var drink = Drink.Create(DrinkName.Create("Old"), DrinkCategory.Create(null), null, null, null, ImageUrl.Create(null));
+        var ingredientId = Guid.NewGuid();
+        _drinkRepository.GetByIdAsync(drink.Id, Arg.Any<CancellationToken>()).Returns(drink);
+        _drinkRepository.ExistsByNameAsync("New", drink.Id, Arg.Any<CancellationToken>()).Returns(false);
+        _drinkRecipeIntegrityValidator
+            .When(x => x.ValidateAsync(Arg.Any<IReadOnlyCollection<RecipeEntryInput>>(), Arg.Any<CancellationToken>()))
+            .Do(_ => throw new NotFoundException($"Ingredient '{ingredientId}' not found."));
+
+        var exception = await Should.ThrowAsync<NotFoundException>(
+            () => _handler.Handle(
+                new UpdateDrinkCommand(
+                    drink.Id,
+                    "New",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    [],
+                    [new RecipeEntryInput(ingredientId, "1 oz", null)]),
+                CancellationToken.None).AsTask());
+
+        exception.Message.ShouldContain(ingredientId.ToString());
     }
 }

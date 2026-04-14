@@ -1,6 +1,8 @@
 using AlCopilot.DrinkCatalog;
 using AlCopilot.Host.Authentication;
 using AlCopilot.Shared.Errors;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
@@ -19,6 +21,13 @@ builder.Services.AddProblemDetails(options =>
             context.ProblemDetails.Title = apiException.Title;
             context.ProblemDetails.Detail = apiException.Message;
             context.HttpContext.Response.StatusCode = apiException.StatusCode;
+        }
+        else if (DatabaseExceptionMapper.TryMapDatabaseException(context.Exception, out var mappedException))
+        {
+            context.ProblemDetails.Status = mappedException.StatusCode;
+            context.ProblemDetails.Title = mappedException.Title;
+            context.ProblemDetails.Detail = mappedException.Message;
+            context.HttpContext.Response.StatusCode = mappedException.StatusCode;
         }
 
         if (builder.Environment.IsDevelopment() && context.Exception is not null)
@@ -52,3 +61,19 @@ app.Run();
 
 // Make the implicit Program class accessible to WebApplicationFactory
 public partial class Program;
+
+internal static class DatabaseExceptionMapper
+{
+    internal static bool TryMapDatabaseException(Exception? exception, out ApiException mappedException)
+    {
+        if (exception is DbUpdateException { InnerException: PostgresException postgresException } &&
+            string.Equals(postgresException.SqlState, PostgresErrorCodes.UniqueViolation, StringComparison.Ordinal))
+        {
+            mappedException = new ConflictException("The requested change conflicts with an existing record.");
+            return true;
+        }
+
+        mappedException = null!;
+        return false;
+    }
+}

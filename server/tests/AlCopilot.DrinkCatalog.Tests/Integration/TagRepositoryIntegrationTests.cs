@@ -31,7 +31,7 @@ public sealed class TagRepositoryIntegrationTests(PostgresFixture fixture) : IAs
         repo.Add(tag);
         await _db.SaveChangesAsync();
 
-        var all = await repo.GetAllAsync();
+        var all = await new TagQueryService(_db).GetAllAsync();
         all.ShouldContain(t => t.Name == "Refreshing");
     }
 

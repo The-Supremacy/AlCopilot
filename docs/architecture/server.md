@@ -40,7 +40,9 @@ The Host composes modules into the current web-facing application boundary.
 
 AlCopilot follows the accepted DDD defaults recorded in [ADR 0002](../adr/0002-domain-driven-design-patterns.md).
 Domain logic belongs in aggregates and domain services rather than handlers.
-Repositories load complete aggregates.
+The current backend command/query split follows [ADR 0010](../adr/0010-explicit-in-process-cqrs-and-preserved-domain-events.md):
+aggregate repositories are command-side only, while read-side DTO projection belongs in explicit query services.
+Repositories load complete aggregates for command-side mutation.
 `IUnitOfWork.SaveChangesAsync` is called once at the end of a handler flow.
 Domain events improve traceability, but they do not replace explicit audit logging of successful mutating commands.
 
@@ -51,6 +53,7 @@ Domain events improve traceability, but they do not replace explicit audit loggi
 In-process communication uses Mediator.
 Durable out-of-process messaging remains deferred.
 If a real async choreography or extracted-service use case appears, revisit [ADR 0001](../adr/0001-durable-intermodule-messaging.md) before implementation.
+Same-module domain reactions may use preserved transactional domain events.
 
 ---
 
@@ -70,6 +73,7 @@ Local development uses Aspire orchestration.
 Production deployment is designed around GitHub Actions, GHCR, AKS, Flux, and PostgreSQL.
 Envoy Gateway is the external ingress layer.
 Operationally queryable audit records should be stored in the owning module when mutation history must be reviewed directly by operators.
+Preserved domain events are module-owned machine-readable history and may support aggregate-level audit timelines, but workflow-rich operator audit can still require explicit audit records.
 
 ---
 

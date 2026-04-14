@@ -40,6 +40,7 @@ The system is a single deployable unit with internal module boundaries, one `DbC
 - [ADR 0007: Management Portal Architecture And Envoy Host Routing](adr/0007-management-portal-architecture-and-envoy-host-routing.md) — accepted portal boundary and AKS ingress direction
 - [ADR 0008: Capability-Level Microfrontends Inside Management Portal](adr/0008-capability-level-microfrontends-inside-management-portal.md) — deferred capability-level runtime MFE direction
 - [ADR 0009: Management Portal Authentication With Keycloak And Host Cookies](adr/0009-management-portal-authentication-with-keycloak-and-host-cookies.md) — accepted management authentication and session direction
+- [ADR 0010: Explicit In-Process CQRS And Preserved Domain Events](adr/0010-explicit-in-process-cqrs-and-preserved-domain-events.md) — accepted backend command/query and domain-event direction
 
 ---
 

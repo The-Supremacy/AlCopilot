@@ -4,15 +4,13 @@ using Mediator;
 
 namespace AlCopilot.DrinkCatalog.Features.Audit;
 
-public sealed class GetAuditLogEntriesHandler(IAuditLogEntryRepository repository)
+public sealed class GetAuditLogEntriesHandler(IAuditLogQueryService auditLogQueryService)
     : IRequestHandler<GetAuditLogEntriesQuery, List<AuditLogEntryDto>>
 {
     public async ValueTask<List<AuditLogEntryDto>> Handle(
         GetAuditLogEntriesQuery request,
         CancellationToken cancellationToken)
     {
-        return (await repository.GetRecentAsync(cancellationToken))
-            .Select(entry => entry.ToDto())
-            .ToList();
+        return await auditLogQueryService.GetRecentAsync(cancellationToken);
     }
 }

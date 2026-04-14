@@ -1,4 +1,3 @@
-using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,17 +13,6 @@ internal sealed class TagRepository(DrinkCatalogDbContext dbContext) : ITagRepos
     public void Add(Tag aggregate) => dbContext.Tags.Add(aggregate);
 
     public void Remove(Tag aggregate) => dbContext.Tags.Remove(aggregate);
-
-    public async Task<List<TagDto>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        return await dbContext.Tags
-            .OrderBy(t => t.Name)
-            .Select(t => new TagDto(
-                t.Id,
-                t.Name,
-                dbContext.Drinks.Count(d => d.Tags.Any(dt => dt.Id == t.Id))))
-            .ToListAsync(cancellationToken);
-    }
 
     public async Task<bool> IsReferencedByDrinksAsync(Guid tagId, CancellationToken cancellationToken = default)
     {

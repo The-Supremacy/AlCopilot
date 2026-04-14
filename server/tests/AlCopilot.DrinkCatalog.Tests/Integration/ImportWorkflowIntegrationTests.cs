@@ -27,6 +27,7 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     private TagRepository _tagRepository = null!;
     private IngredientRepository _ingredientRepository = null!;
     private DrinkRepository _drinkRepository = null!;
+    private DrinkQueryService _drinkQueryService = null!;
     private ImportBatchWorkflowService _workflowService = null!;
     private ImportSourceStrategyResolver _strategyResolver = null!;
 
@@ -40,10 +41,12 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         _tagRepository = new TagRepository(_db);
         _ingredientRepository = new IngredientRepository(_db);
         _drinkRepository = new DrinkRepository(_db);
+        _drinkQueryService = new DrinkQueryService(_db);
         _workflowService = new ImportBatchWorkflowService(
             _tagRepository,
             _ingredientRepository,
-            _drinkRepository);
+            _drinkRepository,
+            _drinkQueryService);
         _strategyResolver = new ImportSourceStrategyResolver([new IbaCocktailsSnapshotImportSourceStrategy()]);
 
         return Task.CompletedTask;
@@ -181,7 +184,7 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
             entry.ActorUserId == "manager-123" &&
             entry.ActorDisplayName == "manager@alcopilot.local");
 
-        var updatedDrink = await _drinkRepository.GetDetailByIdAsync(drink.Id);
+        var updatedDrink = await _drinkQueryService.GetDetailByIdAsync(drink.Id);
         updatedDrink.ShouldNotBeNull();
         updatedDrink!.Category.ShouldBe("The Unforgettables");
         updatedDrink.Method.ShouldBe("Updated description");

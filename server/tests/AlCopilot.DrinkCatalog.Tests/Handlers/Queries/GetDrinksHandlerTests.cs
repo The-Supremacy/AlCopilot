@@ -9,19 +9,19 @@ namespace AlCopilot.DrinkCatalog.Tests.Handlers.Queries;
 
 public sealed class GetDrinksHandlerTests
 {
-    private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
+    private readonly IDrinkQueryService _drinkQueryService = Substitute.For<IDrinkQueryService>();
     private readonly GetDrinksHandler _handler;
 
     public GetDrinksHandlerTests()
     {
-        _handler = new GetDrinksHandler(_drinkRepository);
+        _handler = new GetDrinksHandler(_drinkQueryService);
     }
 
     [Fact]
     public async Task Handle_ReturnsPagedResult()
     {
         var expected = new PagedResult<DrinkDto>([], 0, 1, 20);
-        _drinkRepository.GetPagedAsync(Arg.Any<DrinkFilter>(), Arg.Any<CancellationToken>()).Returns(expected);
+        _drinkQueryService.GetPagedAsync(Arg.Any<DrinkFilter>(), Arg.Any<CancellationToken>()).Returns(expected);
 
         var result = await _handler.Handle(new GetDrinksQuery(new DrinkFilter()), CancellationToken.None);
 
@@ -33,7 +33,7 @@ public sealed class GetDrinksHandlerTests
     {
         var tagIds = new List<Guid> { Guid.NewGuid() };
         var expected = new PagedResult<DrinkDto>([], 0, 1, 20);
-        _drinkRepository.GetPagedAsync(
+        _drinkQueryService.GetPagedAsync(
             Arg.Is<DrinkFilter>(f => f.SearchQuery == null && f.TagIds != null && f.TagIds.SequenceEqual(tagIds) && f.Page == 1 && f.PageSize == 20),
             Arg.Any<CancellationToken>()).Returns(expected);
 
@@ -46,7 +46,7 @@ public sealed class GetDrinksHandlerTests
     public async Task Handle_WithSearchQuery_PassesSearchText()
     {
         var expected = new PagedResult<DrinkDto>([], 0, 1, 20);
-        _drinkRepository.GetPagedAsync(
+        _drinkQueryService.GetPagedAsync(
             Arg.Is<DrinkFilter>(f => f.SearchQuery == "mojito" && f.TagIds == null && f.Page == 1 && f.PageSize == 20),
             Arg.Any<CancellationToken>()).Returns(expected);
 

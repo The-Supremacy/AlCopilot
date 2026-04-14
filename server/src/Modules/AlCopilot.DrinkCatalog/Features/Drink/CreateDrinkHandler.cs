@@ -1,5 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
 using AlCopilot.DrinkCatalog.Features.Audit;
+using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
@@ -9,6 +10,7 @@ namespace AlCopilot.DrinkCatalog.Features.Drink;
 
 public sealed class CreateDrinkHandler(
     IDrinkRepository drinkRepository,
+    IDrinkRecipeIntegrityValidator drinkRecipeIntegrityValidator,
     ITagRepository tagRepository,
     AuditLogWriter auditLogWriter,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateDrinkCommand, Guid>
@@ -40,6 +42,7 @@ public sealed class CreateDrinkHandler(
 
         if (request.RecipeEntries is { Count: > 0 })
         {
+            await drinkRecipeIntegrityValidator.ValidateAsync(request.RecipeEntries, cancellationToken);
             var entries = request.RecipeEntries.Select(re =>
                 RecipeEntry.Create(drink.Id, re.IngredientId, Quantity.Create(re.Quantity), re.RecommendedBrand));
             drink.SetRecipeEntries(entries);

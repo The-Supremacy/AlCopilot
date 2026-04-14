@@ -39,8 +39,8 @@ public sealed class DrinkRepositoryPersistenceTests(PostgresFixture fixture) : I
         _db.Drinks.Add(drink);
         await _db.SaveChangesAsync();
 
-        var repo = new DrinkRepository(_db);
-        var detail = await repo.GetDetailByIdAsync(drink.Id);
+        var queryService = new DrinkQueryService(_db);
+        var detail = await queryService.GetDetailByIdAsync(drink.Id);
         detail.ShouldNotBeNull();
         detail!.Name.ShouldBe("Mai Tai");
         detail.Category.ShouldBe("Contemporary Classics");
@@ -91,7 +91,7 @@ public sealed class DrinkRepositoryPersistenceTests(PostgresFixture fixture) : I
         drink.SetTags([tag2]);
         await _db.SaveChangesAsync();
 
-        var detail = await new DrinkRepository(_db).GetDetailByIdAsync(drink.Id);
+        var detail = await new DrinkQueryService(_db).GetDetailByIdAsync(drink.Id);
         detail!.Tags.ShouldHaveSingleItem().Name.ShouldBe("New");
     }
 
@@ -110,7 +110,7 @@ public sealed class DrinkRepositoryPersistenceTests(PostgresFixture fixture) : I
         drink.SetRecipeEntries([RecipeEntry.Create(drink.Id, ingredient2.Id, Quantity.Create("2 oz"), "Fresh")]);
         await _db.SaveChangesAsync();
 
-        var detail = await new DrinkRepository(_db).GetDetailByIdAsync(drink.Id);
+        var detail = await new DrinkQueryService(_db).GetDetailByIdAsync(drink.Id);
         detail!.RecipeEntries.ShouldHaveSingleItem().Ingredient.Name.ShouldBe("Lime");
     }
 
@@ -124,11 +124,11 @@ public sealed class DrinkRepositoryPersistenceTests(PostgresFixture fixture) : I
         drink.SoftDelete();
         await _db.SaveChangesAsync();
 
-        var repo = new DrinkRepository(_db);
-        var paged = await repo.GetPagedAsync(new DrinkFilter(null, null, 1, 20));
+        var queryService = new DrinkQueryService(_db);
+        var paged = await queryService.GetPagedAsync(new DrinkFilter(null, null, 1, 20));
         paged.Items.ShouldNotContain(d => d.Name == "SoonDeleted");
 
-        var detail = await repo.GetDetailByIdAsync(drink.Id);
+        var detail = await queryService.GetDetailByIdAsync(drink.Id);
         detail.ShouldBeNull();
     }
 }

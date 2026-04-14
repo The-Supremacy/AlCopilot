@@ -23,11 +23,16 @@ public static class ManagementAuthEndpoints
                 [OpenIdConnectDefaults.AuthenticationScheme]))
             .AllowAnonymous();
 
-        group.MapPost("/logout", async (HttpContext context) =>
-        {
-            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return Results.NoContent();
-        });
+        group.MapPost("/logout", () =>
+            Results.SignOut(
+                new AuthenticationProperties
+                {
+                    RedirectUri = "/",
+                },
+                [
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    OpenIdConnectDefaults.AuthenticationScheme,
+                ]));
 
         return endpoints;
     }

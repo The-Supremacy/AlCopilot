@@ -30,7 +30,7 @@ public sealed class IngredientRepositoryIntegrationTests(PostgresFixture fixture
         repo.Add(Ingredient.Create(IngredientName.Create("Rum"), ["Bacardi", "Havana Club"]));
         await _db.SaveChangesAsync();
 
-        var all = await repo.GetAllAsync();
+        var all = await new IngredientQueryService(_db).GetAllAsync();
         var rum = all.ShouldHaveSingleItem();
         rum.NotableBrands.ShouldBe(["Bacardi", "Havana Club"]);
     }

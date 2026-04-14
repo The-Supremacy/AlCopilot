@@ -4,12 +4,12 @@ using Mediator;
 
 namespace AlCopilot.DrinkCatalog.Features.Ingredient;
 
-public sealed class GetIngredientsHandler(IIngredientRepository ingredientRepository)
+public sealed class GetIngredientsHandler(IIngredientQueryService ingredientQueryService)
     : IRequestHandler<GetIngredientsQuery, List<IngredientDto>>
 {
     public async ValueTask<List<IngredientDto>> Handle(
         GetIngredientsQuery request, CancellationToken cancellationToken)
     {
-        return await ingredientRepository.GetAllAsync(cancellationToken);
+        return await ingredientQueryService.GetAllAsync(cancellationToken);
     }
 }

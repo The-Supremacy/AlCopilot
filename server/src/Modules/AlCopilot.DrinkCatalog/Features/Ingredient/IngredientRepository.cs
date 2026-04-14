@@ -1,4 +1,3 @@
-using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,15 +14,19 @@ internal sealed class IngredientRepository(DrinkCatalogDbContext dbContext) : II
 
     public void Remove(Ingredient aggregate) => dbContext.Ingredients.Remove(aggregate);
 
-    public async Task<List<IngredientDto>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<HashSet<Guid>> GetExistingIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
     {
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
         return await dbContext.Ingredients
-            .OrderBy(i => i.Name)
-            .Select(i => new IngredientDto(
-                i.Id,
-                i.Name,
-                i.NotableBrands))
-            .ToListAsync(cancellationToken);
+            .Where(i => ids.Contains(i.Id))
+            .Select(i => i.Id)
+            .ToHashSetAsync(cancellationToken);
     }
 
     public async Task<bool> ExistsByNameAsync(string name, Guid? excludingIngredientId = null, CancellationToken cancellationToken = default)

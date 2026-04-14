@@ -21,7 +21,8 @@ namespace AlCopilot.DrinkCatalog.Features.ImportSync;
 public sealed class ImportBatchWorkflowService(
     ITagRepository tagRepository,
     IIngredientRepository ingredientRepository,
-    IDrinkRepository drinkRepository)
+    IDrinkRepository drinkRepository,
+    IDrinkQueryService drinkQueryService)
 {
     public async Task<List<ImportDiagnostic>> ValidateAsync(
         NormalizedCatalogImport import,
@@ -130,7 +131,7 @@ public sealed class ImportBatchWorkflowService(
             }
         }
 
-        var existingDrinks = await drinkRepository.GetAllAsync(cancellationToken);
+        var existingDrinks = await drinkQueryService.GetAllAsync(cancellationToken);
         var existingDrinksByName = existingDrinks.ToDictionary(d => d.Name, StringComparer.OrdinalIgnoreCase);
 
         foreach (var drink in import.Drinks)

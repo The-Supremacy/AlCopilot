@@ -12,6 +12,7 @@ namespace AlCopilot.DrinkCatalog.Tests.Handlers.Commands;
 public sealed class CreateDrinkHandlerTests
 {
     private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
+    private readonly IDrinkRecipeIntegrityValidator _drinkRecipeIntegrityValidator = Substitute.For<IDrinkRecipeIntegrityValidator>();
     private readonly ITagRepository _tagRepository = Substitute.For<ITagRepository>();
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
@@ -21,6 +22,7 @@ public sealed class CreateDrinkHandlerTests
     {
         _handler = new CreateDrinkHandler(
             _drinkRepository,
+            _drinkRecipeIntegrityValidator,
             _tagRepository,
             new AuditLogWriter(_auditRepository),
             _unitOfWork);
@@ -47,5 +49,30 @@ public sealed class CreateDrinkHandlerTests
 
         await Should.ThrowAsync<ConflictException>(
             () => _handler.Handle(command, CancellationToken.None).AsTask());
+    }
+
+    [Fact]
+    public async Task Handle_MissingIngredient_ThrowsNotFound()
+    {
+        var ingredientId = Guid.NewGuid();
+        _drinkRepository.ExistsByNameAsync("Margarita", null, Arg.Any<CancellationToken>()).Returns(false);
+        _drinkRecipeIntegrityValidator
+            .When(x => x.ValidateAsync(Arg.Any<IReadOnlyCollection<RecipeEntryInput>>(), Arg.Any<CancellationToken>()))
+            .Do(_ => throw new NotFoundException($"Ingredient '{ingredientId}' not found."));
+
+        var command = new CreateDrinkCommand(
+            "Margarita",
+            null,
+            null,
+            null,
+            null,
+            null,
+            [],
+            [new RecipeEntryInput(ingredientId, "2 oz", null)]);
+
+        var exception = await Should.ThrowAsync<NotFoundException>(
+            () => _handler.Handle(command, CancellationToken.None).AsTask());
+
+        exception.Message.ShouldContain(ingredientId.ToString());
     }
 }

@@ -19,6 +19,7 @@ public sealed class ApplyImportBatchHandlerTests
     private readonly ITagRepository _tagRepository = Substitute.For<ITagRepository>();
     private readonly IIngredientRepository _ingredientRepository = Substitute.For<IIngredientRepository>();
     private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
+    private readonly IDrinkQueryService _drinkQueryService = Substitute.For<IDrinkQueryService>();
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
     private readonly ICurrentActorAccessor _currentActorAccessor = Substitute.For<ICurrentActorAccessor>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
@@ -29,7 +30,8 @@ public sealed class ApplyImportBatchHandlerTests
         var workflowService = new ImportBatchWorkflowService(
             _tagRepository,
             _ingredientRepository,
-            _drinkRepository);
+            _drinkRepository,
+            _drinkQueryService);
         _currentActorAccessor.GetCurrent().Returns(new CurrentActor("user-123", "manager@alcopilot.local", true));
         _handler = new ApplyImportBatchHandler(
             _importBatchRepository,

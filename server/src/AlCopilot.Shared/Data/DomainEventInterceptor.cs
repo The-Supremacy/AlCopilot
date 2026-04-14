@@ -2,12 +2,11 @@ using System.Text.Json;
 using AlCopilot.Shared.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AlCopilot.Shared.Data;
 
 public sealed class DomainEventInterceptor(
-    IServiceProvider serviceProvider,
+    IDomainEventDispatcher domainEventDispatcher,
     DomainEventTypeRegistry eventTypeRegistry) : SaveChangesInterceptor
 {
     private const int MaxDispatchDepth = 5;
@@ -79,27 +78,8 @@ public sealed class DomainEventInterceptor(
         }
 
         foreach (var domainEvent in allEvents)
-            await DispatchToHandlersAsync(domainEvent, cancellationToken);
+            await domainEventDispatcher.DispatchAsync(domainEvent, cancellationToken);
 
         return true;
-    }
-
-    private async Task DispatchToHandlersAsync(IDomainEvent domainEvent, CancellationToken cancellationToken)
-    {
-        var eventType = domainEvent.GetType();
-        var handlerType = typeof(IDomainEventHandler<>).MakeGenericType(eventType);
-        var handlers = serviceProvider.GetServices(handlerType);
-
-        foreach (var handler in handlers)
-        {
-            if (handler is null) continue;
-
-            var method = handlerType.GetMethod(nameof(IDomainEventHandler<IDomainEvent>.HandleAsync));
-            if (method is not null)
-            {
-                var task = (Task)method.Invoke(handler, [domainEvent, cancellationToken])!;
-                await task;
-            }
-        }
     }
 }

@@ -18,6 +18,7 @@ public sealed class ReviewImportBatchHandlerTests
     private readonly ITagRepository _tagRepository = Substitute.For<ITagRepository>();
     private readonly IIngredientRepository _ingredientRepository = Substitute.For<IIngredientRepository>();
     private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
+    private readonly IDrinkQueryService _drinkQueryService = Substitute.For<IDrinkQueryService>();
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly ReviewImportBatchHandler _handler;
@@ -27,7 +28,8 @@ public sealed class ReviewImportBatchHandlerTests
         var workflowService = new ImportBatchWorkflowService(
             _tagRepository,
             _ingredientRepository,
-            _drinkRepository);
+            _drinkRepository,
+            _drinkQueryService);
         _handler = new ReviewImportBatchHandler(
             _importBatchRepository,
             workflowService,
@@ -59,7 +61,7 @@ public sealed class ReviewImportBatchHandlerTests
         batch.RecordValidation([]);
 
         _importBatchRepository.GetByIdAsync(batch.Id, Arg.Any<CancellationToken>()).Returns(batch);
-        _drinkRepository.GetAllAsync(Arg.Any<CancellationToken>()).Returns(
+        _drinkQueryService.GetAllAsync(Arg.Any<CancellationToken>()).Returns(
         [
             new DrinkDetailDto(
                 Guid.NewGuid(),

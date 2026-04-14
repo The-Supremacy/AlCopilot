@@ -1,0 +1,4 @@
+interface:
+  display_name: 'ADR Lint'
+  short_description: 'Check ADRs for structure and sync drift'
+  default_prompt: 'Use $adr-lint to review ADR files and current guidance docs for status, structure, and sync alignment.'

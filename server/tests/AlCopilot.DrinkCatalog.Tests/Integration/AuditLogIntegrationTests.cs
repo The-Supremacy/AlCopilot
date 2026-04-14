@@ -36,6 +36,7 @@ public sealed class AuditLogIntegrationTests(PostgresFixture fixture) : IAsyncLi
     public async Task SuccessfulMutations_PersistAuditEntries()
     {
         var auditRepository = new AuditLogEntryRepository(_db);
+        var auditQueryService = new AuditLogQueryService(_db);
         var currentActorAccessor = new StubCurrentActorAccessor(new CurrentActor("manager-123", "manager@alcopilot.local", true));
         var auditWriter = new AuditLogWriter(auditRepository, currentActorAccessor);
 
@@ -47,7 +48,8 @@ public sealed class AuditLogIntegrationTests(PostgresFixture fixture) : IAsyncLi
         var workflowService = new ImportBatchWorkflowService(
             new TagRepository(_db),
             new IngredientRepository(_db),
-            new DrinkRepository(_db));
+            new DrinkRepository(_db),
+            new DrinkQueryService(_db));
 
         var createImportDraftHandler = new StartImportHandler(strategyResolver, importBatchRepository, workflowService, auditWriter, currentActorAccessor, _db);
 
@@ -58,7 +60,7 @@ public sealed class AuditLogIntegrationTests(PostgresFixture fixture) : IAsyncLi
                 new ImportSourceInput(null, null, "application/json", [])),
             CancellationToken.None);
 
-        var entries = await auditRepository.GetRecentAsync();
+        var entries = await auditQueryService.GetRecentAsync();
 
         entries.ShouldContain(entry => entry.Action == "tag.create" && entry.SubjectType == "tag");
         entries.ShouldContain(entry => entry.Action == "import-batch.create" && entry.SubjectType == "import-batch");

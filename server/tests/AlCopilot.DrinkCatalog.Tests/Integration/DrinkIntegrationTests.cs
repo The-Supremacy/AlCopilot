@@ -11,7 +11,7 @@ namespace AlCopilot.DrinkCatalog.Tests.Integration;
 
 [Trait("Category", "Integration")]
 [Collection("Postgres")]
-public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsyncLifetime
+public sealed class DrinkQueryServiceBrowseTests(PostgresFixture fixture) : IAsyncLifetime
 {
     private DrinkCatalogDbContext _db = null!;
 
@@ -51,8 +51,8 @@ public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsync
     [Fact]
     public async Task GetPaged_ReturnsAllActiveDrinks()
     {
-        var repo = new DrinkRepository(_db);
-        var result = await repo.GetPagedAsync(new DrinkFilter(null, null, 1, 20));
+        var queryService = new DrinkQueryService(_db);
+        var result = await queryService.GetPagedAsync(new DrinkFilter(null, null, 1, 20));
 
         result.TotalCount.ShouldBe(2);
         result.Items.ShouldNotContain(d => d.Name == "Deleted Drink");
@@ -62,8 +62,8 @@ public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsync
     public async Task GetPaged_FilterByTag_ReturnsMatchingDrinks()
     {
         var tag = await _db.Tags.FirstAsync(t => t.Name == TagName.Create("Strong"));
-        var repo = new DrinkRepository(_db);
-        var result = await repo.GetPagedAsync(new DrinkFilter(null, [tag.Id], 1, 20));
+        var queryService = new DrinkQueryService(_db);
+        var result = await queryService.GetPagedAsync(new DrinkFilter(null, [tag.Id], 1, 20));
 
         result.TotalCount.ShouldBe(1);
         result.Items[0].Name.ShouldBe("Old Fashioned");
@@ -72,8 +72,8 @@ public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsync
     [Fact]
     public async Task GetPaged_Pagination_ReturnsCorrectPage()
     {
-        var repo = new DrinkRepository(_db);
-        var result = await repo.GetPagedAsync(new DrinkFilter(null, null, 1, 1));
+        var queryService = new DrinkQueryService(_db);
+        var result = await queryService.GetPagedAsync(new DrinkFilter(null, null, 1, 1));
 
         result.TotalCount.ShouldBe(2);
         result.Items.Count.ShouldBe(1);
@@ -92,10 +92,10 @@ public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsync
 
         // tag "Strong" is only on Old Fashioned, tag "Fruity" is only on Daiquiri
         var tagStrong = await _db.Tags.FirstAsync(t => t.Name == TagName.Create("Strong"));
-        var repo = new DrinkRepository(_db);
+        var queryService = new DrinkQueryService(_db);
 
         // Act: filter by both Strong and Fruity — OR should return both, AND would return neither
-        var result = await repo.GetPagedAsync(new DrinkFilter(null, [tagStrong.Id, tag3.Id], 1, 20));
+        var result = await queryService.GetPagedAsync(new DrinkFilter(null, [tagStrong.Id, tag3.Id], 1, 20));
 
         // Assert
         result.TotalCount.ShouldBe(2);
@@ -107,7 +107,7 @@ public sealed class DrinkRepositoryBrowseTests(PostgresFixture fixture) : IAsync
 
 [Trait("Category", "Integration")]
 [Collection("Postgres")]
-public sealed class DrinkRepositoryFilterTests(PostgresFixture fixture) : IAsyncLifetime
+public sealed class DrinkQueryServiceFilterTests(PostgresFixture fixture) : IAsyncLifetime
 {
     private DrinkCatalogDbContext _db = null!;
 
@@ -136,8 +136,8 @@ public sealed class DrinkRepositoryFilterTests(PostgresFixture fixture) : IAsync
     [Fact]
     public async Task GetPaged_WithQuery_FindsDrink()
     {
-        var repo = new DrinkRepository(_db);
-        var result = await repo.GetPagedAsync(new DrinkFilter("marg", null, 1, 20));
+        var queryService = new DrinkQueryService(_db);
+        var result = await queryService.GetPagedAsync(new DrinkFilter("marg", null, 1, 20));
         result.TotalCount.ShouldBeGreaterThan(0);
     }
 
@@ -145,8 +145,8 @@ public sealed class DrinkRepositoryFilterTests(PostgresFixture fixture) : IAsync
     public async Task GetPaged_WithQueryAndTagFilter_ReturnsMatchingDrink()
     {
         var tag = await _db.Tags.SingleAsync();
-        var repo = new DrinkRepository(_db);
-        var result = await repo.GetPagedAsync(new DrinkFilter("marg", [tag.Id], 1, 20));
+        var queryService = new DrinkQueryService(_db);
+        var result = await queryService.GetPagedAsync(new DrinkFilter("marg", [tag.Id], 1, 20));
 
         result.TotalCount.ShouldBe(1);
         result.Items[0].Name.ShouldBe("Margarita");
@@ -155,15 +155,15 @@ public sealed class DrinkRepositoryFilterTests(PostgresFixture fixture) : IAsync
     [Fact]
     public async Task GetPaged_WithQuery_NoResults_ReturnsEmpty()
     {
-        var repo = new DrinkRepository(_db);
-        var result = await repo.GetPagedAsync(new DrinkFilter("nonexistent", null, 1, 20));
+        var queryService = new DrinkQueryService(_db);
+        var result = await queryService.GetPagedAsync(new DrinkFilter("nonexistent", null, 1, 20));
         result.TotalCount.ShouldBe(0);
     }
 }
 
 [Trait("Category", "Integration")]
 [Collection("Postgres")]
-public sealed class DrinkRepositoryDetailTests(PostgresFixture fixture) : IAsyncLifetime
+public sealed class DrinkQueryServiceDetailTests(PostgresFixture fixture) : IAsyncLifetime
 {
     private DrinkCatalogDbContext _db = null!;
     private Guid _drinkId;
@@ -190,8 +190,8 @@ public sealed class DrinkRepositoryDetailTests(PostgresFixture fixture) : IAsync
     [Fact]
     public async Task GetDetailById_ReturnsFullDetail()
     {
-        var repo = new DrinkRepository(_db);
-        var detail = await repo.GetDetailByIdAsync(_drinkId);
+        var queryService = new DrinkQueryService(_db);
+        var detail = await queryService.GetDetailByIdAsync(_drinkId);
 
         detail.ShouldNotBeNull();
         detail.Name.ShouldBe("Gimlet");
@@ -203,8 +203,8 @@ public sealed class DrinkRepositoryDetailTests(PostgresFixture fixture) : IAsync
     [Fact]
     public async Task GetDetailById_NotFound_ReturnsNull()
     {
-        var repo = new DrinkRepository(_db);
-        var detail = await repo.GetDetailByIdAsync(Guid.NewGuid());
+        var queryService = new DrinkQueryService(_db);
+        var detail = await queryService.GetDetailByIdAsync(Guid.NewGuid());
         detail.ShouldBeNull();
     }
 }

@@ -12,12 +12,14 @@ internal sealed class DrinkCatalogDbContextFactory : IDesignTimeDbContextFactory
     public DrinkCatalogDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<DrinkCatalogDbContext>();
-        var registry = DomainEventTypeRegistry.CreateFrom(typeof(DrinkCreatedEvent).Assembly);
-        var services = new ServiceCollection().BuildServiceProvider();
+        var services = new ServiceCollection();
+        services.AddDomainEventAssembly(typeof(DrinkCreatedEvent).Assembly);
+        services.AddScoped<DomainEventInterceptor>();
+        var serviceProvider = services.BuildServiceProvider();
         optionsBuilder.UseNpgsql(
             "Host=localhost;Port=5432;Database=alcopilot;Username=postgres;Password=postgres",
             npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "drink_catalog"));
-        optionsBuilder.AddInterceptors(new DomainEventInterceptor(services, registry));
+        optionsBuilder.AddInterceptors(serviceProvider.GetRequiredService<DomainEventInterceptor>());
         return new DrinkCatalogDbContext(optionsBuilder.Options);
     }
 }

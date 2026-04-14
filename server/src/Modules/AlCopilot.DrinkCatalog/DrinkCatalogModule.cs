@@ -36,10 +36,15 @@ public static class DrinkCatalogModule
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<DrinkCatalogDbContext>());
         services.AddScoped<IDrinkRepository, DrinkRepository>();
+        services.AddScoped<IDrinkQueryService, DrinkQueryService>();
+        services.AddScoped<IDrinkRecipeIntegrityValidator, DrinkRecipeIntegrityValidator>();
         services.AddScoped<ITagRepository, TagRepository>();
+        services.AddScoped<ITagQueryService, TagQueryService>();
         services.AddScoped<IIngredientRepository, IngredientRepository>();
+        services.AddScoped<IIngredientQueryService, IngredientQueryService>();
         services.AddScoped<IImportBatchRepository, ImportBatchRepository>();
         services.AddScoped<IAuditLogEntryRepository, AuditLogEntryRepository>();
+        services.AddScoped<IAuditLogQueryService, AuditLogQueryService>();
         services.AddScoped<AuditLogWriter>();
         services.AddScoped<ImportBatchWorkflowService>();
         services.AddScoped<IImportSourceStrategy, IbaCocktailsSnapshotImportSourceStrategy>();

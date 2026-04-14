@@ -113,4 +113,99 @@ public sealed class HandlerConventionTests
         result.IsSuccessful.ShouldBeTrue(
             $"Handlers reference DbContext directly: {string.Join(", ", result.FailingTypes?.Select(t => t.FullName) ?? [])}");
     }
+
+    [Fact]
+    public void QueryHandlers_ShouldNotReference_AggregateRepositories()
+    {
+        var readHandlerTypes = new[]
+        {
+            typeof(AlCopilot.DrinkCatalog.Features.Drink.GetDrinksHandler),
+            typeof(AlCopilot.DrinkCatalog.Features.Drink.GetDrinkByIdHandler),
+            typeof(AlCopilot.DrinkCatalog.Features.Tag.GetTagsHandler),
+            typeof(AlCopilot.DrinkCatalog.Features.Ingredient.GetIngredientsHandler),
+            typeof(AlCopilot.DrinkCatalog.Features.Audit.GetAuditLogEntriesHandler),
+        };
+
+        foreach (var handlerType in readHandlerTypes)
+        {
+            var constructorParameterTypes = handlerType.GetConstructors()
+                .Single()
+                .GetParameters()
+                .Select(parameter => parameter.ParameterType)
+                .ToArray();
+
+            constructorParameterTypes.ShouldNotContain(
+                typeof(AlCopilot.DrinkCatalog.Features.Drink.IDrinkRepository),
+                $"{handlerType.Name} should depend on a query service, not IDrinkRepository.");
+            constructorParameterTypes.ShouldNotContain(
+                typeof(AlCopilot.DrinkCatalog.Features.Tag.ITagRepository),
+                $"{handlerType.Name} should depend on a query service, not ITagRepository.");
+            constructorParameterTypes.ShouldNotContain(
+                typeof(AlCopilot.DrinkCatalog.Features.Ingredient.IIngredientRepository),
+                $"{handlerType.Name} should depend on a query service, not IIngredientRepository.");
+            constructorParameterTypes.ShouldNotContain(
+                typeof(AlCopilot.DrinkCatalog.Features.Audit.IAuditLogEntryRepository),
+                $"{handlerType.Name} should depend on a query service, not IAuditLogEntryRepository.");
+        }
+    }
+}
+
+public sealed class RepositoryConventionTests
+{
+    [Fact]
+    public void AggregateRepositories_ShouldNotReturn_ContractDtos()
+    {
+        var repositoryTypes = new[]
+        {
+            typeof(AlCopilot.DrinkCatalog.Features.Drink.IDrinkRepository),
+            typeof(AlCopilot.DrinkCatalog.Features.Tag.ITagRepository),
+            typeof(AlCopilot.DrinkCatalog.Features.Ingredient.IIngredientRepository),
+        };
+
+        foreach (var repositoryType in repositoryTypes)
+        {
+            var dtoReturningMethods = repositoryType.GetMethods()
+                .Where(method => ReturnsContractDto(method.ReturnType))
+                .Select(method => method.Name)
+                .ToArray();
+
+            dtoReturningMethods.ShouldBeEmpty(
+                $"{repositoryType.Name} should stay aggregate-focused and not return contract DTOs.");
+        }
+    }
+
+    private static bool ReturnsContractDto(Type type)
+    {
+        if (type.Namespace == "AlCopilot.DrinkCatalog.Contracts.DTOs")
+        {
+            return true;
+        }
+
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
+
+        return type.GetGenericArguments().Any(ReturnsContractDto);
+    }
+}
+
+public sealed class ServiceConventionTests
+{
+    private static readonly System.Reflection.Assembly DrinkCatalogAssembly =
+        typeof(AlCopilot.DrinkCatalog.DrinkCatalogModule).Assembly;
+
+    [Fact]
+    public void ValidationServices_ShouldNotReference_DbContextDirectly()
+    {
+        var result = Types.InAssembly(DrinkCatalogAssembly)
+            .That()
+            .HaveNameEndingWith("Validator")
+            .ShouldNot()
+            .HaveDependencyOnAny("AlCopilot.DrinkCatalog.Data.DrinkCatalogDbContext")
+            .GetResult();
+
+        result.IsSuccessful.ShouldBeTrue(
+            $"Validation services reference DbContext directly: {string.Join(", ", result.FailingTypes?.Select(t => t.FullName) ?? [])}");
+    }
 }
