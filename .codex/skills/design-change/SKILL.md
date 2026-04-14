@@ -2,7 +2,6 @@
 name: design-change
 description: Update an existing portal DESIGN.md by filtering proposed ideas into durable UI invariants, while routing behavior changes to OpenSpec and architecture decisions to ADRs.
 license: MIT
-compatibility: Local repo workflow
 ---
 
 Refine portal design guidance without introducing drift.

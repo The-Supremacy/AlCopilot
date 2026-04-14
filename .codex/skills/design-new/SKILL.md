@@ -2,7 +2,6 @@
 name: design-new
 description: Create a new portal DESIGN.md document using the repo's low-drift invariants-only format. Use when a new portal is planned and UI design guidance must be established before UI implementation work.
 license: MIT
-compatibility: Local repo workflow
 ---
 
 Create a new portal design guide at `web/apps/<portal>/DESIGN.md`.

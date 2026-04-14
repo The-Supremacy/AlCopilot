@@ -2,7 +2,6 @@
 name: design-lint
 description: Lint a portal DESIGN.md for low-drift invariants-only compliance and report what should move to OpenSpec or ADRs.
 license: MIT
-compatibility: Local repo workflow
 ---
 
 Lint `web/apps/<portal>/DESIGN.md` against the project's design-doc guardrails.

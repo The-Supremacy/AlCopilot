@@ -2,7 +2,6 @@
 name: adr-sync
 description: Sync accepted ADR decisions into current guidance documents when they materially change architecture or workflow. Use after an ADR is created or updated and the user wants the active guidance docs aligned.
 license: MIT
-compatibility: Local repo workflow
 ---
 
 Sync an ADR into the repo's current guidance documents.

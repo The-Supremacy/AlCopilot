@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Backend Aggregate Root'
+  short_description: 'Add a new aggregate root to an existing backend module'
+  default_prompt: 'Use $backend-add-aggregate-root to add a new aggregate root inside an existing backend module, following module boundaries, DDD defaults, repository/query split, endpoints, and tests.'
