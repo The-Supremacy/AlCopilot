@@ -8,7 +8,7 @@ import { ManagementPortalLayout } from '@/features/auth/ManagementPortalLayout';
 const mockedUseManagementSession = vi.fn();
 const mockedUseLogoutManagementMutation = vi.fn();
 
-vi.mock('@/lib/useManagementAuth', () => ({
+vi.mock('@/state/auth/useManagementAuth', () => ({
   useManagementSession: () => mockedUseManagementSession(),
   useLogoutManagementMutation: () => mockedUseLogoutManagementMutation(),
 }));
@@ -19,9 +19,28 @@ vi.mock('@tanstack/react-router', async () => {
 
   return {
     ...actual,
-    Link: ({ children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
-      <a {...props}>{children}</a>
-    ),
+    useMatches: () => [],
+    Link: ({
+      children,
+      activeOptions: _activeOptions,
+      activeProps: _activeProps,
+      inactiveProps: _inactiveProps,
+      params: _params,
+      search: _search,
+      hash: _hash,
+      state: _state,
+      to: _to,
+      ...props
+    }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+      activeOptions?: unknown;
+      activeProps?: unknown;
+      inactiveProps?: unknown;
+      params?: unknown;
+      search?: unknown;
+      hash?: unknown;
+      state?: unknown;
+      to?: unknown;
+    }) => <a {...props}>{children}</a>,
   };
 });
 
@@ -108,4 +127,26 @@ test('renders the authenticated shell for manager sessions', async () => {
   await userEvent.setup().click(screen.getByRole('button', { name: 'Sign out' }));
 
   expect(logout).toHaveBeenCalled();
+});
+
+test('shows account actions inside the mobile drawer', async () => {
+  mockedUseManagementSession.mockReturnValue({
+    isLoading: false,
+    isError: false,
+    data: {
+      isAuthenticated: true,
+      displayName: 'manager@alcopilot.local',
+      roles: ['manager', 'user'],
+      isAdmin: false,
+      canAccessManagementPortal: true,
+    },
+  });
+
+  renderLayout();
+
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Open navigation menu' }));
+
+  expect(screen.getByText('Account')).toBeInTheDocument();
+  expect(screen.getAllByText('manager@alcopilot.local').length).toBeGreaterThan(0);
+  expect(screen.getAllByRole('button', { name: 'Sign out' }).length).toBeGreaterThan(0);
 });

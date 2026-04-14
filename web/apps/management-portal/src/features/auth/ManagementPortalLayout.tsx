@@ -24,7 +24,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { useLogoutManagementMutation, useManagementSession } from '@/lib/useManagementAuth';
+import { PortalBreadcrumbs } from '@/features/navigation/PortalBreadcrumbs';
+import { useLogoutManagementMutation, useManagementSession } from '@/state/auth/useManagementAuth';
 import { cn } from '@/lib/utils';
 
 type NavItem = {
@@ -145,6 +146,26 @@ export function ManagementPortalLayout({ children }: { children: ReactNode }) {
       Sign in
     </Button>
   );
+  const mobileDrawerUtility = session.isAuthenticated ? (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-shell-foreground/15 bg-shell-foreground/5 px-4 py-3">
+        <p className="text-xs uppercase tracking-[0.24em] text-shell-foreground/55">Signed in</p>
+        <p className="mt-2 text-sm font-medium text-shell-foreground">
+          {session.displayName ?? 'Operator session'}
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        className="w-full border-shell-foreground/20 bg-shell-foreground/5 text-shell-foreground hover:bg-shell-foreground/10 hover:text-shell-foreground"
+        onClick={handleSignOut}
+        loading={logoutMutation.isPending}
+        loadingText="Signing out"
+      >
+        <LogOut className="h-4 w-4" />
+        Sign out
+      </Button>
+    </div>
+  ) : null;
 
   if (!session.isAuthenticated) {
     return (
@@ -176,7 +197,7 @@ export function ManagementPortalLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <PortalShell utility={utility} showNavigation>
+    <PortalShell utility={utility} mobileDrawerUtility={mobileDrawerUtility} showNavigation>
       {children}
     </PortalShell>
   );
@@ -186,10 +207,12 @@ function PortalShell({
   children,
   showNavigation = false,
   utility,
+  mobileDrawerUtility,
 }: {
   children: ReactNode;
   showNavigation?: boolean;
   utility: ReactNode;
+  mobileDrawerUtility?: ReactNode;
 }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const environmentLabel = getEnvironmentLabel();
@@ -208,56 +231,65 @@ function PortalShell({
         )}
 
         <div className="min-w-0 bg-card/40">
-          <header className="flex flex-col gap-4 border-b border-border/70 px-6 py-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-3">
-              {showNavigation ? (
-                <Sheet open={isMobileNavOpen} onOpenChange={setIsMobileNavOpen}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-1 md:hidden"
-                      aria-label="Open navigation menu"
+          <header className="border-b border-border/70 px-5 py-4 md:px-6 md:py-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                {showNavigation ? (
+                  <Sheet open={isMobileNavOpen} onOpenChange={setIsMobileNavOpen}>
+                    <SheetTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-1 md:hidden"
+                        aria-label="Open navigation menu"
+                      >
+                        <Menu className="h-4 w-4" />
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent
+                      side="left"
+                      className="h-screen border-0 border-r border-border/70 bg-shell p-6 text-shell-foreground"
+                      hideClose
                     >
-                      <Menu className="h-4 w-4" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent
-                    side="left"
-                    className="h-screen border-0 border-r border-border/70 bg-shell p-6 text-shell-foreground"
-                    hideClose
-                  >
-                    <SheetTitle className="sr-only">Management navigation</SheetTitle>
-                    <SheetDescription className="sr-only">
-                      Navigate between management portal sections.
-                    </SheetDescription>
-                    <PortalNavigation onNavigate={() => setIsMobileNavOpen(false)} />
-                  </SheetContent>
-                </Sheet>
-              ) : null}
+                      <SheetTitle className="sr-only">Management navigation</SheetTitle>
+                      <SheetDescription className="sr-only">
+                        Navigate between management portal sections.
+                      </SheetDescription>
+                      <PortalNavigation
+                        onNavigate={() => setIsMobileNavOpen(false)}
+                        utility={mobileDrawerUtility}
+                      />
+                    </SheetContent>
+                  </Sheet>
+                ) : null}
 
-              <div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                    Operator Console
-                  </p>
-                  <Badge variant="secondary">{environmentLabel}</Badge>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                      Operator Console
+                    </p>
+                    <Badge variant="secondary">{environmentLabel}</Badge>
+                  </div>
+                  <h2 className="mt-3 max-w-[14ch] font-display text-[2rem] font-semibold leading-tight text-foreground md:mt-2 md:max-w-none md:text-2xl">
+                    Catalog curation and import sync
+                  </h2>
                 </div>
-                <h2 className="mt-2 font-display text-2xl font-semibold text-foreground">
-                  Catalog curation and import sync
-                </h2>
               </div>
+
+              <div className="hidden md:block md:shrink-0">{utility}</div>
             </div>
-            <div className="md:hidden">
-              <PortalBrand compact />
-            </div>
-            <div className="hidden md:block">
-              <PortalBrand compact />
-            </div>
-            <div className="md:ml-auto">{utility}</div>
+
+            {!showNavigation ? <div className="mt-4 md:hidden">{utility}</div> : null}
           </header>
 
-          <main className="px-6 py-6">{children}</main>
+          <main className="px-5 py-5 md:px-6 md:py-6">
+            {showNavigation ? (
+              <div className="mb-5">
+                <PortalBreadcrumbs />
+              </div>
+            ) : null}
+            {children}
+          </main>
         </div>
       </div>
     </div>
@@ -289,7 +321,13 @@ function PortalBrand({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function PortalNavigation({ onNavigate }: { onNavigate?: () => void }) {
+function PortalNavigation({
+  onNavigate,
+  utility,
+}: {
+  onNavigate?: () => void;
+  utility?: ReactNode;
+}) {
   return (
     <>
       <PortalBrand />
@@ -339,6 +377,12 @@ function PortalNavigation({ onNavigate }: { onNavigate?: () => void }) {
           );
         })}
       </nav>
+      {utility ? (
+        <div className="mt-8 border-t border-shell-foreground/10 pt-6">
+          <p className="text-xs uppercase tracking-[0.28em] text-shell-foreground/55">Account</p>
+          <div className="mt-4">{utility}</div>
+        </div>
+      ) : null}
     </>
   );
 }

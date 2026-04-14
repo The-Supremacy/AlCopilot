@@ -21,7 +21,7 @@ import {
   useIngredients,
   useTags,
   useUpdateDrinkMutation,
-} from '@/features/catalog/useCatalogData';
+} from '@/features/catalog/api/hooks';
 
 export function CatalogDrinkEditPage() {
   const { drinkId } = useParams({ from: '/catalog/drinks/$drinkId' });

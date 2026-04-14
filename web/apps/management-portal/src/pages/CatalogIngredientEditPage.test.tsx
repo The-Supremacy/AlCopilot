@@ -21,7 +21,7 @@ const ingredientsQuery = {
 
 let ingredientId = 'ingredient-1';
 
-vi.mock('@/features/catalog/useCatalogData', () => ({
+vi.mock('@/features/catalog/api/hooks', () => ({
   useIngredients: () => ingredientsQuery,
   useUpdateIngredientMutation: () => updateIngredientMutation,
   useDeleteIngredientMutation: () => deleteIngredientMutation,

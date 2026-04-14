@@ -52,7 +52,7 @@ const drinkQuery = {
   isLoading: false,
 };
 
-vi.mock('@/features/catalog/useCatalogData', () => ({
+vi.mock('@/features/catalog/api/hooks', () => ({
   useDrink: () => drinkQuery,
   useTags: () => ({ data: [{ id: 'tag-1', name: 'Classic' }] }),
   useIngredients: () => ({ data: [{ id: 'ingredient-1', name: 'Gin' }] }),

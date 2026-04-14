@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
-import { useDeleteDrinkMutation, useDrinks } from '@/features/catalog/useCatalogData';
+import { useDeleteDrinkMutation, useDrinks } from '@/features/catalog/api/hooks';
 import { joinLines } from '@/lib/format';
 
 export function CatalogDrinksPage() {
@@ -88,6 +88,50 @@ export function CatalogDrinksPage() {
           data={drinks.data?.items ?? []}
           searchPlaceholder="Search drinks"
           getRowAriaLabel={(row) => `Open drink ${row.name}`}
+          renderMobileCard={(row) => (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-lg font-semibold text-foreground">{row.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {row.category || 'Unassigned category'}
+                </p>
+              </div>
+              <dl className="grid gap-3 text-sm">
+                <div className="grid gap-1">
+                  <dt className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                    Method
+                  </dt>
+                  <dd className="text-foreground">{row.method || 'Not provided'}</dd>
+                </div>
+                <div className="grid gap-1">
+                  <dt className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                    Garnish
+                  </dt>
+                  <dd className="text-foreground">{row.garnish || 'Not provided'}</dd>
+                </div>
+                <div className="grid gap-1">
+                  <dt className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                    Tags
+                  </dt>
+                  <dd className="text-foreground">
+                    {joinLines(row.tags.map((tag) => tag.name)) || 'No tags assigned'}
+                  </dd>
+                </div>
+              </dl>
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setDrinkPendingDelete(row);
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
           toolbarAction={
             <Button asChild>
               <Link to="/catalog/drinks/new">New</Link>

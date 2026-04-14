@@ -13,7 +13,7 @@ export {
   useUpdateDrinkMutation,
   useUpdateIngredientMutation,
   useUpdateTagMutation,
-} from '@/features/catalog/useCatalogData';
+} from '@/features/catalog/api/hooks';
 export {
   useApplyImportBatchMutation,
   useCancelImportBatchMutation,
@@ -22,4 +22,4 @@ export {
   useReviewImportBatchMutation,
   useStartImportMutation,
 } from '@/features/imports/useImportData';
-export { portalKeys } from '@/lib/queryKeys';
+export { portalKeys } from '@/state/queryKeys';

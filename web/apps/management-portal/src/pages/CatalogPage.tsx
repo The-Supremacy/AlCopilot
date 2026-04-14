@@ -3,7 +3,7 @@ import { CupSoda, Tags, Wheat } from 'lucide-react';
 import { SectionCard } from '@/components/SectionCard';
 import { Button } from '@/components/ui/button';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
-import { useDrinks, useIngredients, useTags } from '@/features/catalog/useCatalogData';
+import { useDrinks, useIngredients, useTags } from '@/features/catalog/api/hooks';
 
 const sections = [
   {

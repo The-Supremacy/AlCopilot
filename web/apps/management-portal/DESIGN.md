@@ -40,10 +40,12 @@ When global UI invariants change, update this DESIGN.md.
   - Ingredients
 - Navigation is designed for operator workflows, not end-user discovery journeys.
 - Breadcrumbs are optional and appear only when hierarchy depth warrants orientation support.
+- Breadcrumb trails should be defined at the route level so deeper create, edit, and review pages expose consistent orientation cues without page-local duplication.
 
 ## Page Template Invariants
 
 - List template: operational list views use a shared data table surface with sorting, filtering, and row actions.
+- Responsive list adaptation: desktop list views retain the shared data table surface, while mobile list views may render the same dataset as stacked cards when horizontal comparison would otherwise collapse usability.
 - List view commands: a primary `New` action lives in the list view command bar and routes to a dedicated create form.
 - Detail template: create/edit forms are separate pages that reuse a single form component per aggregate.
 - Workspace template: action-oriented pages with clear primary/secondary action separation.
@@ -81,6 +83,8 @@ When global UI invariants change, update this DESIGN.md.
 - Navigation behavior by breakpoint:
   - desktop: persistent sidebar
   - mobile/tablet: drawer navigation
+- Mobile shell policy: the mobile header stays compact and prioritizes navigation trigger, environment badge, and page identity; session/account actions live in the drawer rather than as full-width header blocks.
+- Mobile list policy: catalog-style operational lists favor stacked cards over compressed or partially clipped tables.
 - Primary actions must be keyboard reachable with visible focus affordances.
 - Status/warning/success messaging must not rely on color alone.
 - Layout must maintain readability at common desktop widths and remain usable on smaller breakpoints.
@@ -94,3 +98,4 @@ When global UI invariants change, update this DESIGN.md.
 
 - 2026-04-10: Initial management portal design guide baseline created
 - 2026-04-10: Refined to low-drift invariant-only model with explicit scope boundaries and governance alignment
+- 2026-04-14: Added responsive shell, mobile list-card, and route-level breadcrumb invariants to match the current portal structure

@@ -10,7 +10,7 @@ const createDrinkMutation = {
   error: null as null | Error,
 };
 
-vi.mock('@/features/catalog/useCatalogData', () => ({
+vi.mock('@/features/catalog/api/hooks', () => ({
   useCreateDrinkMutation: () => createDrinkMutation,
   useTags: () => ({ data: [{ id: 'tag-1', name: 'Classic' }] }),
   useIngredients: () => ({ data: [{ id: 'ingredient-1', name: 'Gin' }] }),

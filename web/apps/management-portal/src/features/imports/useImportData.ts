@@ -9,7 +9,7 @@ import {
   type StartImportInput,
 } from '@alcopilot/management-api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { portalKeys } from '@/lib/queryKeys';
+import { portalKeys } from '@/state/queryKeys';
 
 function useInvalidateImportData() {
   const queryClient = useQueryClient();

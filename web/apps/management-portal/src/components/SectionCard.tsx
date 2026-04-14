@@ -12,7 +12,7 @@ export function SectionCard(props: SectionCardProps) {
   return (
     <section>
       <Card>
-        <CardHeader className="flex-row items-start justify-between gap-4">
+        <CardHeader className="flex-col items-start gap-4 sm:flex-row sm:justify-between">
           <div>
             <CardTitle>{props.title}</CardTitle>
             {props.description ? <CardDescription>{props.description}</CardDescription> : null}

@@ -1,6 +1,6 @@
 import { listAuditLogEntries } from '@alcopilot/management-api-client';
 import { useQuery } from '@tanstack/react-query';
-import { portalKeys } from '@/lib/queryKeys';
+import { portalKeys } from '@/state/queryKeys';
 
 export function useAuditLogEntries() {
   return useQuery({

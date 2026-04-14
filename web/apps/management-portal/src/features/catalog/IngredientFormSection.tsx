@@ -54,7 +54,7 @@ export function IngredientFormSection({
         </label>
 
         <div className="flex flex-wrap gap-3">
-          <Button type="submit">{isEditing ? 'Save' : 'Save'}</Button>
+          <Button type="submit">Save</Button>
           {onCancel ? (
             <Button variant="outline" type="button" onClick={onCancel}>
               Cancel

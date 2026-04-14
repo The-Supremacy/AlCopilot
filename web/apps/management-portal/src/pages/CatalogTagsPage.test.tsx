@@ -6,7 +6,7 @@ import { CatalogTagCreatePage } from '@/pages/CatalogTagCreatePage';
 
 const createTagMutation = { mutateAsync: vi.fn(), mutate: vi.fn(), error: null };
 
-vi.mock('@/features/catalog/useCatalogData', () => ({
+vi.mock('@/features/catalog/api/hooks', () => ({
   useCreateTagMutation: () => createTagMutation,
 }));
 

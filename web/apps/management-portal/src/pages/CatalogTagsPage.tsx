@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
-import { useDeleteTagMutation, useTags } from '@/features/catalog/useCatalogData';
+import { useDeleteTagMutation, useTags } from '@/features/catalog/api/hooks';
 
 export function CatalogTagsPage() {
   const navigate = useNavigate();
@@ -72,6 +72,28 @@ export function CatalogTagsPage() {
           data={tags.data ?? []}
           searchPlaceholder="Search tags"
           getRowAriaLabel={(row) => `Open tag ${row.name}`}
+          renderMobileCard={(row) => (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-lg font-semibold text-foreground">{row.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {row.drinkCount} linked drink{row.drinkCount === 1 ? '' : 's'}
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setTagPendingDelete(row);
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
           toolbarAction={
             <Button asChild>
               <Link to="/catalog/tags/new">New</Link>

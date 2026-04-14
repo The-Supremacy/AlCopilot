@@ -4,7 +4,7 @@ import { InlineMessage } from '@/components/InlineMessage';
 import { Button } from '@/components/ui/button';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
 import { TagFormSection } from '@/features/catalog/TagFormSection';
-import { useCreateTagMutation } from '@/features/catalog/useCatalogData';
+import { useCreateTagMutation } from '@/features/catalog/api/hooks';
 
 export function CatalogTagCreatePage() {
   const navigate = useNavigate();

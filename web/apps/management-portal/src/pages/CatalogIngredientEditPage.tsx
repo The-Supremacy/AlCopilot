@@ -18,7 +18,7 @@ import {
   useDeleteIngredientMutation,
   useIngredients,
   useUpdateIngredientMutation,
-} from '@/features/catalog/useCatalogData';
+} from '@/features/catalog/api/hooks';
 
 export function CatalogIngredientEditPage() {
   const { ingredientId } = useParams({ from: '/catalog/ingredients/$ingredientId' });

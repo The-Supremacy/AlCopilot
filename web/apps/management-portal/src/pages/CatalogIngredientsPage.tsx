@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { CatalogShell } from '@/features/catalog/CatalogShell';
-import { useDeleteIngredientMutation, useIngredients } from '@/features/catalog/useCatalogData';
+import { useDeleteIngredientMutation, useIngredients } from '@/features/catalog/api/hooks';
 import { joinLines } from '@/lib/format';
 
 export function CatalogIngredientsPage() {
@@ -78,6 +78,37 @@ export function CatalogIngredientsPage() {
           data={ingredients.data ?? []}
           searchPlaceholder="Search ingredients"
           getRowAriaLabel={(row) => `Open ingredient ${row.name}`}
+          renderMobileCard={(row) => (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-lg font-semibold text-foreground">{row.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {row.notableBrands.length} notable brand
+                  {row.notableBrands.length === 1 ? '' : 's'}
+                </p>
+              </div>
+              <div className="grid gap-1 text-sm">
+                <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                  Notable brands
+                </p>
+                <p className="text-foreground">
+                  {joinLines(row.notableBrands) || 'No notable brands recorded'}
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setIngredientPendingDelete(row);
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
           toolbarAction={
             <Button asChild>
               <Link to="/catalog/ingredients/new">New</Link>
