@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.4](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.3...v0.1.4) (2026-04-15)
+
+
+### Features
+
+* added auth for management portal ([1fb49c6](https://github.com/The-Supremacy/AlCopilot/commit/1fb49c62bcdf1e1d4328936b723c2de9a1071bdc))
+* added breadcrumps + more cleanup ([fd7619a](https://github.com/The-Supremacy/AlCopilot/commit/fd7619ae2e9412127f5516468f066dbe0debe343))
+* implemented management portal ([e111d20](https://github.com/The-Supremacy/AlCopilot/commit/e111d20de3a830f75348965f680144763c293ea6))
+* web portal first implementation ([2d21109](https://github.com/The-Supremacy/AlCopilot/commit/2d21109b4d62ef28ec2bb2794c83b3a4ddbea4af))
+* website design ([a3544d5](https://github.com/The-Supremacy/AlCopilot/commit/a3544d543f0279aa18474768711648946e06d5a3))
+
+
+### Bug Fixes
+
+* domain doc added ([44fce5a](https://github.com/The-Supremacy/AlCopilot/commit/44fce5a6909941f92d474f63820dc4b5a515eda2))
+* dotnet code improvements ([d1fc7e1](https://github.com/The-Supremacy/AlCopilot/commit/d1fc7e12ca04a2e3c11c1e45328e412c75cfcc14))
+
+
+### Documentation
+
+* added ai design adr ([70f42fd](https://github.com/The-Supremacy/AlCopilot/commit/70f42fd35477a28d6e7a0a5cf25370d45b28274b))
+
 ## [0.1.3](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.2...v0.1.3) (2026-04-09)
 
 
