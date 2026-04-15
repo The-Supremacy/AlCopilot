@@ -5,6 +5,7 @@
 AlCopilot is an AI-powered drinks suggestion platform built as a modular monolith.
 Read [docs/constitution.md](docs/constitution.md) for the thin project-wide governance index.
 Read [docs/architecture.md](docs/architecture.md) for the thin project-wide architecture index.
+Read [docs/domain.md](docs/domain.md) for the thin project-wide domain index.
 Read [docs/testing.md](docs/testing.md) for the thin project-wide testing index.
 
 ## Area-Specific Conventions

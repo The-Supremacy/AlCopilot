@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AlCopilot.Recommendation.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Mediator.Abstractions" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.SemanticKernel" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../AlCopilot.Recommendation.Contracts/AlCopilot.Recommendation.Contracts.csproj" />
+    <ProjectReference Include="../AlCopilot.DrinkCatalog.Contracts/AlCopilot.DrinkCatalog.Contracts.csproj" />
+    <ProjectReference Include="../AlCopilot.CustomerProfile.Contracts/AlCopilot.CustomerProfile.Contracts.csproj" />
+    <ProjectReference Include="../../AlCopilot.Shared/AlCopilot.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

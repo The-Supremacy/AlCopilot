@@ -38,12 +38,12 @@ GPU passthrough from Hyper-V to a Linux VM is not supported for consumer GPUs, s
 
 ## Hardware Requirements
 
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| GPU VRAM (host) | 6 GB | 8 GB+ (16 GB for headroom) |
-| System RAM (VM) | 8 GB | 16 GB |
-| VM disk | 40 GB | 100 GB |
-| Host OS | Windows 10/11 with Hyper-V | — |
+| Component       | Minimum                    | Recommended                |
+| --------------- | -------------------------- | -------------------------- |
+| GPU VRAM (host) | 6 GB                       | 8 GB+ (16 GB for headroom) |
+| System RAM (VM) | 8 GB                       | 16 GB                      |
+| VM disk         | 40 GB                      | 100 GB                     |
+| Host OS         | Windows 10/11 with Hyper-V | —                          |
 
 The RTX 4080 SUPER (16 GB) leaves ~11 GB of VRAM free when running `mistral:7b` at Q4_K_M quantization, so normal desktop use and other GPU workloads are not affected.
 
@@ -152,10 +152,10 @@ docker run -d \
   qdrant/qdrant
 ```
 
-| Port | Protocol | Purpose |
-|------|----------|---------|
+| Port | Protocol  | Purpose                    |
+| ---- | --------- | -------------------------- |
 | 6333 | HTTP/REST | REST API and Qdrant Web UI |
-| 6334 | gRPC | gRPC API |
+| 6334 | gRPC      | gRPC API                   |
 
 ### Verify Qdrant is running
 
@@ -292,13 +292,101 @@ Why AlCopilot may need MCP:
 
 Candidate MCP servers:
 
-| Server | Purpose |
-|--------|---------|
-| Filesystem MCP | Read project files and documentation |
-| GitHub MCP | Access issues, PRs, repository context |
-| Qdrant MCP | Semantic search via tool calls |
+| Server               | Purpose                                  |
+| -------------------- | ---------------------------------------- |
+| Filesystem MCP       | Read project files and documentation     |
+| GitHub MCP           | Access issues, PRs, repository context   |
+| Qdrant MCP           | Semantic search via tool calls           |
 | Custom AlCopilot MCP | Domain-specific tools and business rules |
 
 **Note**: A practical consideration is that Mistral 7B's tool-calling capabilities are more limited than larger models. The initial approach will be straightforward RAG via Qdrant (embed → retrieve → inject into prompt context) without MCP. MCP servers will be introduced incrementally as tool-use requirements become clearer.
 
 This section will be expanded once we decide which MCP servers to integrate and validate that Mistral 7B handles tool calls reliably enough for the target workflows.
+
+---
+
+## Local Subagent Workflow
+
+The local coding-agent setup supports bounded helper agents such as `reviewer` and `explorer`.
+They are most effective as sidecars for narrow tasks, not as open-ended replacements for the main thread.
+
+### What worked poorly on first use
+
+The first failure mode was not that the subagent failed to run.
+The agent completed work, but the result arrived through an asynchronous notification instead of a blocking wait path.
+That makes the flow feel "stuck" even when the work is still progressing normally.
+
+The second failure mode was scope.
+Broad prompts like "review the active changes" invite a long exploratory pass across a dirty workspace.
+That increases latency and makes final delivery less predictable.
+
+### Default local pattern
+
+Use this sequence for local development:
+
+1. Spawn a subagent with a narrow scope.
+2. Keep doing useful local work in the main thread.
+3. Treat subagent notifications as the normal completion path.
+4. Only wait when the result is truly on the critical path.
+5. If no result arrives after a meaningful interval, send one concise "return findings now" message.
+
+### Prompting guidance
+
+Good prompts are concrete, bounded, and explicit about done-ness.
+
+Prefer:
+
+- "Review only files under `server/src/Modules/AlCopilot.Recommendation` and `web/packages/customer-api-client`."
+- "Return at most 5 findings ordered by severity with file references."
+- "Say `No findings` if nothing materially risky is present."
+
+Avoid:
+
+- "Review the whole repo."
+- "Explore everything related to auth."
+- "Keep looking until you're sure there are no issues."
+
+### When to use each agent
+
+| Agent      | Best for                                                                       | Avoid when                                                                       |
+| ---------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `explorer` | Mapping code paths, closest patterns, affected files, and likely tests         | The next step is blocked on a small direct read you can do locally               |
+| `reviewer` | Bugs, regressions, boundary violations, and missing tests after implementation | The task is so broad that the agent would need to rediscover the whole workspace |
+
+### Practical waiting rules
+
+- Do not block immediately after spawning if you can keep making progress locally.
+- Prefer one longer wait over repeated short polling.
+- Notifications are usually more reliable than aggressive wait loops for non-critical sidecar work.
+- If you need an answer urgently, interrupt once with a short command to finalize and return.
+
+### Recommended review template
+
+Use a prompt shaped like this:
+
+```text
+Review only the active diff in <paths>.
+Focus on correctness bugs, regressions, boundary violations, and missing tests.
+Return at most 5 findings ordered by severity with file/line references.
+If there are no findings, say so explicitly.
+Do not make changes.
+```
+
+### Recommended exploration template
+
+Use a prompt shaped like this:
+
+```text
+Explore only <paths or feature area>.
+Map the real code path, closest existing pattern, registration points, and likely tests.
+Return:
+1. Relevant files and symbols
+2. Observed pattern to follow
+3. Risks or ambiguities
+4. Recommended next step
+```
+
+### Local rule of thumb
+
+If a subagent task can be described in two or three precise sentences, it is probably a good fit.
+If the prompt starts sounding like a project brief, narrow it before spawning.

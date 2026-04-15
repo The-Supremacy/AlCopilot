@@ -1,2 +1,5 @@
-cd server && dotnet build --no-restore -c Release
-cd ../web/apps/alcopilot-portal && pnpm tsc --noEmit
+cd server
+dotnet build --no-restore -c Release
+
+cd ..
+pnpm --dir web/apps/management-portal exec tsc --noEmit

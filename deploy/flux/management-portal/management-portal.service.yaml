@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: management-portal
+  namespace: alcopilot
+  labels:
+    app.kubernetes.io/name: management-portal
+spec:
+  selector:
+    app.kubernetes.io/name: management-portal
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

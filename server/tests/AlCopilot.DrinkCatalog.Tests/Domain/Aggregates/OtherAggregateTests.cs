@@ -1,6 +1,5 @@
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
-using AlCopilot.DrinkCatalog.Features.IngredientCategory;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using Shouldly;
 
@@ -24,37 +23,23 @@ public sealed class IngredientTests
     [Fact]
     public void Create_SetsProperties()
     {
-        var categoryId = Guid.NewGuid();
         var ingredient = Ingredient.Create(
-            IngredientName.Create("Tequila"), categoryId, ["Patron", "Don Julio"]);
+            IngredientName.Create("Tequila"), ["Patron", "Don Julio"]);
 
         ingredient.Id.ShouldNotBe(Guid.Empty);
         ingredient.Name.Value.ShouldBe("Tequila");
-        ingredient.IngredientCategoryId.ShouldBe(categoryId);
         ingredient.NotableBrands.ShouldBe(["Patron", "Don Julio"]);
     }
 
     [Fact]
-    public void UpdateBrands_ReplacesBrands()
+    public void Update_ReplacesNameAndBrands()
     {
         var ingredient = Ingredient.Create(
-            IngredientName.Create("Vodka"), Guid.NewGuid(), ["Absolut"]);
+            IngredientName.Create("Vodka"), ["Absolut"]);
 
-        ingredient.UpdateBrands(["Grey Goose", "Belvedere"]);
+        ingredient.Update(IngredientName.Create("Premium Vodka"), ["Grey Goose", "Belvedere"]);
 
+        ingredient.Name.Value.ShouldBe("Premium Vodka");
         ingredient.NotableBrands.ShouldBe(["Grey Goose", "Belvedere"]);
-    }
-}
-
-public sealed class IngredientCategoryTests
-{
-    [Fact]
-    public void Create_SetsProperties()
-    {
-        var category = IngredientCategory.Create(CategoryName.Create("Spirits"));
-
-        category.Id.ShouldNotBe(Guid.Empty);
-        category.Name.Value.ShouldBe("Spirits");
-        category.CreatedAtUtc.ShouldNotBe(default);
     }
 }

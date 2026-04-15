@@ -5,12 +5,12 @@ using Mediator;
 
 namespace AlCopilot.DrinkCatalog.Features.Drink;
 
-public sealed class GetDrinksHandler(IDrinkRepository drinkRepository)
+public sealed class GetDrinksHandler(IDrinkQueryService drinkQueryService)
     : IRequestHandler<GetDrinksQuery, PagedResult<DrinkDto>>
 {
     public async ValueTask<PagedResult<DrinkDto>> Handle(
         GetDrinksQuery request, CancellationToken cancellationToken)
     {
-        return await drinkRepository.GetPagedAsync(request.Filter, cancellationToken);
+        return await drinkQueryService.GetPagedAsync(request.Filter, cancellationToken);
     }
 }

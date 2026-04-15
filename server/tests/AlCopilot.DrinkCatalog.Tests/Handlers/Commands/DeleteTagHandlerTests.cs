@@ -1,6 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
+using AlCopilot.Shared.Errors;
 using NSubstitute;
 using Shouldly;
 
@@ -9,12 +11,13 @@ namespace AlCopilot.DrinkCatalog.Tests.Handlers.Commands;
 public sealed class DeleteTagHandlerTests
 {
     private readonly ITagRepository _tagRepository = Substitute.For<ITagRepository>();
+    private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly DeleteTagHandler _handler;
 
     public DeleteTagHandlerTests()
     {
-        _handler = new DeleteTagHandler(_tagRepository, _unitOfWork);
+        _handler = new DeleteTagHandler(_tagRepository, new AuditLogWriter(_auditRepository), _unitOfWork);
     }
 
     [Fact]
@@ -37,7 +40,7 @@ public sealed class DeleteTagHandlerTests
         _tagRepository.GetByIdAsync(tag.Id, Arg.Any<CancellationToken>()).Returns(tag);
         _tagRepository.IsReferencedByDrinksAsync(tag.Id, Arg.Any<CancellationToken>()).Returns(true);
 
-        await Should.ThrowAsync<InvalidOperationException>(
+        await Should.ThrowAsync<ConflictException>(
             () => _handler.Handle(new DeleteTagCommand(tag.Id), CancellationToken.None).AsTask());
     }
 }

@@ -11,6 +11,15 @@ permissions:
   pull-requests: write
 
 jobs:
+  openspec_design_gate:
+    name: OpenSpec Design Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate UI design-gate requirements in active OpenSpec changes
+        run: scripts/ci/check-openspec-design-gate.sh
+
   server:
     name: Server (build + test)
     runs-on: ubuntu-latest
@@ -75,11 +84,27 @@ jobs:
           node-version-file: '.node-version'
           cache: 'pnpm'
 
+      - name: Detect web apps
+        id: detect_web_apps
+        run: |
+          if find web/apps -mindepth 2 -maxdepth 2 -name package.json 2>/dev/null | grep -q .; then
+            echo "has_web_apps=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_web_apps=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install dependencies
+        if: steps.detect_web_apps.outputs.has_web_apps == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm --filter @alcopilot/portal lint
+        if: steps.detect_web_apps.outputs.has_web_apps == 'true'
+        run: pnpm -r --filter "./web/apps/**" lint
 
       - name: Build
-        run: pnpm --filter @alcopilot/portal build
+        if: steps.detect_web_apps.outputs.has_web_apps == 'true'
+        run: pnpm -r --filter "./web/apps/**" build
+
+      - name: Skip web checks when no web apps exist
+        if: steps.detect_web_apps.outputs.has_web_apps != 'true'
+        run: echo "No web app package.json files found under web/apps. Skipping web lint/build."

@@ -22,7 +22,7 @@ public sealed class DomainEventRecordIntegrationTests(PostgresFixture fixture) :
     [Fact]
     public async Task CreateDrink_PersistsDrinkCreatedEvent()
     {
-        var drink = Drink.Create(DrinkName.Create("EventTest"), null, ImageUrl.Create(null));
+        var drink = Drink.Create(DrinkName.Create("EventTest"), DrinkCategory.Create(null), null, null, null, ImageUrl.Create(null));
         _db.Drinks.Add(drink);
         await _db.SaveChangesAsync();
 
@@ -33,7 +33,7 @@ public sealed class DomainEventRecordIntegrationTests(PostgresFixture fixture) :
     [Fact]
     public async Task SoftDeleteDrink_PersistsDrinkDeletedEvent()
     {
-        var drink = Drink.Create(DrinkName.Create("DeleteEventTest"), null, ImageUrl.Create(null));
+        var drink = Drink.Create(DrinkName.Create("DeleteEventTest"), DrinkCategory.Create(null), null, null, null, ImageUrl.Create(null));
         _db.Drinks.Add(drink);
         await _db.SaveChangesAsync();
 

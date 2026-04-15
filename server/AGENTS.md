@@ -80,8 +80,16 @@ Read [docs/testing/server.md](../docs/testing/server.md) for backend test taxono
 - `IRepository<TRoot, TId>` — generic interface: `GetByIdAsync`, `Add`, `Remove`
 - One repository per aggregate root
 - Repository loads the **complete aggregate** (all children, value objects) — no lazy loading
+- Use one repository-local canonical aggregate query/helper for aggregate-returning load methods instead of repeating `Include` chains
 - Repository implementations are `internal sealed` classes in the module, wrapping the module's `DbContext`
-- Specific interfaces (e.g., `IDrinkRepository`) extend the generic when extra query methods are needed
+- Aggregate repositories stay command-focused; read-side DTO projection belongs in explicit query services
+
+### Query Services
+
+- Use explicit query services for contract DTOs, paging, and consumer-specific read models
+- Query handlers should depend on query services rather than aggregate repositories
+- Query services may project across aggregate boundaries inside the same module when needed for a read model
+- Do not force list/detail read scenarios through aggregate-loading patterns just to mirror command-side DDD structure
 
 ### Unit of Work
 
@@ -105,6 +113,7 @@ Read [docs/testing/server.md](../docs/testing/server.md) for backend test taxono
 - `EventType` stores a logical name from `[DomainEventName]` attribute (e.g., `drink-catalog.drink-created.v1`), not the CLR type name
 - `DomainEventTypeRegistry` provides bidirectional `Type ↔ string` lookup, built at startup from module assemblies
 - Indexes: `(AggregateId, Id)` for per-aggregate audit/replay, `(OccurredAtUtc)` for time-range queries
+- Treat preserved domain events as machine-readable history and a same-module reaction hook; they do not replace explicit operator-facing audit records when workflow audit needs richer semantics
 
 ### Cross-Module Communication
 
@@ -167,4 +176,6 @@ When reviewing .NET code, verify:
 - [ ] Aggregates use `AggregateRoot<TId>` base, value objects use `ValueObject<T>` base
 - [ ] Domain logic in aggregates/domain services — NOT in handlers
 - [ ] Handlers use `IRepository` + `IUnitOfWork` — NOT `DbContext` directly
+- [ ] Query handlers use query services instead of aggregate repositories for DTO projection paths
+- [ ] Aggregate repositories do not return contract DTOs
 - [ ] Value objects for validated primitives (names, quantities, etc.)

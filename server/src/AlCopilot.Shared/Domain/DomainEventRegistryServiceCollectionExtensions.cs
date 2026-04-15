@@ -1,5 +1,7 @@
 using System.Reflection;
+using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Domain;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +11,7 @@ public static class DomainEventRegistryServiceCollectionExtensions
         this IServiceCollection services,
         Assembly assembly)
     {
+        services.TryAddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddSingleton(new DomainEventAssemblyMarker(assembly));
 
         // (Re-)register the registry factory. DI resolves the last registration,

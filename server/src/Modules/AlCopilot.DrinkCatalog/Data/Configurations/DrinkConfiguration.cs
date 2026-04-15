@@ -14,7 +14,13 @@ internal sealed class DrinkConfiguration : IEntityTypeConfiguration<Drink>
             .HasConversion(v => v.Value, raw => DrinkName.Create(raw))
             .IsRequired()
             .HasMaxLength(200);
+        builder.Property(d => d.Category)
+            .HasConversion(v => v.Value, raw => DrinkCategory.Create(raw))
+            .IsRequired(false)
+            .HasMaxLength(100);
         builder.Property(d => d.Description).HasMaxLength(2000);
+        builder.Property(d => d.Method).HasMaxLength(2000);
+        builder.Property(d => d.Garnish).HasMaxLength(1000);
         builder.Property(d => d.ImageUrl)
             .HasConversion(v => v.Value, raw => ImageUrl.Create(raw))
             .IsRequired(false)

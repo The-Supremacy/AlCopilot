@@ -1,13 +1,18 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Features.Audit;
+using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
+using AlCopilot.Shared.Errors;
 using Mediator;
 
 namespace AlCopilot.DrinkCatalog.Features.Drink;
 
 public sealed class UpdateDrinkHandler(
     IDrinkRepository drinkRepository,
+    IDrinkRecipeIntegrityValidator drinkRecipeIntegrityValidator,
     ITagRepository tagRepository,
+    AuditLogWriter auditLogWriter,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateDrinkCommand, bool>
 {
     public async ValueTask<bool> Handle(UpdateDrinkCommand request, CancellationToken cancellationToken)
@@ -18,9 +23,15 @@ public sealed class UpdateDrinkHandler(
         var name = DrinkName.Create(request.Name);
 
         if (await drinkRepository.ExistsByNameAsync(name, request.DrinkId, cancellationToken))
-            throw new InvalidOperationException($"A drink with the name '{name.Value}' already exists.");
+            throw new ConflictException($"A drink with the name '{name.Value}' already exists.");
 
-        drink.Update(name, request.Description, ImageUrl.Create(request.ImageUrl));
+        drink.Update(
+            name,
+            DrinkCategory.Create(request.Category),
+            request.Description,
+            request.Method,
+            request.Garnish,
+            ImageUrl.Create(request.ImageUrl));
 
         if (request.TagIds is { Count: > 0 })
         {
@@ -28,7 +39,7 @@ public sealed class UpdateDrinkHandler(
             var foundIds = tags.Select(t => t.Id).ToHashSet();
             var missingId = request.TagIds.FirstOrDefault(id => !foundIds.Contains(id));
             if (missingId != default)
-                throw new InvalidOperationException($"Tag '{missingId}' not found.");
+                throw new NotFoundException($"Tag '{missingId}' not found.");
             drink.SetTags(tags);
         }
         else
@@ -36,10 +47,14 @@ public sealed class UpdateDrinkHandler(
             drink.SetTags([]);
         }
 
-        var entries = (request.RecipeEntries ?? []).Select(re =>
+        var recipeEntries = request.RecipeEntries ?? [];
+        await drinkRecipeIntegrityValidator.ValidateAsync(recipeEntries, cancellationToken);
+
+        var entries = recipeEntries.Select(re =>
             RecipeEntry.Create(drink.Id, re.IngredientId, Quantity.Create(re.Quantity), re.RecommendedBrand));
         drink.SetRecipeEntries(entries);
 
+        auditLogWriter.Write("drink.update", "drink", drink.Id.ToString(), $"Updated drink '{drink.Name.Value}'.");
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return true;
     }

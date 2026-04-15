@@ -1,6 +1,4 @@
-using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Features.IngredientCategory;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlCopilot.DrinkCatalog.Features.Ingredient;
@@ -16,28 +14,41 @@ internal sealed class IngredientRepository(DrinkCatalogDbContext dbContext) : II
 
     public void Remove(Ingredient aggregate) => dbContext.Ingredients.Remove(aggregate);
 
-    public async Task<List<IngredientDto>> GetAllAsync(Guid? categoryId = null, CancellationToken cancellationToken = default)
+    public async Task<HashSet<Guid>> GetExistingIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
     {
-        var query = dbContext.Ingredients.AsQueryable();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
 
-        if (categoryId.HasValue)
-            query = query.Where(i => i.IngredientCategoryId == categoryId.Value);
-
-        return await query
-            .OrderBy(i => i.Name)
-            .Select(i => new IngredientDto(
-                i.Id,
-                i.Name,
-                dbContext.IngredientCategories
-                    .Where(c => c.Id == i.IngredientCategoryId)
-                    .Select(c => new IngredientCategoryDto(c.Id, c.Name))
-                    .First(),
-                i.NotableBrands))
-            .ToListAsync(cancellationToken);
+        return await dbContext.Ingredients
+            .Where(i => ids.Contains(i.Id))
+            .Select(i => i.Id)
+            .ToHashSetAsync(cancellationToken);
     }
 
-    public async Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsByNameAsync(string name, Guid? excludingIngredientId = null, CancellationToken cancellationToken = default)
     {
-        return await dbContext.Ingredients.AnyAsync(i => i.Name == name, cancellationToken);
+        return await dbContext.Ingredients.AnyAsync(
+            i => i.Name == name && (!excludingIngredientId.HasValue || i.Id != excludingIngredientId.Value),
+            cancellationToken);
+    }
+
+    public async Task<Ingredient?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        var local = dbContext.Ingredients.Local.FirstOrDefault(i => i.Name == name);
+        if (local is not null)
+            return local;
+
+        return await dbContext.Ingredients.FirstOrDefaultAsync(i => i.Name == name, cancellationToken);
+    }
+
+    public async Task<bool> IsReferencedByActiveDrinksAsync(Guid ingredientId, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Drinks.AnyAsync(
+            d => d.RecipeEntries.Any(re => re.IngredientId == ingredientId),
+            cancellationToken);
     }
 }

@@ -9,7 +9,10 @@ public sealed class Drink : AggregateRoot<Guid>
     private readonly List<RecipeEntry> _recipeEntries = [];
 
     public DrinkName Name { get; private set; } = null!;
+    public DrinkCategory Category { get; private set; } = null!;
     public string? Description { get; private set; }
+    public string? Method { get; private set; }
+    public string? Garnish { get; private set; }
     public ImageUrl ImageUrl { get; private set; } = null!;
     public bool IsDeleted { get; private set; }
     public DateTimeOffset? DeletedAtUtc { get; private set; }
@@ -20,13 +23,22 @@ public sealed class Drink : AggregateRoot<Guid>
 
     private Drink() { }
 
-    public static Drink Create(DrinkName name, string? description, ImageUrl imageUrl)
+    public static Drink Create(
+        DrinkName name,
+        DrinkCategory category,
+        string? description,
+        string? method,
+        string? garnish,
+        ImageUrl imageUrl)
     {
         var drink = new Drink
         {
             Id = Guid.NewGuid(),
             Name = name,
+            Category = category,
             Description = description,
+            Method = method,
+            Garnish = garnish,
             ImageUrl = imageUrl,
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
@@ -35,10 +47,19 @@ public sealed class Drink : AggregateRoot<Guid>
         return drink;
     }
 
-    public void Update(DrinkName name, string? description, ImageUrl imageUrl)
+    public void Update(
+        DrinkName name,
+        DrinkCategory category,
+        string? description,
+        string? method,
+        string? garnish,
+        ImageUrl imageUrl)
     {
         Name = name;
+        Category = category;
         Description = description;
+        Method = method;
+        Garnish = garnish;
         ImageUrl = imageUrl;
     }
 

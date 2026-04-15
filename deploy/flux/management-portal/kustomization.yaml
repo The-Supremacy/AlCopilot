@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: alcopilot
+resources:
+  - namespace.yaml
+  - gateway.yaml
+  - management-portal.deployment.yaml
+  - management-portal.service.yaml
+  - management-portal.httproute.yaml
+  - management-portal.securitypolicy.yaml

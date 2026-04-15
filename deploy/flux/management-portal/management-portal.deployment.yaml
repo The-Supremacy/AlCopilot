@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: management-portal
+  namespace: alcopilot
+  labels:
+    app.kubernetes.io/name: management-portal
+    app.kubernetes.io/part-of: alcopilot
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: management-portal
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: management-portal
+        app.kubernetes.io/part-of: alcopilot
+    spec:
+      containers:
+        - name: management-portal
+          image: ghcr.io/oxface/alcopilot/management-portal:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

@@ -19,4 +19,8 @@
     <ProjectReference Include="../../AlCopilot.Shared/AlCopilot.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Features/ImportSync/SeedData/*.json" />
+  </ItemGroup>
+
 </Project>

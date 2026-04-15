@@ -2,7 +2,6 @@
 name: adr-create
 description: Create a new architecture decision record using the repo ADR conventions. Use when the user wants to record a technical or workflow decision that is not best represented as an OpenSpec capability.
 license: MIT
-compatibility: Local repo workflow
 ---
 
 Create a new ADR under `docs/adr/`.

@@ -8,20 +8,20 @@ namespace AlCopilot.DrinkCatalog.Tests.Handlers.Queries;
 
 public sealed class GetDrinkByIdHandlerTests
 {
-    private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
+    private readonly IDrinkQueryService _drinkQueryService = Substitute.For<IDrinkQueryService>();
     private readonly GetDrinkByIdHandler _handler;
 
     public GetDrinkByIdHandlerTests()
     {
-        _handler = new GetDrinkByIdHandler(_drinkRepository);
+        _handler = new GetDrinkByIdHandler(_drinkQueryService);
     }
 
     [Fact]
     public async Task Handle_WhenFound_ReturnsDetail()
     {
         var id = Guid.NewGuid();
-        var expected = new DrinkDetailDto(id, "Test", null, null, [], []);
-        _drinkRepository.GetDetailByIdAsync(id, Arg.Any<CancellationToken>()).Returns(expected);
+        var expected = new DrinkDetailDto(id, "Test", null, null, null, null, null, [], []);
+        _drinkQueryService.GetDetailByIdAsync(id, Arg.Any<CancellationToken>()).Returns(expected);
 
         var result = await _handler.Handle(new GetDrinkByIdQuery(id), CancellationToken.None);
 
@@ -31,7 +31,7 @@ public sealed class GetDrinkByIdHandlerTests
     [Fact]
     public async Task Handle_WhenNotFound_ReturnsNull()
     {
-        _drinkRepository.GetDetailByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((DrinkDetailDto?)null);
+        _drinkQueryService.GetDetailByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((DrinkDetailDto?)null);
 
         var result = await _handler.Handle(new GetDrinkByIdQuery(Guid.NewGuid()), CancellationToken.None);
 

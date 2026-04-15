@@ -18,4 +18,9 @@ public sealed class Tag : AggregateRoot<Guid>
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
     }
+
+    public void Rename(TagName name)
+    {
+        Name = name;
+    }
 }

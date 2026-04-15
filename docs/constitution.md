@@ -70,12 +70,14 @@ Every change should preserve clear module boundaries, testability, and operation
 Specification scenarios should be implemented with matching verification, not treated as aspirational prose.
 Changes that affect architecture boundaries should update architecture tests when applicable.
 Testing guidance remains area-specific, but the baseline expectation is that important behavior is covered before archive.
+Successful mutating commands should leave an auditable trail rather than relying on domain events alone.
 
 ## Documentation Principles
 
 Keep root docs thin and navigational.
 Avoid duplicating detailed architecture, governance, or testing text across multiple files.
 Reference the detailed area document instead of restating it unless local context genuinely needs a short summary.
+Use [domain.md](domain.md) and `docs/modules/` for business vocabulary and module ownership context, while keeping supported behavior in OpenSpec specs.
 Keep decisions honest, concrete, and easy to audit later.
 When documenting brownfield changes, prefer coherent end-state descriptions over fragmented historical notes.
 
