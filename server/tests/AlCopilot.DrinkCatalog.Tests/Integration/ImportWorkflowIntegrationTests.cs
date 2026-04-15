@@ -36,7 +36,7 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         _db = fixture.CreateDbContext();
         _importBatchRepository = new ImportBatchRepository(_db);
         _auditLogEntryRepository = new AuditLogEntryRepository(_db);
-        _currentActorAccessor = new StubCurrentActorAccessor(new CurrentActor("manager-123", "manager@alcopilot.local", true));
+        _currentActorAccessor = new StubCurrentActorAccessor(new CurrentActor("manager-123", "manager@alcopilot.local", true, ["manager"]));
         _auditLogWriter = new AuditLogWriter(_auditLogEntryRepository, _currentActorAccessor);
         _tagRepository = new TagRepository(_db);
         _ingredientRepository = new IngredientRepository(_db);

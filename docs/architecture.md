@@ -41,6 +41,8 @@ The system is a single deployable unit with internal module boundaries, one `DbC
 - [ADR 0008: Capability-Level Microfrontends Inside Management Portal](adr/0008-capability-level-microfrontends-inside-management-portal.md) — deferred capability-level runtime MFE direction
 - [ADR 0009: Management Portal Authentication With Keycloak And Host Cookies](adr/0009-management-portal-authentication-with-keycloak-and-host-cookies.md) — accepted management authentication and session direction
 - [ADR 0010: Explicit In-Process CQRS And Preserved Domain Events](adr/0010-explicit-in-process-cqrs-and-preserved-domain-events.md) — accepted backend command/query and domain-event direction
+- [ADR 0011: Customer Portal Authentication With Keycloak And Host Cookies](adr/0011-customer-portal-authentication-with-keycloak-and-host-cookies.md) — accepted customer authentication and customer-session separation direction
+- [ADR 0012: Customer Profile And Recommendation Modules With Deterministic Candidate Building](adr/0012-customer-profile-and-recommendation-modules-with-deterministic-candidate-building.md) — accepted customer module split and recommendation orchestration direction
 
 ---
 

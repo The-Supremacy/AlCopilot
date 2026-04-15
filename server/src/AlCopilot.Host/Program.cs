@@ -1,5 +1,7 @@
+using AlCopilot.CustomerProfile;
 using AlCopilot.DrinkCatalog;
 using AlCopilot.Host.Authentication;
+using AlCopilot.Recommendation;
 using AlCopilot.Shared.Errors;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -9,8 +11,11 @@ builder.AddServiceDefaults();
 
 builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
 builder.Services.AddManagementAuthentication(builder.Configuration, builder.Environment);
-builder.Services.AddManagementAuthorization();
+builder.Services.AddCustomerAuthentication(builder.Configuration, builder.Environment);
+builder.Services.AddPortalAuthorization();
 builder.Services.AddDrinkCatalogModule(builder.Configuration);
+builder.Services.AddCustomerProfileModule(builder.Configuration);
+builder.Services.AddRecommendationModule(builder.Configuration);
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>
@@ -54,7 +59,11 @@ app.UseAuthorization();
 app.MapDefaultEndpoints();
 
 app.MapManagementAuthEndpoints();
+app.MapCustomerAuthEndpoints();
+app.MapCustomerPortalEndpoints();
 app.MapDrinkCatalogEndpoints(ManagementAuthorizationPolicies.CanAccessManagementPortal);
+app.MapCustomerProfileEndpoints(CustomerAuthorizationPolicies.CanAccessCustomerPortal);
+app.MapRecommendationEndpoints(CustomerAuthorizationPolicies.CanAccessCustomerPortal);
 app.MapGet("/", () => "Hello World!");
 
 app.Run();

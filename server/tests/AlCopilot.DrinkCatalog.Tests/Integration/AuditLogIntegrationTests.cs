@@ -37,7 +37,7 @@ public sealed class AuditLogIntegrationTests(PostgresFixture fixture) : IAsyncLi
     {
         var auditRepository = new AuditLogEntryRepository(_db);
         var auditQueryService = new AuditLogQueryService(_db);
-        var currentActorAccessor = new StubCurrentActorAccessor(new CurrentActor("manager-123", "manager@alcopilot.local", true));
+        var currentActorAccessor = new StubCurrentActorAccessor(new CurrentActor("manager-123", "manager@alcopilot.local", true, ["manager"]));
         var auditWriter = new AuditLogWriter(auditRepository, currentActorAccessor);
 
         var createTagHandler = new CreateTagHandler(new TagRepository(_db), auditWriter, _db);

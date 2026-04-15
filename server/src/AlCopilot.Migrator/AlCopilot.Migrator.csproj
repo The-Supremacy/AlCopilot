@@ -9,7 +9,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Modules/AlCopilot.CustomerProfile/AlCopilot.CustomerProfile.csproj" />
     <ProjectReference Include="../Modules/AlCopilot.DrinkCatalog/AlCopilot.DrinkCatalog.csproj" />
+    <ProjectReference Include="../Modules/AlCopilot.Recommendation/AlCopilot.Recommendation.csproj" />
   </ItemGroup>
 
 </Project>

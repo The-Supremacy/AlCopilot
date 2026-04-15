@@ -1,7 +1,5 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
 namespace AlCopilot.Host.Authentication;
 
@@ -20,7 +18,7 @@ public static class ManagementAuthEndpoints
                 {
                     RedirectUri = SanitizeReturnUrl(returnUrl),
                 },
-                [OpenIdConnectDefaults.AuthenticationScheme]))
+                [PortalAuthenticationSchemes.ManagementOidcScheme]))
             .AllowAnonymous();
 
         group.MapPost("/logout", () =>
@@ -30,8 +28,8 @@ public static class ManagementAuthEndpoints
                     RedirectUri = "/",
                 },
                 [
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    OpenIdConnectDefaults.AuthenticationScheme,
+                    PortalAuthenticationSchemes.ManagementCookieScheme,
+                    PortalAuthenticationSchemes.ManagementOidcScheme,
                 ]));
 
         return endpoints;

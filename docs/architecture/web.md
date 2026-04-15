@@ -39,6 +39,7 @@ Each portal talks to the Host rather than directly to individual modules.
 The Host owns the external web boundary, session behavior, and future reverse-proxy behavior.
 Frontend code should depend on stable application APIs rather than backend implementation details.
 The management portal authentication direction is Host-managed Keycloak login with secure cookie sessions rather than browser-managed bearer tokens, as accepted in [ADR 0009](../adr/0009-management-portal-authentication-with-keycloak-and-host-cookies.md).
+The customer portal direction is Host-managed Keycloak login with a customer-specific session surface separate from management, as accepted in [ADR 0011](../adr/0011-customer-portal-authentication-with-keycloak-and-host-cookies.md).
 
 ---
 
@@ -63,12 +64,12 @@ This direction is captured in [ADR 0007](../adr/0007-management-portal-architect
 ## Portal Design Guides
 
 - `web/apps/management-portal/DESIGN.md` — persistent UI and information-architecture guidance for the management portal
+- `web/apps/web-portal/DESIGN.md` — persistent UI and information-architecture guidance for the customer portal
 - `operations/management-portal-runtime.md` — current runtime and import workflow operating notes for the management portal
 
 Cross-portal brand foundations should be shared from a pnpm workspace package and expressed through Tailwind theme tokens plus semantic roles rather than app-local duplicated palette logic.
 
 For UI-affecting changes, update affected existing portal design guides before implementation starts and keep OpenSpec artifacts aligned with those guides.
-User portal design guidance for `web-portal` can be added when that app implementation starts.
 Use `/design:new` to create new portal design guides, `/design:change` to evolve existing portal design invariants, and `/design:lint` to verify low-drift compliance.
 OpenSpec proposal or design artifacts for new UI work should explicitly mention stack alignment with Tailwind CSS and shadcn/ui unless an approved exception exists.
 Reviewers can verify alignment by checking for `components.json`, local primitives in `src/components/ui/`, and Radix packages only where interactive behavior needs them. There is no expectation of a runtime `shadcn/ui` npm package.

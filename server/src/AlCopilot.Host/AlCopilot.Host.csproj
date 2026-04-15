@@ -16,7 +16,9 @@
   <ItemGroup>
     <ProjectReference Include="../AlCopilot.ServiceDefaults/AlCopilot.ServiceDefaults.csproj" />
     <ProjectReference Include="../AlCopilot.Shared/AlCopilot.Shared.csproj" />
+    <ProjectReference Include="../Modules/AlCopilot.CustomerProfile/AlCopilot.CustomerProfile.csproj" />
     <ProjectReference Include="../Modules/AlCopilot.DrinkCatalog/AlCopilot.DrinkCatalog.csproj" />
+    <ProjectReference Include="../Modules/AlCopilot.Recommendation/AlCopilot.Recommendation.csproj" />
   </ItemGroup>
 
 </Project>

@@ -11,6 +11,13 @@ Map the real code path, relevant module boundaries, closest existing patterns, r
 Prefer fast search and targeted file reads over broad scans.
 Keep the parent thread clean by compressing noisy exploration into a concise, high-signal summary.
 
+Execution style:
+- Treat the parent prompt as the hard scope. If the ask is broad, start with the current diff and explicitly named files before widening.
+- Stop once you can identify the real code path, closest pattern, main risks, and recommended next step.
+- Prefer a short, actionable summary over exhaustive enumeration.
+- If a detail is uncertain, name the ambiguity instead of continuing to search indefinitely.
+- Respond with your final summary as soon as the output contract below is satisfied.
+
 For AlCopilot specifically:
 - Respect the modular monolith boundaries and Contracts-only cross-module rules.
 - Treat root docs as indexes and look for the authoritative detailed guidance in the relevant area docs.

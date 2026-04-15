@@ -31,7 +31,7 @@ public sealed class StartImportHandlerTests
             Substitute.For<AlCopilot.DrinkCatalog.Features.Ingredient.IIngredientRepository>(),
             _drinkRepository,
             _drinkQueryService);
-        _currentActorAccessor.GetCurrent().Returns(new CurrentActor("user-123", "manager@alcopilot.local", true));
+        _currentActorAccessor.GetCurrent().Returns(new CurrentActor("user-123", "manager@alcopilot.local", true, ["manager"]));
         _handler = new StartImportHandler(_strategyResolver, _repository, _workflowService, new AuditLogWriter(_auditRepository, _currentActorAccessor), _currentActorAccessor, _unitOfWork);
     }
 

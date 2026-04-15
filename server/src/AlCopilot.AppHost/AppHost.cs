@@ -3,6 +3,7 @@ using Projects;
 var builder = DistributedApplication.CreateBuilder(args);
 
 const string managementClientSecret = "alcopilot-management-dev-secret";
+const string customerClientSecret = "alcopilot-customer-dev-secret";
 const string managementAuthority = "http://localhost:8080/realms/alcopilot";
 
 var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak", "26.2")
@@ -26,6 +27,12 @@ builder.AddProject<AlCopilot_Host>("alcopilot-host")
     .WithEnvironment("Authentication__Management__Authority", managementAuthority)
     .WithEnvironment("Authentication__Management__ClientId", "alcopilot-management-portal")
     .WithEnvironment("Authentication__Management__ClientSecret", managementClientSecret)
+    .WithEnvironment("Authentication__Customer__Authority", managementAuthority)
+    .WithEnvironment("Authentication__Customer__ClientId", "alcopilot-web-portal")
+    .WithEnvironment("Authentication__Customer__ClientSecret", customerClientSecret)
+    .WithEnvironment("Recommendation__Llm__Provider", "ollama")
+    .WithEnvironment("Recommendation__Ollama__Endpoint", "http://localhost:11434")
+    .WithEnvironment("Recommendation__Ollama__ModelId", "llama3.2:latest")
     .WithReference(drinkCatalogDb)
     .WaitFor(keycloak)
     .WaitFor(drinkCatalogDb)

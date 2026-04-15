@@ -32,7 +32,7 @@ public sealed class ApplyImportBatchHandlerTests
             _ingredientRepository,
             _drinkRepository,
             _drinkQueryService);
-        _currentActorAccessor.GetCurrent().Returns(new CurrentActor("user-123", "manager@alcopilot.local", true));
+        _currentActorAccessor.GetCurrent().Returns(new CurrentActor("user-123", "manager@alcopilot.local", true, ["manager"]));
         _handler = new ApplyImportBatchHandler(
             _importBatchRepository,
             workflowService,

@@ -14,3 +14,5 @@ public sealed record GetDrinksQuery(
     DrinkFilter Filter) : IRequest<PagedResult<DrinkDto>>;
 
 public sealed record GetDrinkByIdQuery(Guid DrinkId) : IRequest<DrinkDetailDto?>;
+
+public sealed record GetRecommendationCatalogQuery() : IRequest<List<DrinkDetailDto>>;

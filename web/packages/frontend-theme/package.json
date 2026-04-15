@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "sideEffects": [
-    "./management-portal.css"
+    "./management-portal.css",
+    "./web-portal.css"
   ],
   "exports": {
     "./management-portal.css": "./management-portal.css",
+    "./web-portal.css": "./web-portal.css",
     "./tailwind-preset": "./tailwind-preset.js"
   }
 }
