@@ -12,7 +12,4 @@ public sealed record ReviewImportBatchCommand(Guid BatchId) : IRequest<ImportBat
 
 public sealed record CancelImportBatchCommand(Guid BatchId) : IRequest<ImportBatchDto>;
 
-public sealed record ApplyImportBatchCommand(
-    Guid BatchId,
-    bool OverrideDuplicateFingerprint,
-    List<ImportDecisionInput> Decisions) : IRequest<ImportBatchDto>;
+public sealed record ApplyImportBatchCommand(Guid BatchId) : IRequest<ImportBatchApplyResultDto>;

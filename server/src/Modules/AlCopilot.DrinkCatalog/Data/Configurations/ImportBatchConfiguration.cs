@@ -20,9 +20,6 @@ internal sealed class ImportBatchConfiguration : IEntityTypeConfiguration<Import
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(b => b.SourceFingerprint)
-            .HasMaxLength(500);
-
         ConfigureJsonProperty(
             builder.Property(b => b.Provenance),
             ImportProvenance.Empty,
@@ -37,11 +34,6 @@ internal sealed class ImportBatchConfiguration : IEntityTypeConfiguration<Import
             builder.Property(b => b.Diagnostics),
             new List<ImportDiagnostic>(),
             JsonValueComparerFactory.Create<List<ImportDiagnostic>>());
-
-        ConfigureJsonProperty(
-            builder.Property(b => b.ReviewConflicts),
-            new List<ImportReviewConflict>(),
-            JsonValueComparerFactory.Create<List<ImportReviewConflict>>());
 
         ConfigureJsonProperty(
             builder.Property(b => b.ReviewRows),
@@ -63,7 +55,6 @@ internal sealed class ImportBatchConfiguration : IEntityTypeConfiguration<Import
             default(ImportApplySummary?),
             JsonValueComparerFactory.Create<ImportApplySummary?>());
 
-        builder.HasIndex(b => new { b.StrategyKey, b.SourceFingerprint, b.Status });
         builder.HasIndex(b => b.CreatedAtUtc);
 
         builder.Ignore(b => b.DomainEvents);

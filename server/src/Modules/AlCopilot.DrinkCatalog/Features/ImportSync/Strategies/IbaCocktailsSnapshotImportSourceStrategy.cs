@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using AlCopilot.Shared.Errors;
@@ -41,7 +40,6 @@ internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceSt
         var provenance = BuildProvenance(request.Provenance, normalizedImport.Drinks.Count, normalizedImport.Ingredients.Count);
 
         return ValueTask.FromResult(new ImportSourceStrategyResult(
-            CreateFingerprint(payload),
             provenance,
             normalizedImport,
             []));
@@ -150,12 +148,6 @@ internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceSt
     }
 
 
-
-    private static string CreateFingerprint(string payload)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
-        return $"sha256:{Convert.ToHexString(bytes).ToLowerInvariant()}";
-    }
 
     private static string NormalizeRequired(string? value, string paramName)
     {

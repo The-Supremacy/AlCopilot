@@ -1,5 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
@@ -9,9 +10,9 @@ namespace AlCopilot.DrinkCatalog.Features.ImportSync;
 
 public sealed class ReviewImportBatchHandler(
     IImportBatchRepository importBatchRepository,
-    ImportBatchWorkflowService workflowService,
-    AuditLogWriter auditLogWriter,
-    IUnitOfWork unitOfWork) : IRequestHandler<ReviewImportBatchCommand, ImportBatchDto>
+    IImportBatchProcessingService processingService,
+    IAuditLogWriter auditLogWriter,
+    IDrinkCatalogUnitOfWork unitOfWork) : IRequestHandler<ReviewImportBatchCommand, ImportBatchDto>
 {
     public async ValueTask<ImportBatchDto> Handle(ReviewImportBatchCommand request, CancellationToken cancellationToken)
     {
@@ -24,15 +25,15 @@ public sealed class ReviewImportBatchHandler(
         if (batch.Status is ImportBatchStatus.Cancelled)
             throw new InvalidStateException("Cancelled batches cannot be reviewed.");
 
-        var diagnostics = await workflowService.ValidateAsync(batch.ImportContent, cancellationToken);
-        var review = await workflowService.ReviewAsync(batch.ImportContent, diagnostics, cancellationToken);
-        batch.RecordValidationAndReview(diagnostics, review.Summary, review.Conflicts, review.Rows);
+        var processingResult = await processingService.ProcessAsync(batch.ImportContent, cancellationToken);
+        batch.RecordReviewedSnapshot(processingResult);
+        importBatchRepository.Update(batch);
 
         auditLogWriter.Write(
             "import-batch.review",
             "import-batch",
             batch.Id.ToString(),
-            $"Reviewed import batch '{batch.Id}' with {review.Conflicts.Count} conflicts and {review.Rows.Count} review rows.");
+            $"Reviewed import batch '{batch.Id}' with {processingResult.ReviewSummary.UpdateCount} updates and {processingResult.ReviewRows.Count} review rows.");
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return batch.ToDto();
     }

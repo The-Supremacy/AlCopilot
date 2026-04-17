@@ -5,7 +5,6 @@ import {
   listImportHistory,
   reviewImportBatch,
   startImport,
-  type ApplyImportBatchInput,
   type StartImportInput,
 } from '@alcopilot/management-api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -83,16 +82,21 @@ export function useApplyImportBatchMutation() {
   const { invalidateImports } = useInvalidateImportData();
 
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: ApplyImportBatchInput }) =>
-      applyImportBatch(id, input),
-    onSuccess: async (batch) => {
-      queryClient.setQueryData(portalKeys.importBatch(batch.id), batch);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: portalKeys.drinks }),
-        queryClient.invalidateQueries({ queryKey: portalKeys.tags }),
-        queryClient.invalidateQueries({ queryKey: portalKeys.ingredients }),
-        invalidateImports(),
-      ]);
+    mutationFn: ({ id }: { id: string }) => applyImportBatch(id),
+    onSuccess: async (result) => {
+      queryClient.setQueryData(portalKeys.importBatch(result.batch.id), result.batch);
+
+      if (result.wasApplied) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: portalKeys.drinks }),
+          queryClient.invalidateQueries({ queryKey: portalKeys.tags }),
+          queryClient.invalidateQueries({ queryKey: portalKeys.ingredients }),
+          invalidateImports(),
+        ]);
+        return;
+      }
+
+      await invalidateImports();
     },
   });
 }

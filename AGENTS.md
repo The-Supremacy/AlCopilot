@@ -23,3 +23,12 @@ Each area has its own `AGENTS.md` with detailed conventions:
 
 Treat root docs as indexes.
 Detailed architecture, workflow, and testing guidance should live once in the relevant area-specific documents rather than being duplicated in the root files.
+
+## Task Closeout
+
+Before finishing a task, provide a concise closeout that:
+
+- explains the changes made and the technical decisions behind them
+- lists notable risks, trade-offs, or follow-up concerns that remain
+- confirms what validations were performed, or explicitly states when validation was not possible
+- names the key sources used when they materially informed the work, such as project docs, ADRs, specs, or external references

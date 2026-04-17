@@ -7,6 +7,8 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.Qdrant" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.Ollama" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../AlCopilot.Migrator/AlCopilot.Migrator.csproj" />

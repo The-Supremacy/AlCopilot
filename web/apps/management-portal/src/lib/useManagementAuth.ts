@@ -1,1 +1,1 @@
-export { useLogoutManagementMutation, useManagementSession } from '@/state/auth/useManagementAuth';
+export { useManagementSession } from '@/state/auth/useManagementAuth';

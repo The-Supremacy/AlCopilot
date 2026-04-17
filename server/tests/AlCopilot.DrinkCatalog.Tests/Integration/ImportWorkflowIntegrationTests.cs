@@ -8,7 +8,6 @@ using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
-using AlCopilot.Shared.Errors;
 using AlCopilot.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
@@ -28,7 +27,8 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     private IngredientRepository _ingredientRepository = null!;
     private DrinkRepository _drinkRepository = null!;
     private DrinkQueryService _drinkQueryService = null!;
-    private ImportBatchWorkflowService _workflowService = null!;
+    private ImportBatchProcessingService _workflowService = null!;
+    private IImportBatchApplyService _applyService = null!;
     private ImportSourceStrategyResolver _strategyResolver = null!;
 
     public Task InitializeAsync()
@@ -42,11 +42,14 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         _ingredientRepository = new IngredientRepository(_db);
         _drinkRepository = new DrinkRepository(_db);
         _drinkQueryService = new DrinkQueryService(_db);
-        _workflowService = new ImportBatchWorkflowService(
+        _workflowService = new ImportBatchProcessingService(
             _tagRepository,
             _ingredientRepository,
-            _drinkRepository,
             _drinkQueryService);
+        _applyService = new ImportBatchApplyService(
+            _tagRepository,
+            _ingredientRepository,
+            _drinkRepository);
         _strategyResolver = new ImportSourceStrategyResolver([new IbaCocktailsSnapshotImportSourceStrategy()]);
 
         return Task.CompletedTask;
@@ -62,9 +65,9 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     [Fact]
     public async Task SnapshotImportLifecycle_CreatesCatalogEntitiesAndHistory()
     {
-        var createHandler = new StartImportHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
+        var createHandler = new InitializeImportBatchHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
         var reviewHandler = new ReviewImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
-        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
+        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _applyService, _auditLogWriter, _db);
         var historyHandler = new GetImportHistoryHandler(_importBatchRepository);
 
         const string payload = """
@@ -97,16 +100,17 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         reviewed.Status.ShouldBe(nameof(ImportBatchStatus.InProgress));
         reviewed.ReviewSummary.ShouldNotBeNull();
         reviewed.ReviewSummary.CreateCount.ShouldBeGreaterThan(0);
-        reviewed.ReviewConflicts.ShouldBeEmpty();
+        reviewed.RequiresReview.ShouldBeFalse();
         reviewed.ReviewRows.Count.ShouldBeGreaterThan(0);
 
         var applied = await applyHandler.Handle(
-            new ApplyImportBatchCommand(draft.Id, false, []),
+            new ApplyImportBatchCommand(draft.Id),
             CancellationToken.None);
 
-        applied.Status.ShouldBe(nameof(ImportBatchStatus.Completed));
-        applied.ApplySummary.ShouldNotBeNull();
-        applied.ApplySummary.CreatedCount.ShouldBeGreaterThan(0);
+        applied.WasApplied.ShouldBeTrue();
+        applied.Batch.Status.ShouldBe(nameof(ImportBatchStatus.Completed));
+        applied.Batch.ApplySummary.ShouldNotBeNull();
+        applied.Batch.ApplySummary.CreatedCount.ShouldBeGreaterThan(0);
 
         var persistedBatch = await _importBatchRepository.GetByIdAsync(draft.Id, CancellationToken.None);
         persistedBatch.ShouldNotBeNull();
@@ -124,7 +128,7 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     }
 
     [Fact]
-    public async Task Apply_WithConflictDecision_UpdatesExistingDrink()
+    public async Task Apply_WithReviewedUpdateBatch_UpdatesExistingDrink()
     {
         var ingredient = Ingredient.Create(IngredientName.Create("Gin"), ["Old Brand"]);
         var tag = Tag.Create(TagName.Create("Classic"));
@@ -136,9 +140,9 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         _db.Drinks.Add(drink);
         await _db.SaveChangesAsync();
 
-        var createHandler = new StartImportHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
+        var createHandler = new InitializeImportBatchHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
         var reviewHandler = new ReviewImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
-        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
+        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _applyService, _auditLogWriter, _db);
 
         const string payload = """
         [
@@ -162,27 +166,17 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
 
         var review = await reviewHandler.Handle(new ReviewImportBatchCommand(draft.Id), CancellationToken.None);
 
-        review.ReviewConflicts.ShouldContain(c => c.TargetType == "drink" && c.TargetKey == "Negroni");
-        review.ReviewConflicts.ShouldContain(c => c.TargetType == "ingredient" && c.TargetKey == "Gin");
+        review.RequiresReview.ShouldBeTrue();
+        review.ReviewRows.ShouldContain(r => r.TargetType == "drink" && r.TargetKey == "Negroni" && r.RequiresReview);
+        review.ReviewRows.ShouldContain(r => r.TargetType == "ingredient" && r.TargetKey == "Gin" && r.RequiresReview);
 
         var applied = await applyHandler.Handle(
-            new ApplyImportBatchCommand(
-                draft.Id,
-                false,
-                [
-                    new ImportDecisionInput("ingredient", "Gin", "approve-update", "sync brands"),
-                    new ImportDecisionInput("drink", "Negroni", "approve-update", "sync recipe")
-                ]),
+            new ApplyImportBatchCommand(draft.Id),
             CancellationToken.None);
 
-        applied.Status.ShouldBe(nameof(ImportBatchStatus.Completed));
-        applied.ApplySummary!.UpdatedCount.ShouldBe(2);
-
-        var persistedBatch = await _importBatchRepository.GetByIdAsync(draft.Id, CancellationToken.None);
-        persistedBatch.ShouldNotBeNull();
-        persistedBatch!.DecisionAuditTrail.ShouldAllBe(entry =>
-            entry.ActorUserId == "manager-123" &&
-            entry.ActorDisplayName == "manager@alcopilot.local");
+        applied.WasApplied.ShouldBeTrue();
+        applied.Batch.Status.ShouldBe(nameof(ImportBatchStatus.Completed));
+        applied.Batch.ApplySummary!.UpdatedCount.ShouldBe(2);
 
         var updatedDrink = await _drinkQueryService.GetDetailByIdAsync(drink.Id);
         updatedDrink.ShouldNotBeNull();
@@ -196,51 +190,78 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     }
 
     [Fact]
-    public async Task Apply_DuplicateFingerprintWithoutOverride_IsRejected()
+    public async Task Apply_WhenBatchRequiresReviewButReviewWasNotRun_ReturnsRequiresReviewResult()
     {
-        var createHandler = new StartImportHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
-        var reviewHandler = new ReviewImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
-        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
+        var ingredient = Ingredient.Create(IngredientName.Create("Gin"), ["Old Brand"]);
+        var tag = Tag.Create(TagName.Create("Classic"));
+        var drink = Drink.Create(DrinkName.Create("Negroni"), DrinkCategory.Create("Contemporary Classics"), "Original", "Stir", "Orange", ImageUrl.Create(null));
+        drink.SetTags([tag]);
+        drink.SetRecipeEntries([RecipeEntry.Create(drink.Id, ingredient.Id, Quantity.Create("1 oz"), null)]);
+        _db.Ingredients.Add(ingredient);
+        _db.Tags.Add(tag);
+        _db.Drinks.Add(drink);
+        await _db.SaveChangesAsync();
+
+        var createHandler = new InitializeImportBatchHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
+        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _applyService, _auditLogWriter, _db);
 
         const string payload = """
         [
           {
-            "category": "Contemporary Classics",
-            "name": "Bellini",
-            "method": "Pour and stir gently.",
+            "category": "The Unforgettables",
+            "name": "Negroni",
+            "method": "Updated description",
             "ingredients": [
-              { "direction": "100 ml Prosecco", "quantity": "100", "unit": "ml", "ingredient": "Prosecco" },
-              { "direction": "50 ml White Peach Puree", "quantity": "50", "unit": "ml", "ingredient": "White Peach Puree" }
+              { "direction": "1.5 oz Gin", "quantity": "1.5", "unit": "oz", "ingredient": "Gin" }
             ]
           }
         ]
         """;
 
-        var first = await createAndApplyAsync(payload, createHandler, reviewHandler, applyHandler);
-        first.Status.ShouldBe(nameof(ImportBatchStatus.Completed));
-
-        var secondDraft = await createHandler.Handle(
+        var draft = await createHandler.Handle(
             new StartImportCommand(
                 "iba-cocktails-snapshot",
                 payload,
-                new ImportSourceInput("seed/bellini.snapshot.json", "bellini.snapshot.json", "application/json", [])),
+                new ImportSourceInput("seed/negroni.snapshot.json", "negroni.snapshot.json", "application/json", [])),
             CancellationToken.None);
 
-        await reviewHandler.Handle(new ReviewImportBatchCommand(secondDraft.Id), CancellationToken.None);
+        var result = await applyHandler.Handle(new ApplyImportBatchCommand(draft.Id), CancellationToken.None);
 
-        await Should.ThrowAsync<ConflictException>(() =>
-            applyHandler.Handle(new ApplyImportBatchCommand(secondDraft.Id, false, []), CancellationToken.None).AsTask());
+        result.WasApplied.ShouldBeFalse();
+        result.ApplyReadiness.ShouldBe(nameof(ImportBatchApplyReadiness.RequiresReview));
+        result.Batch.Status.ShouldBe(nameof(ImportBatchStatus.InProgress));
+    }
 
-        var overrideApplied = await applyHandler.Handle(
-            new ApplyImportBatchCommand(secondDraft.Id, true, []),
+    [Fact]
+    public async Task Cancel_PersistsCancelledStatusAndHistory()
+    {
+        var createHandler = new InitializeImportBatchHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
+        var cancelHandler = new CancelImportBatchHandler(_importBatchRepository, _auditLogWriter, _db);
+        var historyHandler = new GetImportHistoryHandler(_importBatchRepository);
+
+        var draft = await createHandler.Handle(
+            new StartImportCommand(
+                "iba-cocktails-snapshot",
+                string.Empty,
+                new ImportSourceInput(null, null, "application/json", [])),
             CancellationToken.None);
 
-        overrideApplied.Status.ShouldBe(nameof(ImportBatchStatus.Completed));
+        var cancelled = await cancelHandler.Handle(new CancelImportBatchCommand(draft.Id), CancellationToken.None);
+
+        cancelled.Status.ShouldBe(nameof(ImportBatchStatus.Cancelled));
+
+        var persisted = await _importBatchRepository.GetByIdAsync(draft.Id, CancellationToken.None);
+        persisted.ShouldNotBeNull();
+        persisted!.Status.ShouldBe(ImportBatchStatus.Cancelled);
+        persisted.CancelledAtUtc.ShouldNotBeNull();
+
+        var history = await historyHandler.Handle(new GetImportHistoryQuery(), CancellationToken.None);
+        history.ShouldContain(batch => batch.Id == draft.Id && batch.Status == nameof(ImportBatchStatus.Cancelled));
     }
 
     private static async Task<ImportBatchDto> createAndApplyAsync(
         string payload,
-        StartImportHandler createHandler,
+        InitializeImportBatchHandler createHandler,
         ReviewImportBatchHandler reviewHandler,
         ApplyImportBatchHandler applyHandler)
     {
@@ -252,7 +273,9 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
             CancellationToken.None);
 
         await reviewHandler.Handle(new ReviewImportBatchCommand(draft.Id), CancellationToken.None);
-        return await applyHandler.Handle(new ApplyImportBatchCommand(draft.Id, false, []), CancellationToken.None);
+        var result = await applyHandler.Handle(new ApplyImportBatchCommand(draft.Id), CancellationToken.None);
+        result.WasApplied.ShouldBeTrue();
+        return result.Batch;
     }
 
     private sealed class StubCurrentActorAccessor(CurrentActor actor) : ICurrentActorAccessor

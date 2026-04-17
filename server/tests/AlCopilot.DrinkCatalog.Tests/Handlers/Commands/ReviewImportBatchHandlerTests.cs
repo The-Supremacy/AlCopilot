@@ -1,5 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.ImportSync;
 using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
@@ -19,26 +20,22 @@ public sealed class ReviewImportBatchHandlerTests
     private readonly IIngredientRepository _ingredientRepository = Substitute.For<IIngredientRepository>();
     private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
     private readonly IDrinkQueryService _drinkQueryService = Substitute.For<IDrinkQueryService>();
+    private readonly IImportBatchProcessingService _processingService = Substitute.For<IImportBatchProcessingService>();
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
-    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IDrinkCatalogUnitOfWork _unitOfWork = Substitute.For<IDrinkCatalogUnitOfWork>();
     private readonly ReviewImportBatchHandler _handler;
 
     public ReviewImportBatchHandlerTests()
     {
-        var workflowService = new ImportBatchWorkflowService(
-            _tagRepository,
-            _ingredientRepository,
-            _drinkRepository,
-            _drinkQueryService);
         _handler = new ReviewImportBatchHandler(
             _importBatchRepository,
-            workflowService,
+            _processingService,
             new AuditLogWriter(_auditRepository),
             _unitOfWork);
     }
 
     [Fact]
-    public async Task Handle_WhenExistingDrinkDiffers_AddsReviewConflict()
+    public async Task Handle_WhenExistingDrinkDiffers_MarksRowAsRequiringReview()
     {
         var batch = ImportBatch.Create(
             ImportStrategyKey.IbaCocktailsSnapshot,
@@ -56,8 +53,7 @@ public sealed class ReviewImportBatchHandlerTests
                         null,
                         ["Classic"],
                         [new NormalizedDrinkRecipeEntryImport("Gin", "1 oz", null)])
-                ]),
-            "sha256:test");
+                ]));
         batch.RecordValidation([]);
 
         _importBatchRepository.GetByIdAsync(batch.Id, Arg.Any<CancellationToken>()).Returns(batch);
@@ -77,12 +73,19 @@ public sealed class ReviewImportBatchHandlerTests
                     "1 oz",
                     null)])
         ]);
+        _processingService.ProcessAsync(batch.ImportContent, Arg.Any<CancellationToken>())
+            .Returns(new ImportBatchProcessingResult(
+                [],
+                new ImportReviewSummary(0, 1, 0),
+                [new ImportReviewRow("drink", "Negroni", "update", "Drink 'Negroni' would update metadata, tags, or recipe entries.", true, false)]));
 
         var result = await _handler.Handle(new ReviewImportBatchCommand(batch.Id), CancellationToken.None);
 
         result.Status.ShouldBe(nameof(ImportBatchStatus.InProgress));
-        result.ReviewConflicts.ShouldContain(c => c.TargetType == "drink" && c.TargetKey == "Negroni");
+        result.RequiresReview.ShouldBeTrue();
+        result.ReviewedAtUtc.ShouldNotBeNull();
         result.ReviewSummary!.UpdateCount.ShouldBe(1);
-        result.ReviewRows.ShouldContain(r => r.TargetType == "drink" && r.TargetKey == "Negroni" && r.HasConflict);
+        result.ReviewRows.ShouldContain(r => r.TargetType == "drink" && r.TargetKey == "Negroni" && r.RequiresReview);
+        await _processingService.Received(1).ProcessAsync(batch.ImportContent, Arg.Any<CancellationToken>());
     }
 }

@@ -21,10 +21,12 @@ It complements the portal design guide and the OpenSpec change artifacts with en
 ## Import Workflow Runtime Behavior
 
 - Managers start an import by submitting a strategy key and source metadata; payload is optional for snapshot-based imports.
-- Import start creates the batch, stores source fingerprint and provenance metadata, normalizes the source payload, runs validation immediately, detects conflicts, and persists the current review snapshot.
+- Import start creates the batch, stores provenance metadata, normalizes the source payload, runs validation immediately, and persists the current review snapshot.
 - Validation diagnostics are persisted on the batch as part of import start and remain visible on both the main Imports page and the Review workspace.
 - Review is an explicit refresh command for the stored review snapshot, not a separate lifecycle stage.
-- Apply is allowed only when validation has no errors and no conflicts remain unresolved.
+- Apply is allowed only when batch apply-readiness is `Ready`.
+- Update-containing batches return `RequiresReview` until the review workspace has been explicitly refreshed by a manager.
+- Validation-error batches return `BlockedByValidationErrors` instead of using exception-driven control flow for a normal business path.
 - The backend may recompute review data during apply if review data is missing, but the normal path is that import start and review refresh keep the stored snapshot current.
 - Status is checked through persisted batch reads and history queries rather than SignalR or other push transport. Import batches remain `InProgress` until applied or cancelled, then become `Completed` or `Cancelled`.
 

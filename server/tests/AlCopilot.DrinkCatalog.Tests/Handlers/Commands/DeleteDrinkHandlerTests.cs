@@ -1,4 +1,5 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.Shared.Data;
@@ -11,7 +12,7 @@ public sealed class DeleteDrinkHandlerTests
 {
     private readonly IDrinkRepository _drinkRepository = Substitute.For<IDrinkRepository>();
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
-    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IDrinkCatalogUnitOfWork _unitOfWork = Substitute.For<IDrinkCatalogUnitOfWork>();
     private readonly DeleteDrinkHandler _handler;
 
     public DeleteDrinkHandlerTests()

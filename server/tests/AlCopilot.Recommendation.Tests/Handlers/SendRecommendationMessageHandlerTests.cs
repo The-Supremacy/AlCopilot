@@ -4,6 +4,7 @@ using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
 using AlCopilot.Recommendation.Contracts.Commands;
 using AlCopilot.Recommendation.Contracts.DTOs;
+using AlCopilot.Recommendation.Data;
 using AlCopilot.Recommendation.Features.Recommendation;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
@@ -20,7 +21,7 @@ public sealed class SubmitRecommendationRequestHandlerTests
     public async Task Handle_CreatesSessionAndPersistsStructuredAssistantTurn()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var unitOfWork = Substitute.For<IUnitOfWork>();
+        var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var actorAccessor = Substitute.For<ICurrentActorAccessor>();
         var mediator = Substitute.For<IMediator>();
         var candidateBuilder = Substitute.For<IRecommendationCandidateBuilder>();
@@ -79,7 +80,7 @@ public sealed class SubmitRecommendationRequestHandlerTests
     public async Task Handle_Throws_WhenActorIsAnonymous()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var unitOfWork = Substitute.For<IUnitOfWork>();
+        var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var actorAccessor = Substitute.For<ICurrentActorAccessor>();
         var mediator = Substitute.For<IMediator>();
         var candidateBuilder = Substitute.For<IRecommendationCandidateBuilder>();
@@ -104,7 +105,7 @@ public sealed class SubmitRecommendationRequestHandlerTests
     public async Task Handle_Throws_WhenMessageIsBlank()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var unitOfWork = Substitute.For<IUnitOfWork>();
+        var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var actorAccessor = Substitute.For<ICurrentActorAccessor>();
         var mediator = Substitute.For<IMediator>();
         var candidateBuilder = Substitute.For<IRecommendationCandidateBuilder>();

@@ -1,4 +1,5 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.Shared.Data;
@@ -11,7 +12,7 @@ public sealed class CreateIngredientHandlerTests
 {
     private readonly IIngredientRepository _ingredientRepository = Substitute.For<IIngredientRepository>();
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
-    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly IDrinkCatalogUnitOfWork _unitOfWork = Substitute.For<IDrinkCatalogUnitOfWork>();
     private readonly CreateIngredientHandler _handler;
 
     public CreateIngredientHandlerTests()

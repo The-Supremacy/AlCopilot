@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ClipboardList,
   CupSoda,
+  ExternalLink,
   LayoutDashboard,
   LoaderCircle,
   LogIn,
@@ -13,7 +14,12 @@ import {
   ScrollText,
   ShieldAlert,
 } from 'lucide-react';
-import { buildManagementLoginUrl } from '@alcopilot/management-api-client';
+import {
+  buildManagementAccountManagementUrl,
+  buildManagementLoginUrl,
+  buildManagementLogoutUrl,
+  buildManagementSwitchAccountUrl,
+} from '@alcopilot/management-api-client';
 import { InlineMessage } from '@/components/InlineMessage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,7 +31,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { PortalBreadcrumbs } from '@/features/navigation/PortalBreadcrumbs';
-import { useLogoutManagementMutation, useManagementSession } from '@/state/auth/useManagementAuth';
+import { useManagementSession } from '@/state/auth/useManagementAuth';
 import { cn } from '@/lib/utils';
 
 type NavItem = {
@@ -54,15 +60,10 @@ const navItems: NavItem[] = [
 
 export function ManagementPortalLayout({ children }: { children: ReactNode }) {
   const sessionQuery = useManagementSession();
-  const logoutMutation = useLogoutManagementMutation();
   const currentPath = getCurrentPath();
 
   function beginLogin() {
     window.location.assign(buildManagementLoginUrl(currentPath));
-  }
-
-  async function handleSignOut() {
-    await logoutMutation.mutateAsync();
   }
 
   if (sessionQuery.isLoading) {
@@ -122,23 +123,14 @@ export function ManagementPortalLayout({ children }: { children: ReactNode }) {
   }
 
   const utility = session.isAuthenticated ? (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
       <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-2">
         <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Signed in</p>
         <p className="mt-1 text-sm font-medium text-foreground">
           {session.displayName ?? 'Operator session'}
         </p>
       </div>
-      <Button
-        variant="outline"
-        className="w-full sm:w-auto"
-        onClick={handleSignOut}
-        loading={logoutMutation.isPending}
-        loadingText="Signing out"
-      >
-        <LogOut className="h-4 w-4" />
-        Sign out
-      </Button>
+      <ManagementAccountActions />
     </div>
   ) : (
     <Button variant="outline" className="w-full md:w-auto" onClick={beginLogin}>
@@ -154,16 +146,7 @@ export function ManagementPortalLayout({ children }: { children: ReactNode }) {
           {session.displayName ?? 'Operator session'}
         </p>
       </div>
-      <Button
-        variant="outline"
-        className="w-full border-shell-foreground/20 bg-shell-foreground/5 text-shell-foreground hover:bg-shell-foreground/10 hover:text-shell-foreground"
-        onClick={handleSignOut}
-        loading={logoutMutation.isPending}
-        loadingText="Signing out"
-      >
-        <LogOut className="h-4 w-4" />
-        Sign out
-      </Button>
+      <ManagementAccountActions mobile />
     </div>
   ) : null;
 
@@ -419,6 +402,39 @@ function StateCard({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function ManagementAccountActions({ mobile = false }: { mobile?: boolean }) {
+  const accountManagementUrl = buildManagementAccountManagementUrl();
+  const currentPath = getCurrentPath();
+  const logoutUrl = buildManagementLogoutUrl('/');
+  const switchAccountUrl = buildManagementSwitchAccountUrl(currentPath);
+  const buttonClassName = mobile
+    ? 'w-full border-shell-foreground/20 bg-shell-foreground/5 text-shell-foreground hover:bg-shell-foreground/10 hover:text-shell-foreground'
+    : 'w-full sm:w-auto';
+
+  return (
+    <>
+      <Button asChild variant="outline" className={buttonClassName}>
+        <a href={accountManagementUrl}>
+          <ExternalLink className="h-4 w-4" />
+          Manage account
+        </a>
+      </Button>
+      <form action={switchAccountUrl} method="post" className={mobile ? 'w-full' : undefined}>
+        <Button type="submit" variant="outline" className={buttonClassName}>
+          <LogIn className="h-4 w-4" />
+          Switch account
+        </Button>
+      </form>
+      <form action={logoutUrl} method="post" className={mobile ? 'w-full' : undefined}>
+        <Button type="submit" variant="outline" className={buttonClassName}>
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </Button>
+      </form>
+    </>
   );
 }
 

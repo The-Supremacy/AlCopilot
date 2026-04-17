@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AlCopilot.Recommendation.Data;
 
 public sealed class RecommendationDbContext(DbContextOptions<RecommendationDbContext> options)
-    : DbContext(options), IUnitOfWork
+    : DbContext(options), IRecommendationUnitOfWork
 {
     public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
     public DbSet<ChatTurn> ChatTurns => Set<ChatTurn>();

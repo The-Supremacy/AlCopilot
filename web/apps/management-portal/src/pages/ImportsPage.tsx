@@ -11,14 +11,7 @@ export function ImportsPage() {
   const state = useImportsPageState();
   const currentBatch = state.currentBatch;
 
-  const reviewConflicts = currentBatch?.reviewConflicts ?? [];
-  const hasConflicts = reviewConflicts.length > 0;
-  const hasUnresolvedConflicts = hasConflicts && !state.hasStoredDecisionForAllConflicts;
-
-  const hasValidationErrors =
-    currentBatch?.diagnostics.some((diagnostic) => diagnostic.severity === 'error') ?? false;
-  const canApply =
-    currentBatch?.status === 'InProgress' && !hasValidationErrors && !hasUnresolvedConflicts;
+  const canApply = currentBatch?.status === 'InProgress' && currentBatch.applyReadiness === 'Ready';
   const canCancel = currentBatch?.status === 'InProgress';
 
   const applyHint = !currentBatch
@@ -27,10 +20,10 @@ export function ImportsPage() {
       ? 'This import has already been completed.'
       : currentBatch.status === 'Cancelled'
         ? 'This import has been cancelled.'
-        : hasValidationErrors
+        : state.blockedByValidationErrors
           ? 'Validation errors block completion. Open Review to inspect diagnostics.'
-          : hasUnresolvedConflicts
-            ? 'Conflicts are present. Open Review to record decisions before applying.'
+          : state.requiresReviewBeforeApply
+            ? 'This batch updates existing catalog data. Open Review before applying.'
             : null;
 
   return (
@@ -49,7 +42,7 @@ export function ImportsPage() {
       {currentBatch ? (
         <SectionCard
           title="Current import"
-          description="Start validates immediately. Review is optional and completion stays blocked until errors and conflicts are cleared."
+          description="Start validates immediately. Review stays focused on inspection, and apply remains blocked until validation errors are cleared and required review is completed."
         >
           <div className="relative space-y-6">
             {state.isApplyingBatch ? (
@@ -93,13 +86,14 @@ export function ImportsPage() {
                 ) : (
                   <p className="mt-2 text-muted-foreground">
                     Start import prepares the current review snapshot immediately. You can apply
-                    directly when there are no errors or unresolved conflicts, or open Review to
-                    inspect row-level changes first.
+                    directly when there are no blocking diagnostics or review-required updates, or
+                    open Review to inspect row-level changes first.
                   </p>
                 )}
                 <p className="mt-3 text-muted-foreground">
-                  Conflict rows: {currentBatch.reviewConflicts.length}. Review decisions are kept
-                  when you move between the current import page and Review.
+                  Review-required rows:{' '}
+                  {currentBatch.reviewRows.filter((row) => row.requiresReview).length}. Update rows
+                  remain visible on the Review page and no longer require row-level decisions.
                 </p>
               </div>
             </div>

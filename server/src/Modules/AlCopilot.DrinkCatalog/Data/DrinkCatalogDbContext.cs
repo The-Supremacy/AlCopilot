@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AlCopilot.DrinkCatalog.Data;
 
 public sealed class DrinkCatalogDbContext(DbContextOptions<DrinkCatalogDbContext> options)
-    : DbContext(options), IUnitOfWork
+    : DbContext(options), IDrinkCatalogUnitOfWork
 {
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
     public DbSet<Drink> Drinks => Set<Drink>();

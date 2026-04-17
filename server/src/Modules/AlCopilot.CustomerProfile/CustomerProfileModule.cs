@@ -28,7 +28,7 @@ public static class CustomerProfileModule
             options.AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>());
         });
 
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<CustomerProfileDbContext>());
+        services.AddScoped<ICustomerProfileUnitOfWork>(sp => sp.GetRequiredService<CustomerProfileDbContext>());
         services.AddScoped<ICustomerProfileRepository, CustomerProfileRepository>();
         services.AddScoped<ICustomerProfileQueryService, CustomerProfileQueryService>();
 

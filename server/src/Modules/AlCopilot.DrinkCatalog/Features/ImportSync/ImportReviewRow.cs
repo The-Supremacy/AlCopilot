@@ -5,5 +5,5 @@ public sealed record ImportReviewRow(
     string TargetKey,
     string Action,
     string ChangeSummary,
-    bool HasConflict,
+    bool RequiresReview,
     bool HasError);

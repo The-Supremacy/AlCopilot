@@ -10,7 +10,8 @@ internal static class ImportBatchMappings
             batch.Id,
             batch.StrategyKey,
             batch.Status.ToString(),
-            batch.SourceFingerprint,
+            batch.RequiresReview,
+            batch.GetApplyReadiness().ToString(),
             new ImportSourceInput(
                 batch.Provenance.SourceReference,
                 batch.Provenance.DisplayName,
@@ -19,16 +20,13 @@ internal static class ImportBatchMappings
             batch.Diagnostics
                 .Select(d => new ImportDiagnosticDto(d.RowNumber, d.Code, d.Message, d.Severity))
                 .ToList(),
-            batch.ReviewConflicts
-                .Select(c => new ImportReviewConflictDto(c.TargetType, c.TargetKey, c.Action, c.Summary))
-                .ToList(),
             batch.ReviewRows
                 .Select(r => new ImportReviewRowDto(
                     r.TargetType,
                     r.TargetKey,
                     r.Action,
                     r.ChangeSummary,
-                    r.HasConflict,
+                    r.RequiresReview,
                     r.HasError))
                 .ToList(),
             batch.ReviewSummary is null
@@ -49,5 +47,16 @@ internal static class ImportBatchMappings
             batch.ReviewedAtUtc,
             batch.AppliedAtUtc,
             batch.LastUpdatedAtUtc);
+    }
+
+    public static ImportBatchApplyResultDto ToApplyResultDto(
+        this ImportBatch batch,
+        ImportBatchApplyReadiness applyReadiness,
+        bool wasApplied)
+    {
+        return new ImportBatchApplyResultDto(
+            batch.ToDto(),
+            applyReadiness.ToString(),
+            wasApplied);
     }
 }

@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
+import { toast } from 'sonner';
 import { InlineMessage } from '@/components/InlineMessage';
 import { SectionCard } from '@/components/SectionCard';
 import { StatusPill } from '@/components/StatusPill';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { DiagnosticsSection } from '@/features/imports/DiagnosticsSection';
-import { useImportBatch, useReviewImportBatchMutation } from '@/features/imports/useImportData';
 import {
-  getBatchDecisions,
-  useBatchDecisionMap,
-  useUpsertImportDecision,
-} from '@/features/imports/useImportDecisionStore';
+  useApplyImportBatchMutation,
+  useCancelImportBatchMutation,
+  useImportBatch,
+  useReviewImportBatchMutation,
+} from '@/features/imports/useImportData';
 import { formatTimestamp } from '@/lib/format';
 import { formatImportBatchStatus } from '@/lib/importStatus';
 
@@ -22,12 +22,12 @@ export function ImportReviewPage() {
   const { batchId } = useParams({ from: '/imports/$batchId/review' });
   const batch = useImportBatch(batchId);
   const reviewMutation = useReviewImportBatchMutation();
-  const decisionMap = useBatchDecisionMap(batchId);
-  const upsertDecision = useUpsertImportDecision();
+  const applyMutation = useApplyImportBatchMutation();
+  const cancelMutation = useCancelImportBatchMutation();
   const data = batch.data;
   const [aggregateFilter, setAggregateFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');
-  const [conflictFilter, setConflictFilter] = useState('all');
+  const [reviewStateFilter, setReviewStateFilter] = useState('all');
 
   if (!data && !batch.isLoading) {
     return (
@@ -45,6 +45,10 @@ export function ImportReviewPage() {
   }
 
   const reviewIsStale = !data.reviewSummary || !data.reviewedAtUtc;
+  const canApply = data.status === 'InProgress' && data.applyReadiness === 'Ready';
+  const canCancel = data.status === 'InProgress';
+  const isMutating =
+    reviewMutation.isPending || applyMutation.isPending || cancelMutation.isPending;
 
   useEffect(() => {
     if (!data || !reviewIsStale || reviewMutation.isPending) {
@@ -58,29 +62,18 @@ export function ImportReviewPage() {
     reviewMutation.mutate(data.id);
   }, [data, reviewIsStale, reviewMutation]);
 
-  const decisions = getBatchDecisions(data.id, data.reviewConflicts).map((decision) => {
-    const key = `${decision.targetType}::${decision.targetKey}`.toLowerCase();
-    return decisionMap[key] ?? decision;
-  });
-  const decisionByKey = new Map(
-    decisions.map((decision) => [
-      `${decision.targetType}::${decision.targetKey}`.toLowerCase(),
-      decision,
-    ]),
-  );
-
   const rows = useMemo(() => {
     const reviewRows = data.reviewRows ?? [];
     return reviewRows
       .filter((row) => aggregateFilter === 'all' || row.targetType === aggregateFilter)
       .filter((row) => actionFilter === 'all' || row.action === actionFilter)
       .filter((row) => {
-        if (conflictFilter === 'all') return true;
-        if (conflictFilter === 'conflicts') return row.hasConflict;
-        if (conflictFilter === 'errors') return row.hasError;
-        return !row.hasConflict && !row.hasError;
+        if (reviewStateFilter === 'all') return true;
+        if (reviewStateFilter === 'updates') return row.requiresReview;
+        if (reviewStateFilter === 'errors') return row.hasError;
+        return !row.requiresReview && !row.hasError;
       });
-  }, [actionFilter, aggregateFilter, conflictFilter, data.reviewRows]);
+  }, [actionFilter, aggregateFilter, reviewStateFilter, data.reviewRows]);
 
   const columns = useMemo<ColumnDef<(typeof rows)[number]>[]>(
     () => [
@@ -127,52 +120,51 @@ export function ImportReviewPage() {
         meta: { label: 'Review' },
         enableSorting: false,
         cell: ({ row }) => {
-          const key = `${row.original.targetType}::${row.original.targetKey}`.toLowerCase();
-          const decision = decisionByKey.get(key);
-
-          if (!row.original.hasConflict) {
-            if (row.original.hasError) {
-              return <span className="text-sm text-warning">See diagnostics</span>;
-            }
-
-            return <span className="text-sm text-muted-foreground">No decision required</span>;
+          if (row.original.hasError) {
+            return <span className="text-sm text-warning">See diagnostics</span>;
           }
 
-          return (
-            <div className="flex min-w-[18rem] flex-col gap-2">
-              <Select
-                value={decision?.decision ?? 'approve-update'}
-                onChange={(event) =>
-                  upsertDecision(data.id, {
-                    targetType: row.original.targetType,
-                    targetKey: row.original.targetKey,
-                    decision: event.target.value,
-                    reason: decision?.reason ?? '',
-                  })
-                }
-              >
-                <option value="approve-update">Approve update</option>
-                <option value="reject-update">Reject update</option>
-              </Select>
-              <Input
-                value={decision?.reason ?? ''}
-                onChange={(event) =>
-                  upsertDecision(data.id, {
-                    targetType: row.original.targetType,
-                    targetKey: row.original.targetKey,
-                    decision: decision?.decision ?? 'approve-update',
-                    reason: event.target.value,
-                  })
-                }
-                placeholder="Reason (optional)"
-              />
-            </div>
-          );
+          if (row.original.requiresReview) {
+            return <span className="text-sm text-warning">Review before apply</span>;
+          }
+
+          return <span className="text-sm text-muted-foreground">No review required</span>;
         },
       },
     ],
-    [data.id, decisionByKey, upsertDecision],
+    [],
   );
+
+  async function applyBatch() {
+    try {
+      await toast.promise(applyMutation.mutateAsync({ id: data.id }), {
+        loading: 'Applying import changes...',
+        success: (result) =>
+          result.wasApplied
+            ? 'Import applied successfully.'
+            : result.applyReadiness === 'RequiresReview'
+              ? 'Review is still required before apply.'
+              : result.applyReadiness === 'BlockedByValidationErrors'
+                ? 'Validation errors still block apply.'
+                : 'Import was not applied.',
+        error: getErrorMessage,
+      });
+    } catch {
+      return;
+    }
+  }
+
+  async function cancelBatch() {
+    try {
+      await toast.promise(cancelMutation.mutateAsync(data.id), {
+        loading: 'Cancelling current import...',
+        success: 'Import cancelled.',
+        error: getErrorMessage,
+      });
+    } catch {
+      return;
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -205,16 +197,33 @@ export function ImportReviewPage() {
 
       <SectionCard
         title="Review workspace"
-        description="Review row-level changes, diagnostics, and conflict decisions in one place."
+        description="Review row-level changes and diagnostics in one place before applying the batch."
       >
         <div className="space-y-6">
           <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
               onClick={() => reviewMutation.mutate(data.id)}
-              disabled={reviewMutation.isPending}
+              disabled={isMutating}
             >
               {reviewIsStale ? 'Generate review' : 'Refresh review'}
+            </Button>
+            <Button
+              onClick={applyBatch}
+              disabled={!canApply || isMutating}
+              loading={applyMutation.isPending}
+              loadingText="Applying..."
+            >
+              Apply
+            </Button>
+            <Button
+              variant="outline"
+              onClick={cancelBatch}
+              disabled={!canCancel || isMutating}
+              loading={cancelMutation.isPending}
+              loadingText="Cancelling..."
+            >
+              Cancel
             </Button>
             <Button asChild variant="ghost">
               <Link to="/imports">Back to imports</Link>
@@ -261,11 +270,11 @@ export function ImportReviewPage() {
             <label className="space-y-2 text-sm font-medium">
               <span>Review state</span>
               <Select
-                value={conflictFilter}
-                onChange={(event) => setConflictFilter(event.target.value)}
+                value={reviewStateFilter}
+                onChange={(event) => setReviewStateFilter(event.target.value)}
               >
                 <option value="all">All rows</option>
-                <option value="conflicts">Conflicts</option>
+                <option value="updates">Requires review</option>
                 <option value="errors">Errors</option>
                 <option value="clean">Clean rows</option>
               </Select>
@@ -280,4 +289,12 @@ export function ImportReviewPage() {
       </SectionCard>
     </div>
   );
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Something went wrong.';
 }

@@ -53,19 +53,12 @@ export type ImportDiagnosticDto = {
   severity: string;
 };
 
-export type ImportReviewConflictDto = {
-  targetType: string;
-  targetKey: string;
-  action: string;
-  summary: string;
-};
-
 export type ImportReviewRowDto = {
   targetType: string;
   targetKey: string;
   action: string;
   changeSummary: string;
-  hasConflict: boolean;
+  requiresReview: boolean;
   hasError: boolean;
 };
 
@@ -82,21 +75,14 @@ export type ImportApplySummaryDto = {
   rejectedCount: number;
 };
 
-export type ImportDecisionInput = {
-  targetType: string;
-  targetKey: string;
-  decision: string;
-  reason: string | null;
-};
-
 export type ImportBatchDto = {
   id: string;
   strategyKey: string;
   status: string;
-  sourceFingerprint: string | null;
+  requiresReview: boolean;
+  applyReadiness: string;
   source: ImportSourceInput;
   diagnostics: ImportDiagnosticDto[];
-  reviewConflicts: ImportReviewConflictDto[];
   reviewRows: ImportReviewRowDto[];
   reviewSummary: ImportReviewSummaryDto | null;
   applySummary: ImportApplySummaryDto | null;
@@ -105,6 +91,12 @@ export type ImportBatchDto = {
   reviewedAtUtc: string | null;
   appliedAtUtc: string | null;
   lastUpdatedAtUtc: string;
+};
+
+export type ImportBatchApplyResultDto = {
+  batch: ImportBatchDto;
+  applyReadiness: string;
+  wasApplied: boolean;
 };
 
 export type AuditLogEntryDto = {
@@ -172,11 +164,6 @@ export type StartImportInput = {
   source: ImportSourceInput;
 };
 
-export type ApplyImportBatchInput = {
-  overrideDuplicateFingerprint: boolean;
-  decisions: ImportDecisionInput[];
-};
-
 const baseUrl = '';
 
 export class ManagementApiError extends Error {
@@ -230,14 +217,22 @@ export function buildManagementLoginUrl(returnUrl = '/') {
   return `/api/auth/management/login?${search.toString()}`;
 }
 
-export function getManagementSession() {
-  return request<ManagementSessionDto>(`/api/auth/management/session`);
+export function buildManagementAccountManagementUrl() {
+  return '/api/auth/management/account-management';
 }
 
-export function logoutManagement() {
-  return request<void>(`/api/auth/management/logout`, {
-    method: 'POST',
-  });
+export function buildManagementLogoutUrl(returnUrl = '/') {
+  const search = new URLSearchParams({ returnUrl });
+  return `/api/auth/management/logout?${search.toString()}`;
+}
+
+export function buildManagementSwitchAccountUrl(returnUrl = '/') {
+  const search = new URLSearchParams({ returnUrl });
+  return `/api/auth/management/switch-account?${search.toString()}`;
+}
+
+export function getManagementSession() {
+  return request<ManagementSessionDto>(`/api/auth/management/session`);
 }
 
 export function listDrinks(params?: { q?: string; tagIds?: string[] }) {
@@ -345,10 +340,9 @@ export function cancelImportBatch(id: string) {
   });
 }
 
-export function applyImportBatch(id: string, input: ApplyImportBatchInput) {
-  return request<ImportBatchDto>(`/api/drink-catalog/imports/${id}/apply`, {
+export function applyImportBatch(id: string) {
+  return request<ImportBatchApplyResultDto>(`/api/drink-catalog/imports/${id}/apply`, {
     method: 'POST',
-    body: JSON.stringify(input),
   });
 }
 

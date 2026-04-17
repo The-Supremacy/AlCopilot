@@ -91,6 +91,13 @@ Read [docs/testing/server.md](../docs/testing/server.md) for backend test taxono
 - Query services may project across aggregate boundaries inside the same module when needed for a read model
 - Do not force list/detail read scenarios through aggregate-loading patterns just to mirror command-side DDD structure
 
+### Application Services
+
+- Prefer interface-first DI for orchestration-style application services that handlers coordinate through, such as workflow processors, audit writers, import processors, or other non-aggregate collaborators
+- Aggregate repositories and aggregate methods remain the main exception because they already express domain boundaries directly
+- If a handler only needs behavior from a collaborator, depend on the interface in the handler and register the concrete implementation behind that contract
+- Do not add interfaces around trivial private helpers or one-off glue code without a real behavior boundary
+
 ### Unit of Work
 
 - `IUnitOfWork` — interface with `SaveChangesAsync`

@@ -15,7 +15,6 @@ public sealed class IbaCocktailsSnapshotImportSourceStrategyTests
             string.Empty,
             ImportProvenance.Empty));
 
-        result.SourceFingerprint.ShouldStartWith("sha256:");
         result.Import.Drinks.Count.ShouldBeGreaterThan(80);
         result.Import.Tags.ShouldBeEmpty();
         result.Import.Ingredients.ShouldContain(i => i.Name == "Vodka");

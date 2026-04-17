@@ -45,13 +45,12 @@ public sealed class AuditLogIntegrationTests(PostgresFixture fixture) : IAsyncLi
 
         var importBatchRepository = new ImportBatchRepository(_db);
         var strategyResolver = new ImportSourceStrategyResolver([new IbaCocktailsSnapshotImportSourceStrategy()]);
-        var workflowService = new ImportBatchWorkflowService(
+        var workflowService = new ImportBatchProcessingService(
             new TagRepository(_db),
             new IngredientRepository(_db),
-            new DrinkRepository(_db),
             new DrinkQueryService(_db));
 
-        var createImportDraftHandler = new StartImportHandler(strategyResolver, importBatchRepository, workflowService, auditWriter, currentActorAccessor, _db);
+        var createImportDraftHandler = new InitializeImportBatchHandler(strategyResolver, importBatchRepository, workflowService, auditWriter, currentActorAccessor, _db);
 
         var draft = await createImportDraftHandler.Handle(
             new StartImportCommand(
@@ -63,7 +62,8 @@ public sealed class AuditLogIntegrationTests(PostgresFixture fixture) : IAsyncLi
         var entries = await auditQueryService.GetRecentAsync();
 
         entries.ShouldContain(entry => entry.Action == "tag.create" && entry.SubjectType == "tag");
-        entries.ShouldContain(entry => entry.Action == "import-batch.create" && entry.SubjectType == "import-batch");
+        entries.ShouldContain(entry => entry.Action == "import-batch.initialize" && entry.SubjectType == "import-batch");
+        entries.ShouldContain(entry => entry.Action == "import-batch.process" && entry.SubjectType == "import-batch");
         entries.ShouldContain(entry => entry.Action == "import-batch.validate" && entry.SubjectType == "import-batch");
         entries.ShouldAllBe(entry => entry.ActorUserId == "manager-123");
     }

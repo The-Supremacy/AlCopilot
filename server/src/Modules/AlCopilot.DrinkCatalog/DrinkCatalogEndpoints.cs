@@ -14,7 +14,7 @@ public static class DrinkCatalogEndpoints
         DrinkCatalogDrinkEndpoints.Map(group);
         DrinkCatalogTagEndpoints.Map(group);
         DrinkCatalogIngredientEndpoints.Map(group);
-        DrinkCatalogImportSyncEndpoints.Map(group);
+        DrinkCatalogImportEndpoints.Map(group);
         DrinkCatalogAuditEndpoints.Map(group);
 
         return app;

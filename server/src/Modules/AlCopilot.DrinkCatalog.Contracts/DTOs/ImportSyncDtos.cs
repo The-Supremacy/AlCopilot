@@ -12,18 +12,12 @@ public sealed record ImportDiagnosticDto(
     string Message,
     string Severity);
 
-public sealed record ImportReviewConflictDto(
-    string TargetType,
-    string TargetKey,
-    string Action,
-    string Summary);
-
 public sealed record ImportReviewRowDto(
     string TargetType,
     string TargetKey,
     string Action,
     string ChangeSummary,
-    bool HasConflict,
+    bool RequiresReview,
     bool HasError);
 
 public sealed record ImportReviewSummaryDto(
@@ -37,20 +31,14 @@ public sealed record ImportApplySummaryDto(
     int SkippedCount,
     int RejectedCount);
 
-public sealed record ImportDecisionInput(
-    string TargetType,
-    string TargetKey,
-    string Decision,
-    string? Reason);
-
 public sealed record ImportBatchDto(
     Guid Id,
     string StrategyKey,
     string Status,
-    string? SourceFingerprint,
+    bool RequiresReview,
+    string ApplyReadiness,
     ImportSourceInput Source,
     List<ImportDiagnosticDto> Diagnostics,
-    List<ImportReviewConflictDto> ReviewConflicts,
     List<ImportReviewRowDto> ReviewRows,
     ImportReviewSummaryDto? ReviewSummary,
     ImportApplySummaryDto? ApplySummary,
@@ -59,3 +47,8 @@ public sealed record ImportBatchDto(
     DateTimeOffset? ReviewedAtUtc,
     DateTimeOffset? AppliedAtUtc,
     DateTimeOffset LastUpdatedAtUtc);
+
+public sealed record ImportBatchApplyResultDto(
+    ImportBatchDto Batch,
+    string ApplyReadiness,
+    bool WasApplied);

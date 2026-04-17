@@ -4,6 +4,7 @@ using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
 using AlCopilot.Recommendation.Contracts.Commands;
 using AlCopilot.Recommendation.Contracts.DTOs;
+using AlCopilot.Recommendation.Data;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
 using AlCopilot.Shared.Models;
@@ -13,7 +14,7 @@ namespace AlCopilot.Recommendation.Features.Recommendation;
 
 public sealed class SubmitRecommendationRequestHandler(
     IChatSessionRepository chatSessionRepository,
-    IUnitOfWork unitOfWork,
+    IRecommendationUnitOfWork unitOfWork,
     ICurrentActorAccessor currentActorAccessor,
     IMediator mediator,
     IRecommendationCandidateBuilder candidateBuilder,

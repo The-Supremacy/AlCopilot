@@ -82,7 +82,7 @@ Preserved domain events are module-owned machine-readable history and may suppor
 ## JSONB Usage Guidance
 
 JSONB is allowed as a narrow workflow-storage exception, not as the default persistence style for domain aggregates.
-The current approved example is import-batch review state in the Drinks Catalog, where provenance, diagnostics, review rows, conflict summaries, and apply summaries need flexible operator-facing storage.
+The current approved example is import-batch review state in the Drinks Catalog, where provenance, diagnostics, review rows, and apply summaries need flexible operator-facing storage without introducing many short-lived workflow tables.
 Core aggregates should continue using explicit relational columns and child tables by default because that keeps migrations, query intent, and aggregate evolution clearer over time.
 
 ---

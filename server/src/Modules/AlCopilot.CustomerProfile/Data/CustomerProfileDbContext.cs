@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AlCopilot.CustomerProfile.Data;
 
 public sealed class CustomerProfileDbContext(DbContextOptions<CustomerProfileDbContext> options)
-    : DbContext(options), IUnitOfWork
+    : DbContext(options), ICustomerProfileUnitOfWork
 {
     public DbSet<Features.Profile.CustomerProfile> CustomerProfiles => Set<Features.Profile.CustomerProfile>();
     public DbSet<DomainEventRecord> DomainEventRecords => Set<DomainEventRecord>();

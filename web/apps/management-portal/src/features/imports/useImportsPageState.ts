@@ -7,34 +7,21 @@ import {
   useImportHistory,
   useStartImportMutation,
 } from '@/features/imports/useImportData';
-import {
-  getStoredBatchDecisions,
-  useBatchDecisionMap,
-  useClearImportDecisionBatch,
-} from '@/features/imports/useImportDecisionStore';
 
 export function useImportsPageState() {
   const [strategyKey] = useState('iba-cocktails-snapshot');
   const importHistory = useImportHistory();
-  const activeBatchId = useMemo(() => {
-    const batches = importHistory.data ?? [];
-    return batches.find((batch) => batch.status === 'InProgress')?.id ?? null;
-  }, [importHistory.data]);
+  const latestBatch = useMemo(() => (importHistory.data ?? [])[0] ?? null, [importHistory.data]);
+  const activeBatchId = latestBatch?.status === 'InProgress' ? latestBatch.id : null;
   const selectedBatch = useImportBatch(activeBatchId);
   const startImportMutation = useStartImportMutation();
   const applyMutation = useApplyImportBatchMutation();
   const cancelMutation = useCancelImportBatchMutation();
-  const decisionState = useBatchDecisionMap(activeBatchId);
-  const clearBatchDecisions = useClearImportDecisionBatch();
 
   const currentBatch = selectedBatch.data;
   const activeError = startImportMutation.error ?? applyMutation.error ?? cancelMutation.error;
-  const hasStoredDecisionForAllConflicts = currentBatch
-    ? currentBatch.reviewConflicts.every((conflict) => {
-        const key = `${conflict.targetType.trim().toLowerCase()}::${conflict.targetKey.trim().toLowerCase()}`;
-        return Boolean(decisionState[key]);
-      })
-    : false;
+  const requiresReviewBeforeApply = currentBatch?.applyReadiness === 'RequiresReview';
+  const blockedByValidationErrors = currentBatch?.applyReadiness === 'BlockedByValidationErrors';
 
   async function startImport() {
     await toast.promise(
@@ -61,22 +48,29 @@ export function useImportsPageState() {
       return;
     }
 
-    const decisions = getStoredBatchDecisions(currentBatch.id);
-    const applyPromise = applyMutation
-      .mutateAsync({
-        id: currentBatch.id,
-        input: { overrideDuplicateFingerprint: false, decisions },
-      })
-      .then((result) => {
-        clearBatchDecisions(currentBatch.id);
-        return result;
-      });
+    try {
+      const result = await toast.promise(
+        applyMutation.mutateAsync({
+          id: currentBatch.id,
+        }),
+        {
+          loading: 'Applying import changes...',
+          success: (result) =>
+            result.wasApplied
+              ? 'Import applied successfully.'
+              : result.applyReadiness === 'RequiresReview'
+                ? 'Review is still required before apply.'
+                : result.applyReadiness === 'BlockedByValidationErrors'
+                  ? 'Validation errors still block apply.'
+                  : 'Import was not applied.',
+          error: getErrorMessage,
+        },
+      );
 
-    await toast.promise(applyPromise, {
-      loading: 'Applying import changes...',
-      success: 'Import applied successfully.',
-      error: getErrorMessage,
-    });
+      return result;
+    } catch {
+      return;
+    }
   }
 
   async function cancelBatch() {
@@ -84,10 +78,7 @@ export function useImportsPageState() {
       return;
     }
 
-    const cancelPromise = cancelMutation.mutateAsync(currentBatch.id).then((result) => {
-      clearBatchDecisions(currentBatch.id);
-      return result;
-    });
+    const cancelPromise = cancelMutation.mutateAsync(currentBatch.id);
 
     await toast.promise(cancelPromise, {
       loading: 'Cancelling current import...',
@@ -98,11 +89,11 @@ export function useImportsPageState() {
 
   return {
     strategyKey,
-    decisionState,
     importHistory,
     currentBatch,
     activeError,
-    hasStoredDecisionForAllConflicts,
+    requiresReviewBeforeApply,
+    blockedByValidationErrors,
     isStartingImport: startImportMutation.isPending,
     isApplyingBatch: applyMutation.isPending,
     isCancellingBatch: cancelMutation.isPending,

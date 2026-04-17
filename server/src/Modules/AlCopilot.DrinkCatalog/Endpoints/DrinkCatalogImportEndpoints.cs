@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Routing;
 
 namespace AlCopilot.DrinkCatalog.Endpoints;
 
-internal static class DrinkCatalogImportSyncEndpoints
+internal static class DrinkCatalogImportEndpoints
 {
     public static void Map(RouteGroupBuilder group)
     {
@@ -35,20 +35,7 @@ internal static class DrinkCatalogImportSyncEndpoints
         imports.MapPost("/{id:guid}/cancel", async (Guid id, IMediator mediator, CancellationToken ct) =>
             Results.Ok(await mediator.Send(new CancelImportBatchCommand(id), ct)));
 
-        imports.MapPost("/{id:guid}/apply", async (
-            Guid id,
-            ApplyImportBatchRequest request,
-            IMediator mediator,
-            CancellationToken ct) =>
-            Results.Ok(await mediator.Send(
-                new ApplyImportBatchCommand(id, request.OverrideDuplicateFingerprint, request.Decisions ?? []),
-                ct)));
-    }
-
-    private sealed class ApplyImportBatchRequest
-    {
-        public bool OverrideDuplicateFingerprint { get; init; }
-
-        public List<ImportDecisionInput>? Decisions { get; init; }
+        imports.MapPost("/{id:guid}/apply", async (Guid id, IMediator mediator, CancellationToken ct) =>
+            Results.Ok(await mediator.Send(new ApplyImportBatchCommand(id), ct)));
     }
 }

@@ -45,6 +45,15 @@ public sealed class DomainEventTypeRegistryTests
 
         names[typeof(DrinkCreatedEvent)].ShouldBe("drink-catalog.drink-created.v1");
         names[typeof(DrinkDeletedEvent)].ShouldBe("drink-catalog.drink-deleted.v1");
+        names[typeof(TagCreatedEvent)].ShouldBe("drink-catalog.tag-created.v1");
+        names[typeof(TagRenamedEvent)].ShouldBe("drink-catalog.tag-renamed.v1");
+        names[typeof(IngredientCreatedEvent)].ShouldBe("drink-catalog.ingredient-created.v1");
+        names[typeof(IngredientUpdatedEvent)].ShouldBe("drink-catalog.ingredient-updated.v1");
+        names[typeof(ImportBatchInitializedEvent)].ShouldBe("drink-catalog.import-batch-initialized.v1");
+        names[typeof(ImportBatchPreparedEvent)].ShouldBe("drink-catalog.import-batch-prepared.v1");
+        names[typeof(ImportBatchReviewedEvent)].ShouldBe("drink-catalog.import-batch-reviewed.v1");
+        names[typeof(ImportBatchCompletedEvent)].ShouldBe("drink-catalog.import-batch-completed.v1");
+        names[typeof(ImportBatchCancelledEvent)].ShouldBe("drink-catalog.import-batch-cancelled.v1");
     }
 
     private sealed record UnregisteredEvent(Guid AggregateId) : IDomainEvent

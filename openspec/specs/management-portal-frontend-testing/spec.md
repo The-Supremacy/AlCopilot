@@ -18,17 +18,20 @@ The system SHALL keep page-level frontend tests for the management portal catalo
 
 ### Requirement: Cover Import Review And Apply Gating With Frontend Tests
 
-The system SHALL keep frontend tests for the management portal import workspace so explicit review decisions remain the gate for apply from the current-import workspace.
+The system SHALL keep frontend tests for the management portal import workspace so batch review visibility and apply gating remain stable without row-level decision state, including after import-processing flow refactors.
 
-**Scenario: Review page proves stale refresh and decision editing**
+**Scenario: Review page proves stale refresh and inspection-first rendering**
 
 - Given an in-progress import batch with stale or current review data
 - When frontend verification runs
-- Then the portal test suite SHALL prove stale review refresh behavior and conflict-decision editing on the review page
+- Then the portal test suite SHALL prove stale review refresh behavior and review-row rendering on the review page
+- And the portal test suite SHALL prove the review page does not depend on row-level approve or reject controls
+- And the portal test suite SHALL remain valid if backend processing internals change while review-page behavior stays the same
 
-**Scenario: Imports workspace proves explicit decision gating**
+**Scenario: Imports workspace proves apply gating without stored decisions**
 
-- Given an in-progress import batch with conflicts or validation diagnostics
+- Given an in-progress import batch with update rows or validation diagnostics
 - When frontend verification runs
-- Then the portal test suite SHALL prove apply stays blocked for validation errors or unresolved conflicts
-- And the portal test suite SHALL prove apply uses stored review decisions and clears them after successful apply or cancel
+- Then the portal test suite SHALL prove apply stays blocked for validation errors or review-required update batches
+- And the portal test suite SHALL prove the workspace does not require stored row-level decisions before apply
+- And the portal test suite SHALL cover any contract ripple caused by refined batch or apply-result readiness naming

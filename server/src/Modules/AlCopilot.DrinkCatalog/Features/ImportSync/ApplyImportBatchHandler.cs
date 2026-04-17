@@ -1,23 +1,22 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
-using AlCopilot.Shared.Models;
 using Mediator;
 
 namespace AlCopilot.DrinkCatalog.Features.ImportSync;
 
 public sealed class ApplyImportBatchHandler(
     IImportBatchRepository importBatchRepository,
-    ImportBatchWorkflowService workflowService,
-    AuditLogWriter auditLogWriter,
-    ICurrentActorAccessor currentActorAccessor,
-    IUnitOfWork unitOfWork) : IRequestHandler<ApplyImportBatchCommand, ImportBatchDto>
+    IImportBatchProcessingService processingService,
+    IImportBatchApplyService applyService,
+    IAuditLogWriter auditLogWriter,
+    IDrinkCatalogUnitOfWork unitOfWork) : IRequestHandler<ApplyImportBatchCommand, ImportBatchApplyResultDto>
 {
-    public async ValueTask<ImportBatchDto> Handle(ApplyImportBatchCommand request, CancellationToken cancellationToken)
+    public async ValueTask<ImportBatchApplyResultDto> Handle(ApplyImportBatchCommand request, CancellationToken cancellationToken)
     {
-        var currentActor = currentActorAccessor.GetCurrent();
         var batch = await importBatchRepository.GetByIdAsync(request.BatchId, cancellationToken)
             ?? throw new NotFoundException($"Import batch '{request.BatchId}' not found.");
 
@@ -27,35 +26,21 @@ public sealed class ApplyImportBatchHandler(
         if (batch.Status is ImportBatchStatus.Cancelled)
             throw new InvalidStateException("Cancelled batches cannot be applied.");
 
-        if (batch.Diagnostics.Any(d => string.Equals(d.Severity, "error", StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidStateException("Batch cannot be applied while validation errors are present.");
-
-        if (!request.OverrideDuplicateFingerprint && !string.IsNullOrWhiteSpace(batch.SourceFingerprint))
+        if (batch.ReviewSummary is null || batch.ReviewRows.Count == 0)
         {
-            var existing = await importBatchRepository.GetAppliedByStrategyAndFingerprintAsync(
-                batch.Strategy,
-                batch.SourceFingerprint!,
-                cancellationToken);
-
-            if (existing is not null && existing.Id != batch.Id)
-                throw new ConflictException("A completed batch already exists for this source fingerprint. Use override to re-run.");
+            var processingResult = await processingService.ProcessAsync(batch.ImportContent, cancellationToken);
+            batch.RecordPreparedSnapshot(processingResult);
+            importBatchRepository.Update(batch);
         }
 
-        if (batch.ReviewSummary is null || batch.ReviewedAtUtc is null)
+        var batchApplyReadiness = processingService.GetBatchApplyReadiness(batch);
+        if (batchApplyReadiness is not ImportBatchApplyReadiness.Ready)
         {
-            var diagnostics = await workflowService.ValidateAsync(batch.ImportContent, cancellationToken);
-            batch.RecordValidation(diagnostics);
-
-            var review = await workflowService.ReviewAsync(batch.ImportContent, batch.Diagnostics, cancellationToken);
-            batch.RecordReview(review.Summary, review.Conflicts, review.Rows, batch.Diagnostics);
+            return batch.ToApplyResultDto(batchApplyReadiness, false);
         }
 
-        var decisions = (request.Decisions ?? [])
-            .ToDictionary(
-                d => ImportBatchWorkflowService.BuildDecisionKey(d.TargetType, d.TargetKey),
-                StringComparer.OrdinalIgnoreCase);
-
-        var summary = await workflowService.ApplyAsync(batch, decisions, currentActor, cancellationToken);
+        var summary = await applyService.ApplyAsync(batch, cancellationToken);
+        importBatchRepository.Update(batch);
         auditLogWriter.Write(
             "import-batch.apply",
             "import-batch",
@@ -63,6 +48,6 @@ public sealed class ApplyImportBatchHandler(
             $"Applied import batch '{batch.Id}' with {summary.CreatedCount} created, {summary.UpdatedCount} updated, {summary.RejectedCount} rejected.");
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return batch.ToDto();
+        return batch.ToApplyResultDto(batch.GetApplyReadiness(), true);
     }
 }

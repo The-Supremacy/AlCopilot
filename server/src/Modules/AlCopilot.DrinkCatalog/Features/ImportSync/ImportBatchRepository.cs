@@ -1,5 +1,4 @@
 using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlCopilot.DrinkCatalog.Features.ImportSync;
@@ -15,17 +14,7 @@ internal sealed class ImportBatchRepository(DrinkCatalogDbContext dbContext) : I
 
     public void Remove(ImportBatch aggregate) => dbContext.ImportBatches.Remove(aggregate);
 
-    public async Task<ImportBatch?> GetAppliedByStrategyAndFingerprintAsync(
-        ImportStrategyKey strategyKey,
-        string sourceFingerprint,
-        CancellationToken cancellationToken = default)
-    {
-        return await dbContext.ImportBatches.FirstOrDefaultAsync(
-            b => b.StrategyKey == strategyKey.ToWireValue()
-                && b.SourceFingerprint == sourceFingerprint
-                && b.Status == ImportBatchStatus.Completed,
-            cancellationToken);
-    }
+    public void Update(ImportBatch aggregate) => dbContext.ImportBatches.Update(aggregate);
 
     public async Task<List<ImportBatch>> GetHistoryAsync(CancellationToken cancellationToken = default)
     {

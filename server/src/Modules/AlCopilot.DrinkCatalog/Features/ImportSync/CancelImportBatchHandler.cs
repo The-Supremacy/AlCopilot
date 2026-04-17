@@ -1,5 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
@@ -9,8 +10,8 @@ namespace AlCopilot.DrinkCatalog.Features.ImportSync;
 
 public sealed class CancelImportBatchHandler(
     IImportBatchRepository importBatchRepository,
-    AuditLogWriter auditLogWriter,
-    IUnitOfWork unitOfWork) : IRequestHandler<CancelImportBatchCommand, ImportBatchDto>
+    IAuditLogWriter auditLogWriter,
+    IDrinkCatalogUnitOfWork unitOfWork) : IRequestHandler<CancelImportBatchCommand, ImportBatchDto>
 {
     public async ValueTask<ImportBatchDto> Handle(CancelImportBatchCommand request, CancellationToken cancellationToken)
     {
@@ -24,6 +25,7 @@ public sealed class CancelImportBatchHandler(
             return batch.ToDto();
 
         batch.MarkCancelled();
+        importBatchRepository.Update(batch);
         auditLogWriter.Write(
             "import-batch.cancel",
             "import-batch",

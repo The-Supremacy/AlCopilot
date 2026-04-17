@@ -1,4 +1,5 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
@@ -8,8 +9,8 @@ namespace AlCopilot.DrinkCatalog.Features.Ingredient;
 
 public sealed class CreateIngredientHandler(
     IIngredientRepository ingredientRepository,
-    AuditLogWriter auditLogWriter,
-    IUnitOfWork unitOfWork) : IRequestHandler<CreateIngredientCommand, Guid>
+    IAuditLogWriter auditLogWriter,
+    IDrinkCatalogUnitOfWork unitOfWork) : IRequestHandler<CreateIngredientCommand, Guid>
 {
     public async ValueTask<Guid> Handle(CreateIngredientCommand request, CancellationToken cancellationToken)
     {

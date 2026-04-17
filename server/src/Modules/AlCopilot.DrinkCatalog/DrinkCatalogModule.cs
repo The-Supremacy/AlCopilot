@@ -34,7 +34,7 @@ public static class DrinkCatalogModule
             options.AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>());
         });
 
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<DrinkCatalogDbContext>());
+        services.AddScoped<IDrinkCatalogUnitOfWork>(sp => sp.GetRequiredService<DrinkCatalogDbContext>());
         services.AddScoped<IDrinkRepository, DrinkRepository>();
         services.AddScoped<IDrinkQueryService, DrinkQueryService>();
         services.AddScoped<IDrinkRecipeIntegrityValidator, DrinkRecipeIntegrityValidator>();
@@ -45,8 +45,9 @@ public static class DrinkCatalogModule
         services.AddScoped<IImportBatchRepository, ImportBatchRepository>();
         services.AddScoped<IAuditLogEntryRepository, AuditLogEntryRepository>();
         services.AddScoped<IAuditLogQueryService, AuditLogQueryService>();
-        services.AddScoped<AuditLogWriter>();
-        services.AddScoped<ImportBatchWorkflowService>();
+        services.AddScoped<IAuditLogWriter, AuditLogWriter>();
+        services.AddScoped<IImportBatchProcessingService, ImportBatchProcessingService>();
+        services.AddScoped<IImportBatchApplyService, ImportBatchApplyService>();
         services.AddScoped<IImportSourceStrategy, IbaCocktailsSnapshotImportSourceStrategy>();
         services.AddScoped<IImportSourceStrategyResolver, ImportSourceStrategyResolver>();
 

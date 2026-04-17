@@ -28,7 +28,7 @@ public static class RecommendationModule
             options.AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>());
         });
 
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<RecommendationDbContext>());
+        services.AddScoped<IRecommendationUnitOfWork>(sp => sp.GetRequiredService<RecommendationDbContext>());
         services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
         services.AddScoped<IRecommendationSessionQueryService, RecommendationSessionQueryService>();
         services.AddScoped<IRecommendationCandidateBuilder, DeterministicRecommendationCandidateBuilder>();

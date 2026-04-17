@@ -1,5 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
 using AlCopilot.Shared.Data;
@@ -8,13 +9,13 @@ using Mediator;
 
 namespace AlCopilot.DrinkCatalog.Features.ImportSync;
 
-public sealed class StartImportHandler(
+public sealed class InitializeImportBatchHandler(
     IImportSourceStrategyResolver strategyResolver,
     IImportBatchRepository importBatchRepository,
-    ImportBatchWorkflowService workflowService,
-    AuditLogWriter auditLogWriter,
+    IImportBatchProcessingService processingService,
+    IAuditLogWriter auditLogWriter,
     ICurrentActorAccessor currentActorAccessor,
-    IUnitOfWork unitOfWork) : IRequestHandler<StartImportCommand, ImportBatchDto>
+    IDrinkCatalogUnitOfWork unitOfWork) : IRequestHandler<StartImportCommand, ImportBatchDto>
 {
     public async ValueTask<ImportBatchDto> Handle(StartImportCommand request, CancellationToken cancellationToken)
     {
@@ -40,29 +41,27 @@ public sealed class StartImportHandler(
         var batch = ImportBatch.Create(
             strategy.Key,
             provenance,
-            strategyResult.Import,
-            strategyResult.SourceFingerprint);
+            strategyResult.Import);
 
-        var diagnostics = await workflowService.ValidateAsync(batch.ImportContent, cancellationToken);
-        var review = await workflowService.ReviewAsync(batch.ImportContent, diagnostics, cancellationToken);
-        batch.RecordValidationAndReview(diagnostics, review.Summary, review.Conflicts, review.Rows);
+        var processingResult = await processingService.ProcessAsync(batch.ImportContent, cancellationToken);
+        batch.RecordPreparedSnapshot(processingResult);
 
         importBatchRepository.Add(batch);
         auditLogWriter.Write(
-            "import-batch.create",
+            "import-batch.initialize",
             "import-batch",
             batch.Id.ToString(),
-            $"Created import batch '{batch.Id}' from '{batch.Provenance.DisplayName ?? batch.StrategyKey}'.");
+            $"Initialized import batch '{batch.Id}' from '{batch.Provenance.DisplayName ?? batch.StrategyKey}'.");
         auditLogWriter.Write(
             "import-batch.validate",
             "import-batch",
             batch.Id.ToString(),
-            $"Validated import batch '{batch.Id}' during import start with {diagnostics.Count} diagnostics.");
+            $"Validated import batch '{batch.Id}' during import initialization with {processingResult.Diagnostics.Count} diagnostics.");
         auditLogWriter.Write(
-            "import-batch.review",
+            "import-batch.process",
             "import-batch",
             batch.Id.ToString(),
-            $"Generated review snapshot for import batch '{batch.Id}' with {review.Conflicts.Count} conflicts and {review.Rows.Count} review rows.");
+            $"Processed import batch '{batch.Id}' into a review snapshot with {processingResult.ReviewSummary.UpdateCount} updates and {processingResult.ReviewRows.Count} review rows.");
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return batch.ToDto();

@@ -1,11 +1,22 @@
+import { act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
+import { toast } from 'sonner';
 import { ImportReviewPage } from '@/pages/ImportReviewPage';
 
 const reviewImportBatchMutation = {
   mutate: vi.fn(),
+  isPending: false,
+  error: null as null | Error,
+};
+const applyImportBatchMutation = {
+  mutateAsync: vi.fn(),
+  isPending: false,
+  error: null as null | Error,
+};
+const cancelImportBatchMutation = {
+  mutateAsync: vi.fn(),
   isPending: false,
   error: null as null | Error,
 };
@@ -16,23 +27,17 @@ const importBatchQuery = {
     id: 'batch-stale',
     strategyKey: 'iba-cocktails-snapshot',
     status: 'InProgress',
+    requiresReview: true,
+    applyReadiness: 'RequiresReview',
     source: { displayName: 'IBA Snapshot' },
     diagnostics: [{ rowNumber: null, code: 'warn', message: 'Check row 1', severity: 'warning' }],
-    reviewConflicts: [
-      {
-        targetType: 'drink',
-        targetKey: 'Negroni',
-        action: 'update',
-        summary: "Drink 'Negroni' would update metadata, tags, or recipe entries.",
-      },
-    ],
     reviewRows: [
       {
         targetType: 'drink',
         targetKey: 'Negroni',
         action: 'update',
         changeSummary: "Drink 'Negroni' would update metadata, tags, or recipe entries.",
-        hasConflict: true,
+        requiresReview: true,
         hasError: false,
       },
     ],
@@ -44,9 +49,17 @@ const importBatchQuery = {
   isLoading: false,
 };
 
+vi.mock('sonner', () => ({
+  toast: {
+    promise: vi.fn((promise: Promise<unknown>) => promise),
+  },
+}));
+
 vi.mock('@/features/imports/useImportData', () => ({
   useImportBatch: () => importBatchQuery,
   useReviewImportBatchMutation: () => reviewImportBatchMutation,
+  useApplyImportBatchMutation: () => applyImportBatchMutation,
+  useCancelImportBatchMutation: () => cancelImportBatchMutation,
 }));
 
 vi.mock('@tanstack/react-router', () => ({
@@ -68,28 +81,29 @@ beforeEach(() => {
   reviewImportBatchMutation.mutate.mockReset();
   reviewImportBatchMutation.isPending = false;
   reviewImportBatchMutation.error = null;
+  applyImportBatchMutation.mutateAsync.mockReset();
+  applyImportBatchMutation.isPending = false;
+  applyImportBatchMutation.error = null;
+  cancelImportBatchMutation.mutateAsync.mockReset();
+  cancelImportBatchMutation.isPending = false;
+  cancelImportBatchMutation.error = null;
+  vi.mocked(toast.promise).mockClear();
   importBatchQuery.isLoading = false;
   importBatchQuery.data = {
     id: 'batch-stale',
     strategyKey: 'iba-cocktails-snapshot',
     status: 'InProgress',
+    requiresReview: true,
+    applyReadiness: 'RequiresReview',
     source: { displayName: 'IBA Snapshot' },
     diagnostics: [{ rowNumber: null, code: 'warn', message: 'Check row 1', severity: 'warning' }],
-    reviewConflicts: [
-      {
-        targetType: 'drink',
-        targetKey: 'Negroni',
-        action: 'update',
-        summary: "Drink 'Negroni' would update metadata, tags, or recipe entries.",
-      },
-    ],
     reviewRows: [
       {
         targetType: 'drink',
         targetKey: 'Negroni',
         action: 'update',
         changeSummary: "Drink 'Negroni' would update metadata, tags, or recipe entries.",
-        hasConflict: true,
+        requiresReview: true,
         hasError: false,
       },
     ],
@@ -124,8 +138,7 @@ test('does not auto-refresh review for completed batches', async () => {
   expect(reviewImportBatchMutation.mutate).not.toHaveBeenCalled();
 });
 
-test('renders diagnostics and lets the user record a conflict decision', async () => {
-  const user = userEvent.setup();
+test('renders diagnostics and inspection-first review state', async () => {
   importBatchQuery.data = {
     ...importBatchQuery.data,
     id: 'batch-current',
@@ -137,12 +150,57 @@ test('renders diagnostics and lets the user record a conflict decision', async (
   renderPage();
 
   expect(screen.getByText('Check row 1')).toBeInTheDocument();
+  expect(screen.getByText('Review before apply')).toBeInTheDocument();
+  expect(screen.queryByText('Approve update')).not.toBeInTheDocument();
+  expect(screen.queryByPlaceholderText('Reason (optional)')).not.toBeInTheDocument();
+});
 
-  const selects = screen.getAllByRole('combobox');
-  await user.selectOptions(selects[3], 'reject-update');
-  const reasonInput = screen.getByPlaceholderText('Reason (optional)');
-  fireEvent.change(reasonInput, { target: { value: 'Keep the existing recipe' } });
+test('applies from the review page when the batch is ready', async () => {
+  importBatchQuery.data = {
+    ...importBatchQuery.data,
+    id: 'batch-ready',
+    applyReadiness: 'Ready',
+    requiresReview: false,
+    reviewSummary: { createCount: 1, updateCount: 0, skipCount: 0 },
+    reviewedAtUtc: '2026-04-12T01:00:00Z',
+  };
+  batchId = 'batch-ready';
+  applyImportBatchMutation.mutateAsync.mockResolvedValue({
+    batch: { ...importBatchQuery.data, status: 'Completed', applyReadiness: 'Completed' },
+    applyReadiness: 'Completed',
+    wasApplied: true,
+  });
 
-  expect(selects[3]).toHaveValue('reject-update');
-  expect(reasonInput).toHaveValue('Keep the existing recipe');
+  renderPage();
+
+  await act(async () => {
+    screen.getByRole('button', { name: 'Apply' }).click();
+  });
+
+  expect(applyImportBatchMutation.mutateAsync).toHaveBeenCalledWith({ id: 'batch-ready' });
+  expect(toast.promise).toHaveBeenCalled();
+});
+
+test('cancels from the review page while batch is in progress', async () => {
+  importBatchQuery.data = {
+    ...importBatchQuery.data,
+    id: 'batch-cancel',
+    reviewSummary: { createCount: 0, updateCount: 1, skipCount: 0 },
+    reviewedAtUtc: '2026-04-12T01:00:00Z',
+  };
+  batchId = 'batch-cancel';
+  cancelImportBatchMutation.mutateAsync.mockResolvedValue({
+    ...importBatchQuery.data,
+    status: 'Cancelled',
+    applyReadiness: 'Cancelled',
+  });
+
+  renderPage();
+
+  await act(async () => {
+    screen.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  expect(cancelImportBatchMutation.mutateAsync).toHaveBeenCalledWith('batch-cancel');
+  expect(toast.promise).toHaveBeenCalled();
 });

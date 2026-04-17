@@ -1,5 +1,6 @@
 using AlCopilot.CustomerProfile.Contracts.Commands;
 using AlCopilot.CustomerProfile.Contracts.DTOs;
+using AlCopilot.CustomerProfile.Data;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Models;
 using Mediator;
@@ -8,7 +9,7 @@ namespace AlCopilot.CustomerProfile.Features.Profile;
 
 public sealed class SaveCustomerProfileHandler(
     ICustomerProfileRepository customerProfileRepository,
-    IUnitOfWork unitOfWork,
+    ICustomerProfileUnitOfWork unitOfWork,
     ICurrentActorAccessor currentActorAccessor) : IRequestHandler<SaveCustomerProfileCommand, CustomerProfileDto>
 {
     public async ValueTask<CustomerProfileDto> Handle(

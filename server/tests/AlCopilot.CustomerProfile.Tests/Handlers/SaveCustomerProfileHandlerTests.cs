@@ -1,4 +1,5 @@
 using AlCopilot.CustomerProfile.Contracts.Commands;
+using AlCopilot.CustomerProfile.Data;
 using AlCopilot.CustomerProfile.Features.Profile;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Models;
@@ -10,7 +11,7 @@ namespace AlCopilot.CustomerProfile.Tests.Handlers;
 public sealed class SaveCustomerProfileHandlerTests
 {
     private readonly ICustomerProfileRepository _repository = Substitute.For<ICustomerProfileRepository>();
-    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly ICustomerProfileUnitOfWork _unitOfWork = Substitute.For<ICustomerProfileUnitOfWork>();
     private readonly ICurrentActorAccessor _currentActorAccessor = Substitute.For<ICurrentActorAccessor>();
     private readonly SaveCustomerProfileHandler _handler;
 

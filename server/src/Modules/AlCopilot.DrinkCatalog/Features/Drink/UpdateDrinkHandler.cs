@@ -1,4 +1,5 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
@@ -12,8 +13,8 @@ public sealed class UpdateDrinkHandler(
     IDrinkRepository drinkRepository,
     IDrinkRecipeIntegrityValidator drinkRecipeIntegrityValidator,
     ITagRepository tagRepository,
-    AuditLogWriter auditLogWriter,
-    IUnitOfWork unitOfWork) : IRequestHandler<UpdateDrinkCommand, bool>
+    IAuditLogWriter auditLogWriter,
+    IDrinkCatalogUnitOfWork unitOfWork) : IRequestHandler<UpdateDrinkCommand, bool>
 {
     public async ValueTask<bool> Handle(UpdateDrinkCommand request, CancellationToken cancellationToken)
     {

@@ -1,3 +1,4 @@
+using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.Shared.Domain;
 
 namespace AlCopilot.DrinkCatalog.Features.Ingredient;
@@ -12,18 +13,22 @@ public sealed class Ingredient : AggregateRoot<Guid>
 
     public static Ingredient Create(IngredientName name, List<string>? notableBrands = null)
     {
-        return new Ingredient
+        var ingredient = new Ingredient
         {
             Id = Guid.NewGuid(),
             Name = name,
             NotableBrands = notableBrands ?? [],
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
+
+        ingredient.Raise(new IngredientCreatedEvent(ingredient.Id));
+        return ingredient;
     }
 
     public void Update(IngredientName name, List<string> brands)
     {
         Name = name;
         NotableBrands = brands;
+        Raise(new IngredientUpdatedEvent(Id));
     }
 }
