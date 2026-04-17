@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Features/ImportSync/SeedData/*.json" />
+    <EmbeddedResource Include="Features/ImportBatch/SeedData/*.json" />
   </ItemGroup>
 
 </Project>

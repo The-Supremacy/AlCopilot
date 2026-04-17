@@ -1,4 +1,4 @@
-using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
+using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 using AlCopilot.Shared.Errors;
 using Shouldly;
 

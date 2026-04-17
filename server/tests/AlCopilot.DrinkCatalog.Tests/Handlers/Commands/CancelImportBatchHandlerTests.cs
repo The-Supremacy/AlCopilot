@@ -1,8 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
 using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
-using AlCopilot.DrinkCatalog.Features.ImportSync;
-using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
+using AlCopilot.DrinkCatalog.Features.ImportBatch;
+using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 using AlCopilot.Shared.Data;
 using NSubstitute;
 using Shouldly;

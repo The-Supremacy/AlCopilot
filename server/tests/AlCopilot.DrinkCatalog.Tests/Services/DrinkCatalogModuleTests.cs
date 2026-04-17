@@ -1,5 +1,5 @@
 using AlCopilot.DrinkCatalog;
-using AlCopilot.DrinkCatalog.Features.ImportSync;
+using AlCopilot.DrinkCatalog.Features.ImportBatch;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;

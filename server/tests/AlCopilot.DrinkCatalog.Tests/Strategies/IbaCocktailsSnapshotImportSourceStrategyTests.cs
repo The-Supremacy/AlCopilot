@@ -1,5 +1,5 @@
-using AlCopilot.DrinkCatalog.Features.ImportSync;
-using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
+using AlCopilot.DrinkCatalog.Features.ImportBatch;
+using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 using Shouldly;
 
 namespace AlCopilot.DrinkCatalog.Tests.Strategies;

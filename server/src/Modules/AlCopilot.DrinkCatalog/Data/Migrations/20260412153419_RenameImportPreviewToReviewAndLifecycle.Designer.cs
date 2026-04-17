@@ -142,7 +142,7 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                     b.ToTable("RecipeEntries", "drink_catalog");
                 });
 
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.ImportSync.ImportBatch", b =>
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.ImportBatch.ImportBatch", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()

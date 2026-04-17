@@ -1,6 +1,6 @@
 using AlCopilot.DrinkCatalog.Data;
-using AlCopilot.DrinkCatalog.Features.ImportSync;
-using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
+using AlCopilot.DrinkCatalog.Features.ImportBatch;
+using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
 
