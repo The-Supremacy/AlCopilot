@@ -49,7 +49,7 @@ export function useImportsPageState() {
     }
 
     try {
-      const result = await toast.promise(
+      await toast.promise(
         applyMutation.mutateAsync({
           id: currentBatch.id,
         }),
@@ -66,8 +66,6 @@ export function useImportsPageState() {
           error: getErrorMessage,
         },
       );
-
-      return result;
     } catch {
       return;
     }
