@@ -43,6 +43,8 @@ The system is a single deployable unit with internal module boundaries, one `DbC
 - [ADR 0010: Explicit In-Process CQRS And Preserved Domain Events](adr/0010-explicit-in-process-cqrs-and-preserved-domain-events.md) — accepted backend command/query and domain-event direction
 - [ADR 0011: Customer Portal Authentication With Keycloak And Host Cookies](adr/0011-customer-portal-authentication-with-keycloak-and-host-cookies.md) — accepted customer authentication and customer-session separation direction
 - [ADR 0012: Customer Profile And Recommendation Modules With Deterministic Candidate Building](adr/0012-customer-profile-and-recommendation-modules-with-deterministic-candidate-building.md) — accepted customer module split and recommendation orchestration direction
+- [ADR 0014: Feature-Oriented Backend Module Structure](adr/0014-feature-oriented-backend-module-structure.md) — accepted backend feature layout and abstraction-placement conventions
+- [ADR 0015: Recommendation Workflows With Agent Framework](adr/0015-recommendation-workflows-with-agent-framework.md) — accepted recommendation workflow orchestration and local runtime direction
 
 ---
 

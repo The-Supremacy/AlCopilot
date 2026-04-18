@@ -1,6 +1,7 @@
 using AlCopilot.CustomerProfile.Contracts.DTOs;
 using AlCopilot.CustomerProfile.Contracts.Queries;
 using AlCopilot.CustomerProfile.Features.Profile;
+using AlCopilot.CustomerProfile.Features.Profile.Abstractions;
 using AlCopilot.Shared.Models;
 using NSubstitute;
 using Shouldly;

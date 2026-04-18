@@ -1,6 +1,7 @@
 using AlCopilot.CustomerProfile.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.Recommendation.Contracts.DTOs;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
 namespace AlCopilot.Recommendation.Features.Recommendation;
 

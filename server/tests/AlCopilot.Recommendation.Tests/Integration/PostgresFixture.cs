@@ -1,3 +1,4 @@
+using AlCopilot.Recommendation.Contracts.Events;
 using AlCopilot.Recommendation.Data;
 using AlCopilot.Shared.Data;
 using AlCopilot.Testing.Shared;
@@ -11,7 +12,7 @@ public sealed class PostgresFixture : PostgreSqlContainerFixture, IAsyncLifetime
     public RecommendationDbContext CreateDbContext()
     {
         var services = new ServiceCollection();
-        services.AddDomainEventAssembly(typeof(AlCopilot.Recommendation.RecommendationModule).Assembly);
+        services.AddDomainEventAssembly(typeof(RecommendationSessionStartedEvent).Assembly);
         services.AddScoped<DomainEventInterceptor>();
         var serviceProvider = services.BuildServiceProvider();
 

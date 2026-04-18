@@ -1,6 +1,6 @@
 using AlCopilot.CustomerProfile.Contracts.DTOs;
 
-namespace AlCopilot.CustomerProfile.Features.Profile;
+namespace AlCopilot.CustomerProfile.Features.Profile.Abstractions;
 
 public interface ICustomerProfileQueryService
 {

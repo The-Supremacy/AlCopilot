@@ -1,5 +1,6 @@
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Recommendation.Data;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlCopilot.Recommendation.Features.Recommendation;

@@ -1,0 +1,86 @@
+# ADR 0015: Recommendation Workflows With Agent Framework
+
+## Status
+
+Accepted
+
+## Date
+
+2026-04-17
+
+## Context
+
+ADR 0012 established the split between `CustomerProfile` and `Recommendation`, preserved deterministic candidate building outside the model, and chose a bounded first iteration for recommendation orchestration.
+
+Since then, the project has clarified additional goals for the recommendation module:
+
+- gain hands-on experience with current Microsoft AI orchestration tooling as part of the project's learning and portfolio value
+- keep deterministic recommendation policy explicit and testable
+- preserve the modular-monolith boundaries and `.Contracts`-only cross-module communication
+- remain practical for CPU-oriented local development on Ollama-hosted models
+- avoid turning recommendation behavior into an opaque framework-specific graph
+
+The team considered staying with direct handler orchestration and a thin Semantic Kernel wrapper.
+The team also considered adopting Microsoft Agent Framework more fully for deterministic multi-step recommendation execution.
+
+## Decision
+
+Adopt Microsoft Agent Framework workflows for `Recommendation` orchestration, but keep deterministic recommendation policy in normal module code.
+
+Specifically:
+
+- The `Recommendation` module SHALL use Agent Framework workflows as the orchestration layer for bounded recommendation execution.
+- Workflow steps SHALL coordinate module-owned collaborators such as profile snapshot readers, candidate builders, retrieval services, narration services, and persistence services.
+- Deterministic recommendation policy such as hard exclusions, candidate scoring, and make-now versus buy-next grouping SHALL remain in plain module services or aggregates rather than being embedded directly into workflow definitions.
+- Agent Framework adoption in this module is explicitly motivated by both architectural fit and learning value.
+- Recommendation persistence SHALL remain module-owned and SHALL stay outside model-owned execution.
+- Recommendation narration SHALL use Agent Framework-native history providers and context providers rather than manual prompt assembly as the primary memory mechanism.
+- Read-only model tools MAY still be used when helpful, but Agent Framework workflows replace Semantic Kernel tool calling as the primary orchestration mechanism.
+- The recommendation module SHOULD prefer `ChatClientAgentOptions`, `ChatHistoryProvider`, and `AIContextProvider` for model-side conversation state.
+- Semantic Kernel MAY remain as an implementation detail for model integration where it adds value, but it is no longer the architectural center of recommendation execution.
+- The default local CPU-oriented development model profile for recommendation SHALL be `gemma4:e4b` via Ollama unless a more suitable local default is later documented.
+
+## Reason
+
+This ADR is `Accepted` because the team intentionally wants real experience with current AI-native orchestration tooling, not only the minimal implementation required to ship the feature.
+
+Agent Framework workflows provide a credible way to model the recommendation pipeline as explicit deterministic steps without forcing the project into a multi-agent design it does not currently need.
+At the same time, keeping recommendation policy in plain module code limits framework coupling and preserves testability.
+
+The chosen model direction reflects current local-development constraints.
+The project can allocate roughly 16 GB of RAM to local model execution, which makes `gemma4:e4b` a better default fit than larger Ollama-hosted models for day-to-day development.
+
+## Consequences
+
+- The recommendation module will gain a new workflow dependency and orchestration layer.
+- Recommendation code should be structured so workflow steps call plain services rather than becoming the sole home of business rules.
+- The project gains hands-on experience with Agent Framework while limiting replacement cost if the framework changes significantly.
+- Recommendation docs and specs should stop describing Semantic Kernel tool calling as the primary orchestration model.
+- Recommendation code will keep a deliberate split where the domain aggregate stores business-visible turns/events, while Agent Framework providers project that domain state into model-visible history and context.
+- Local development defaults should be updated away from older model choices toward `gemma4:e4b`.
+- Because Agent Framework is in preview, the project accepts some API churn risk.
+
+## Alternatives Considered
+
+### Keep direct handler orchestration and use Semantic Kernel as the main recommendation runtime
+
+Rejected.
+This would be simpler in the short term, but it would not provide the workflow-oriented learning value the team wants and would leave the module on a less future-facing orchestration path.
+
+### Put deterministic recommendation logic directly inside Agent Framework workflow steps
+
+Rejected.
+This would make the workflow graph the real home of business policy and would increase framework coupling.
+
+### Adopt AutoGen directly
+
+Rejected.
+Microsoft now positions Agent Framework as the direct successor path for both AutoGen and Semantic Kernel, so new project investment should target the newer framework rather than older AutoGen-first patterns.
+
+## Supersedes
+
+ADR 0012 in recommendation orchestration direction only.
+
+## Superseded by
+
+None.

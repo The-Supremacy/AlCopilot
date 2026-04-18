@@ -2,43 +2,23 @@ using System.Text;
 using AlCopilot.CustomerProfile.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.Recommendation.Contracts.DTOs;
-using Microsoft.SemanticKernel.ChatCompletion;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
 internal sealed class RecommendationNarrationComposer : IRecommendationNarrationComposer
 {
-    private const string MinimalSystemPrompt =
-        """
-        You are an experienced bartender.
-        Base your answer only on the provided customer context and deterministic recommendation candidates.
-        Prefer concise, practical guidance.
-        Do not invent unavailable drinks or ignore prohibited ingredients.
-        """;
-
-    public ChatHistory BuildChatHistory(RecommendationNarrationRequest request, int maxHistoryTurns)
+    public string BuildContextInstructions(
+        string customerMessage,
+        CustomerProfileDto profile,
+        IReadOnlyCollection<RecommendationGroupDto> recommendationGroups,
+        IReadOnlyCollection<DrinkDetailDto> catalogSnapshot)
     {
-        var history = new ChatHistory();
-        history.AddSystemMessage(MinimalSystemPrompt);
-        history.AddSystemMessage(BuildContextMessage(request.Profile, request.RecommendationGroups, request.CatalogSnapshot));
-
-        foreach (var turn in request.Session.Turns
-                     .OrderBy(turn => turn.Sequence)
-                     .TakeLast(Math.Max(1, maxHistoryTurns)))
-        {
-            if (string.Equals(turn.Role, "assistant", StringComparison.Ordinal))
-            {
-                history.AddAssistantMessage(BuildAssistantHistoryMessage(turn));
-                continue;
-            }
-
-            history.AddUserMessage(turn.Content);
-        }
-
-        return history;
+        return BuildContextMessage(customerMessage, profile, recommendationGroups, catalogSnapshot);
     }
 
     private static string BuildContextMessage(
+        string customerMessage,
         CustomerProfileDto profile,
         IReadOnlyCollection<RecommendationGroupDto> groups,
         IReadOnlyCollection<DrinkDetailDto> catalogSnapshot)
@@ -50,6 +30,7 @@ internal sealed class RecommendationNarrationComposer : IRecommendationNarration
         builder.AppendLine($"- dislikes: {FormatIngredientList(profile.DislikedIngredientIds, ingredientNames)}");
         builder.AppendLine($"- prohibited: {FormatIngredientList(profile.ProhibitedIngredientIds, ingredientNames)}");
         builder.AppendLine($"- owned: {FormatIngredientList(profile.OwnedIngredientIds, ingredientNames)}");
+        builder.AppendLine($"- current request: {customerMessage}");
         builder.AppendLine();
         builder.AppendLine("Deterministic candidate groups:");
 
@@ -88,27 +69,6 @@ internal sealed class RecommendationNarrationComposer : IRecommendationNarration
                 group => group.Select(ingredient => ingredient.Name)
                     .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
                     .First());
-    }
-
-    private static string BuildAssistantHistoryMessage(ChatTurn turn)
-    {
-        var groups = turn.GetRecommendationGroups();
-        if (groups.Count == 0)
-        {
-            return turn.Content;
-        }
-
-        var builder = new StringBuilder();
-        builder.AppendLine(turn.Content);
-        builder.AppendLine();
-        builder.AppendLine("Structured recommendation summary:");
-
-        foreach (var group in groups.Where(group => group.Items.Count > 0))
-        {
-            builder.AppendLine($"- {group.Label}: {string.Join(", ", group.Items.Select(item => item.DrinkName))}");
-        }
-
-        return builder.ToString().Trim();
     }
 
     private static string FormatIngredientList(

@@ -1,6 +1,6 @@
 using AlCopilot.Shared.Data;
 
-namespace AlCopilot.Recommendation.Features.Recommendation;
+namespace AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
 public interface IChatSessionRepository : IRepository<ChatSession, Guid>
 {

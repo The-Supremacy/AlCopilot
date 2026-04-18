@@ -1,3 +1,4 @@
+using AlCopilot.Recommendation.Contracts.Events;
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Shared.Domain;
 using System.Text.Json;
@@ -20,7 +21,7 @@ public sealed class ChatSession : AggregateRoot<Guid>
     public static ChatSession Create(string customerId, string firstMessage)
     {
         var now = DateTimeOffset.UtcNow;
-        return new ChatSession
+        var session = new ChatSession
         {
             Id = Guid.NewGuid(),
             CustomerId = customerId,
@@ -28,12 +29,17 @@ public sealed class ChatSession : AggregateRoot<Guid>
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
         };
+
+        session.Raise(new RecommendationSessionStartedEvent(session.Id, customerId));
+        return session;
     }
 
     public void AppendUserTurn(string content)
     {
-        Turns.Add(ChatTurn.CreateUserTurn(Id, Turns.Count + 1, content));
+        var turn = ChatTurn.CreateUserTurn(Id, Turns.Count + 1, content);
+        Turns.Add(turn);
         UpdatedAtUtc = DateTimeOffset.UtcNow;
+        Raise(new RecommendationCustomerMessageRecordedEvent(Id, turn.Id));
     }
 
     public void AppendAssistantTurn(
@@ -41,14 +47,15 @@ public sealed class ChatSession : AggregateRoot<Guid>
         IReadOnlyCollection<RecommendationGroupDto> recommendationGroups,
         IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
     {
-        Turns.Add(
-            ChatTurn.CreateAssistantTurn(
-                Id,
-                Turns.Count + 1,
-                content,
-                recommendationGroups,
-                toolInvocations));
+        var turn = ChatTurn.CreateAssistantTurn(
+            Id,
+            Turns.Count + 1,
+            content,
+            recommendationGroups,
+            toolInvocations);
+        Turns.Add(turn);
         UpdatedAtUtc = DateTimeOffset.UtcNow;
+        Raise(new RecommendationAssistantMessageRecordedEvent(Id, turn.Id));
     }
 
     private static string BuildTitle(string message)

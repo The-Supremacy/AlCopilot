@@ -1,5 +1,6 @@
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Recommendation.Contracts.Queries;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Shared.Models;
 using Mediator;
 

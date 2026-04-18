@@ -6,7 +6,7 @@ public sealed class RecommendationOllamaOptions
 
     public string Endpoint { get; init; } = "http://localhost:11434";
 
-    public string ModelId { get; init; } = "llama3.2:latest";
+    public string ModelId { get; init; } = "gemma4:e4b";
 
     public int MaxHistoryTurns { get; init; } = 12;
 

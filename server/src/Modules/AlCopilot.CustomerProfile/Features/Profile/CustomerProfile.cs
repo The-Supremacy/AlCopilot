@@ -1,3 +1,4 @@
+using AlCopilot.CustomerProfile.Contracts.Events;
 using AlCopilot.Shared.Domain;
 
 namespace AlCopilot.CustomerProfile.Features.Profile;
@@ -19,13 +20,16 @@ public sealed class CustomerProfile : AggregateRoot<Guid>
     public static CustomerProfile Create(CustomerIdentity customerId)
     {
         var now = DateTimeOffset.UtcNow;
-        return new CustomerProfile
+        var profile = new CustomerProfile
         {
             Id = Guid.NewGuid(),
             CustomerId = customerId.Value,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
         };
+
+        profile.Raise(new CustomerProfileCreatedEvent(profile.Id, profile.CustomerId));
+        return profile;
     }
 
     public void UpdateIngredientSets(
@@ -34,11 +38,25 @@ public sealed class CustomerProfile : AggregateRoot<Guid>
         IReadOnlyCollection<Guid> prohibitedIngredientIds,
         IReadOnlyCollection<Guid> ownedIngredientIds)
     {
-        FavoriteIngredientIds = Normalize(favoriteIngredientIds);
-        DislikedIngredientIds = Normalize(dislikedIngredientIds);
-        ProhibitedIngredientIds = Normalize(prohibitedIngredientIds);
-        OwnedIngredientIds = Normalize(ownedIngredientIds);
+        var normalizedFavoriteIngredientIds = Normalize(favoriteIngredientIds);
+        var normalizedDislikedIngredientIds = Normalize(dislikedIngredientIds);
+        var normalizedProhibitedIngredientIds = Normalize(prohibitedIngredientIds);
+        var normalizedOwnedIngredientIds = Normalize(ownedIngredientIds);
+
+        if (FavoriteIngredientIds.SequenceEqual(normalizedFavoriteIngredientIds) &&
+            DislikedIngredientIds.SequenceEqual(normalizedDislikedIngredientIds) &&
+            ProhibitedIngredientIds.SequenceEqual(normalizedProhibitedIngredientIds) &&
+            OwnedIngredientIds.SequenceEqual(normalizedOwnedIngredientIds))
+        {
+            return;
+        }
+
+        FavoriteIngredientIds = normalizedFavoriteIngredientIds;
+        DislikedIngredientIds = normalizedDislikedIngredientIds;
+        ProhibitedIngredientIds = normalizedProhibitedIngredientIds;
+        OwnedIngredientIds = normalizedOwnedIngredientIds;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
+        Raise(new CustomerProfileUpdatedEvent(Id, CustomerId));
     }
 
     private static Guid[] Normalize(IReadOnlyCollection<Guid> ingredientIds)

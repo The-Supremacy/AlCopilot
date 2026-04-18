@@ -1,5 +1,8 @@
+using AlCopilot.Recommendation.Contracts.Events;
 using AlCopilot.Recommendation.Data;
 using AlCopilot.Recommendation.Features.Recommendation;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Workflows;
 using AlCopilot.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +21,7 @@ public static class RecommendationModule
             ?? throw new InvalidOperationException(
                 "Connection string 'recommendation' or fallback 'drink-catalog' is not configured.");
 
-        services.AddDomainEventAssembly(typeof(RecommendationModule).Assembly);
+        services.AddDomainEventAssembly(typeof(RecommendationSessionStartedEvent).Assembly);
         services.AddScoped<DomainEventInterceptor>();
 
         services.AddDbContext<RecommendationDbContext>((sp, options) =>
@@ -33,10 +36,11 @@ public static class RecommendationModule
         services.AddScoped<IRecommendationSessionQueryService, RecommendationSessionQueryService>();
         services.AddScoped<IRecommendationCandidateBuilder, DeterministicRecommendationCandidateBuilder>();
         services.AddScoped<IRecommendationNarrationComposer, RecommendationNarrationComposer>();
-        services.AddScoped<RecommendationKernelFactory>();
-        services.AddScoped<SemanticKernelRecommendationNarrator>();
-        services.AddScoped<IRecommendationNarrator>(sp => sp.GetRequiredService<SemanticKernelRecommendationNarrator>());
-        services.AddScoped<RecommendationReadOnlyTools>();
+        services.AddScoped<IRecommendationChatClientStrategyFactory, RecommendationChatClientStrategyFactory>();
+        services.AddScoped<IRecommendationAgentFactory, RecommendationAgentFactory>();
+        services.AddScoped<IRecommendationWorkflow, RecommendationWorkflow>();
+        services.AddScoped<AgentFrameworkRecommendationNarrator>();
+        services.AddScoped<IRecommendationNarrator>(sp => sp.GetRequiredService<AgentFrameworkRecommendationNarrator>());
         services.AddOptions<RecommendationLlmOptions>()
             .Bind(configuration.GetSection(RecommendationLlmOptions.SectionName));
         services.AddOptions<RecommendationOllamaOptions>()

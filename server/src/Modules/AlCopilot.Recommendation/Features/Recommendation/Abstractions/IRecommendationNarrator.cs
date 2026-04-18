@@ -1,12 +1,10 @@
-using AlCopilot.CustomerProfile.Contracts.DTOs;
-using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.Recommendation.Contracts.DTOs;
 
-namespace AlCopilot.Recommendation.Features.Recommendation;
+namespace AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
 public interface IRecommendationNarrator
 {
-    Task<RecommendationNarrationResult> GenerateAsync(
+    Task<RecommendationNarrationResult> NarrateAsync(
         RecommendationNarrationRequest request,
         CancellationToken cancellationToken = default);
 }
@@ -14,9 +12,7 @@ public interface IRecommendationNarrator
 public sealed record RecommendationNarrationRequest(
     ChatSession Session,
     string CustomerMessage,
-    CustomerProfileDto Profile,
-    IReadOnlyCollection<RecommendationGroupDto> RecommendationGroups,
-    IReadOnlyCollection<DrinkDetailDto> CatalogSnapshot);
+    string ContextInstructions);
 
 public sealed record RecommendationNarrationResult(
     string Content,

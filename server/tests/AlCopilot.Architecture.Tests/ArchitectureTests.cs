@@ -289,7 +289,7 @@ public sealed class HandlerConventionTests
                 .ToArray();
 
         customerProfileHandlerConstructorParameterTypes.ShouldNotContain(
-            typeof(AlCopilot.CustomerProfile.Features.Profile.ICustomerProfileRepository),
+            typeof(AlCopilot.CustomerProfile.Features.Profile.Abstractions.ICustomerProfileRepository),
             "GetCustomerProfileHandler should depend on a query service, not ICustomerProfileRepository.");
 
         var recommendationHandlerConstructorParameterTypes =
@@ -301,7 +301,7 @@ public sealed class HandlerConventionTests
                 .ToArray();
 
         recommendationHandlerConstructorParameterTypes.ShouldNotContain(
-            typeof(AlCopilot.Recommendation.Features.Recommendation.IChatSessionRepository),
+            typeof(AlCopilot.Recommendation.Features.Recommendation.Abstractions.IChatSessionRepository),
             "GetRecommendationSessionHandler should depend on a query service, not IChatSessionRepository.");
     }
 }
@@ -316,8 +316,8 @@ public sealed class RepositoryConventionTests
             typeof(AlCopilot.DrinkCatalog.Features.Drink.IDrinkRepository),
             typeof(AlCopilot.DrinkCatalog.Features.Tag.ITagRepository),
             typeof(AlCopilot.DrinkCatalog.Features.Ingredient.IIngredientRepository),
-            typeof(AlCopilot.CustomerProfile.Features.Profile.ICustomerProfileRepository),
-            typeof(AlCopilot.Recommendation.Features.Recommendation.IChatSessionRepository),
+            typeof(AlCopilot.CustomerProfile.Features.Profile.Abstractions.ICustomerProfileRepository),
+            typeof(AlCopilot.Recommendation.Features.Recommendation.Abstractions.IChatSessionRepository),
         };
 
         foreach (var repositoryType in repositoryTypes)
@@ -367,5 +367,36 @@ public sealed class ServiceConventionTests
 
         result.IsSuccessful.ShouldBeTrue(
             $"Validation services reference DbContext directly: {string.Join(", ", result.FailingTypes?.Select(t => t.FullName) ?? [])}");
+    }
+}
+
+public sealed class FeatureAbstractionConventionTests
+{
+    private static readonly System.Reflection.Assembly DrinkCatalogAssembly =
+        typeof(AlCopilot.DrinkCatalog.DrinkCatalogModule).Assembly;
+    private static readonly System.Reflection.Assembly CustomerProfileAssembly =
+        typeof(AlCopilot.CustomerProfile.CustomerProfileModule).Assembly;
+    private static readonly System.Reflection.Assembly RecommendationAssembly =
+        typeof(AlCopilot.Recommendation.RecommendationModule).Assembly;
+
+    [Fact]
+    public void FeatureInterfaces_ShouldResideInAbstractionsNamespaces()
+    {
+        AssertFeatureInterfacesResideInAbstractions(DrinkCatalogAssembly);
+        AssertFeatureInterfacesResideInAbstractions(CustomerProfileAssembly);
+        AssertFeatureInterfacesResideInAbstractions(RecommendationAssembly);
+    }
+
+    private static void AssertFeatureInterfacesResideInAbstractions(System.Reflection.Assembly assembly)
+    {
+        var offendingTypes = assembly.GetTypes()
+            .Where(type => type.IsInterface)
+            .Where(type => type.Namespace?.Contains(".Features.", StringComparison.Ordinal) == true)
+            .Where(type => type.Namespace?.Contains(".Abstractions", StringComparison.Ordinal) != true)
+            .Select(type => type.FullName)
+            .ToArray();
+
+        offendingTypes.ShouldBeEmpty(
+            $"Feature-local interfaces should reside under an Abstractions namespace in {assembly.GetName().Name}.");
     }
 }

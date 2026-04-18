@@ -1,3 +1,4 @@
+using AlCopilot.Recommendation.Contracts.Events;
 using AlCopilot.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -11,7 +12,7 @@ internal sealed class RecommendationDbContextFactory : IDesignTimeDbContextFacto
     {
         var optionsBuilder = new DbContextOptionsBuilder<RecommendationDbContext>();
         var services = new ServiceCollection();
-        services.AddDomainEventAssembly(typeof(RecommendationModule).Assembly);
+        services.AddDomainEventAssembly(typeof(RecommendationSessionStartedEvent).Assembly);
         services.AddScoped<DomainEventInterceptor>();
         var serviceProvider = services.BuildServiceProvider();
 

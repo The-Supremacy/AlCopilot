@@ -43,5 +43,16 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
         loaded.ShouldNotBeNull();
         loaded!.Turns.Count.ShouldBe(2);
         loaded.Turns.Last().Role.ShouldBe("assistant");
+        var domainEvents = await _db.DomainEventRecords
+            .OrderBy(record => record.Id)
+            .ToListAsync();
+        domainEvents.Count.ShouldBe(3);
+        domainEvents.Select(record => record.EventType)
+            .ShouldBe(
+            [
+                "recommendation.session-started.v1",
+                "recommendation.customer-message-recorded.v1",
+                "recommendation.assistant-message-recorded.v1",
+            ]);
     }
 }

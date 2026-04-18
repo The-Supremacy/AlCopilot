@@ -1,6 +1,6 @@
 using AlCopilot.Recommendation.Contracts.DTOs;
 
-namespace AlCopilot.Recommendation.Features.Recommendation;
+namespace AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
 public interface IRecommendationSessionQueryService
 {

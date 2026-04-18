@@ -41,6 +41,12 @@ public sealed class CustomerProfileRepositoryIntegrationTests(PostgresFixture fi
         var loaded = await repository.GetByCustomerIdAsync("customer-1");
         loaded.ShouldNotBeNull();
         loaded!.OwnedIngredientIds.ShouldBe([Guid.Parse("00000000-0000-0000-0000-000000000004")]);
+        var domainEvents = await _db.DomainEventRecords
+            .OrderBy(record => record.Id)
+            .ToListAsync();
+        domainEvents.Count.ShouldBe(2);
+        domainEvents.Select(record => record.EventType)
+            .ShouldBe(["customer-profile.profile-created.v1", "customer-profile.profile-updated.v1"]);
 
         var dto = await new CustomerProfileQueryService(_db).GetByCustomerIdAsync("customer-1");
         dto.ProhibitedIngredientIds.ShouldBe([Guid.Parse("00000000-0000-0000-0000-000000000003")]);

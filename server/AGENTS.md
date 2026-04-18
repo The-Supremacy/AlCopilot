@@ -41,6 +41,8 @@ Read [docs/testing/server.md](../docs/testing/server.md) for backend test taxono
 - Source projects: `server/src/AlCopilot.{ProjectName}/`
 - Contract projects: `server/src/AlCopilot.{ProjectName}.Contracts/`
 - Test projects: `server/tests/AlCopilot.{ProjectName}.Tests/`
+- Inside module features, place feature-local interfaces under `Features/{FeatureName}/Abstractions`
+- Add deeper subfolders such as `QueryServices`, `Repositories`, `Workflows`, or `{AggregateName}` only when feature complexity clearly benefits from them
 
 ## Code Style
 

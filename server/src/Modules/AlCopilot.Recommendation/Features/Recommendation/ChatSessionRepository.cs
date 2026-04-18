@@ -1,3 +1,4 @@
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Data;
 using Microsoft.EntityFrameworkCore;
 
