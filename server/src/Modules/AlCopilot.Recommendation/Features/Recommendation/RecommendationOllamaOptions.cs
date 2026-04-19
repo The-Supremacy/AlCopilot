@@ -8,7 +8,19 @@ public sealed class RecommendationOllamaOptions
 
     public string ModelId { get; init; } = "gemma4:e4b";
 
-    public int MaxHistoryTurns { get; init; } = 12;
+    public int MaxHistoryMessages { get; init; } = 24;
+
+    public int MaxHistoryTurns { get; init; }
 
     public bool EnableReadOnlyTools { get; init; }
+
+    internal int GetEffectiveMaxHistoryMessages()
+    {
+        if (MaxHistoryMessages > 0)
+        {
+            return MaxHistoryMessages;
+        }
+
+        return Math.Max(1, MaxHistoryTurns) * 2;
+    }
 }

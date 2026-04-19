@@ -9,6 +9,7 @@ public sealed class ChatSession : AggregateRoot<Guid>
 {
     public string CustomerId { get; private set; } = string.Empty;
     public string Title { get; private set; } = string.Empty;
+    public string? AgentSessionStateJson { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
@@ -56,6 +57,17 @@ public sealed class ChatSession : AggregateRoot<Guid>
         Turns.Add(turn);
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         Raise(new RecommendationAssistantMessageRecordedEvent(Id, turn.Id));
+    }
+
+    public void UpdateAgentSessionState(string serializedState)
+    {
+        if (string.IsNullOrWhiteSpace(serializedState))
+        {
+            throw new ArgumentException("Serialized agent session state is required.", nameof(serializedState));
+        }
+
+        AgentSessionStateJson = serializedState;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 
     private static string BuildTitle(string message)

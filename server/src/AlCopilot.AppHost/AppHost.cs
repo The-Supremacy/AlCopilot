@@ -24,7 +24,7 @@ var recommendationDb = postgres.AddDatabase("recommendation");
 var ollama = builder.AddOllama("ollama")
     .WithDataVolume()
     .WithOpenWebUI();
-var recommendationModel = ollama.AddModel("gemma3", "gemma3:12b");
+var recommendationModel = ollama.AddModel("gemma4", "gemma4:e4b");
 
 var parameter = builder.AddParameter("quadrant-api-key", "QDRANT_API_KEY");
 var qdrant = builder.AddQdrant("qdrant", parameter)
@@ -47,7 +47,7 @@ builder.AddProject<AlCopilot_Host>("alcopilot-host")
     .WithEnvironment("Authentication__Customer__ClientSecret", customerClientSecret)
     .WithEnvironment("Recommendation__Llm__Provider", "ollama")
     .WithEnvironment("Recommendation__Ollama__Endpoint", "http://localhost:11434")
-    .WithEnvironment("Recommendation__Ollama__ModelId", "gemma3:12b")
+    .WithEnvironment("Recommendation__Ollama__ModelId", "gemma4:e4b")
     .WithReference(drinkCatalogDb)
     .WithReference(customerProfileDb)
     .WithReference(recommendationDb)

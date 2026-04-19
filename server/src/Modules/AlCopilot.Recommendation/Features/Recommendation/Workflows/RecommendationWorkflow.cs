@@ -16,7 +16,6 @@ internal sealed class RecommendationWorkflow(
     IRecommendationUnitOfWork unitOfWork,
     IMediator mediator,
     IRecommendationCandidateBuilder candidateBuilder,
-    IRecommendationNarrationComposer narrationComposer,
     IRecommendationNarrator narrator) : IRecommendationWorkflow
 {
     public async Task<RecommendationSessionDto> ExecuteAsync(
@@ -57,13 +56,8 @@ internal sealed class RecommendationWorkflow(
             CancellationToken,
             ValueTask<PreparedRecommendationContext>>(BuildCandidatesAsync)
             .BindAsExecutor("build-candidates");
-        var prepareAgentInput = new Func<
-            PreparedRecommendationContext,
-            CancellationToken,
-            ValueTask<PreparedAgentNarrationContext>>(PrepareAgentInputAsync)
-            .BindAsExecutor("prepare-agent-input");
         var narrate = new Func<
-            PreparedAgentNarrationContext,
+            PreparedRecommendationContext,
             CancellationToken,
             ValueTask<NarratedRecommendationContext>>(NarrateAsync)
             .BindAsExecutor("narrate-response");
@@ -76,9 +70,9 @@ internal sealed class RecommendationWorkflow(
         var builder = new WorkflowBuilder(initialize)
             .WithName("recommendation-request")
             .WithDescription("Builds deterministic recommendation candidates and persists narrated results.")
+            .WithOpenTelemetry()
             .AddEdge(initialize, buildCandidates)
-            .AddEdge(buildCandidates, prepareAgentInput)
-            .AddEdge(prepareAgentInput, narrate)
+            .AddEdge(buildCandidates, narrate)
             .AddEdge(narrate, persist)
             .WithOutputFrom(persist);
 
@@ -134,39 +128,23 @@ internal sealed class RecommendationWorkflow(
             groups));
     }
 
-    private ValueTask<PreparedAgentNarrationContext> PrepareAgentInputAsync(
-        PreparedRecommendationContext context,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var contextInstructions = narrationComposer.BuildContextInstructions(
-            context.Request.Message,
-            context.Profile,
-            context.Groups,
-            context.Drinks);
-        return ValueTask.FromResult(new PreparedAgentNarrationContext(
-            context.Session,
-            context.Groups,
-            context.Request.Message,
-            contextInstructions));
-    }
-
     private async ValueTask<NarratedRecommendationContext> NarrateAsync(
-        PreparedAgentNarrationContext context,
+        PreparedRecommendationContext context,
         CancellationToken cancellationToken)
     {
         var narration = await narrator.NarrateAsync(
             new RecommendationNarrationRequest(
                 context.Session,
-                context.CustomerMessage,
-                context.ContextInstructions),
+                context.Request.Message,
+                context.Profile,
+                context.Groups,
+                context.Drinks),
             cancellationToken);
 
         return new NarratedRecommendationContext(
             context.Session,
             context.Groups,
-            context.CustomerMessage,
+            context.Request.Message,
             narration);
     }
 
@@ -174,6 +152,7 @@ internal sealed class RecommendationWorkflow(
         NarratedRecommendationContext context,
         CancellationToken cancellationToken)
     {
+        context.Session.UpdateAgentSessionState(context.Narration.SerializedAgentSessionState);
         context.Session.AppendUserTurn(context.CustomerMessage);
         context.Session.AppendAssistantTurn(
             context.Narration.Content,
@@ -209,12 +188,6 @@ internal sealed class RecommendationWorkflow(
         CustomerProfileDto Profile,
         IReadOnlyCollection<DrinkDetailDto> Drinks,
         IReadOnlyCollection<RecommendationGroupDto> Groups);
-
-    private sealed record PreparedAgentNarrationContext(
-        ChatSession Session,
-        IReadOnlyCollection<RecommendationGroupDto> Groups,
-        string CustomerMessage,
-        string ContextInstructions);
 
     private sealed record NarratedRecommendationContext(
         ChatSession Session,

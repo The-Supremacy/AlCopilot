@@ -18,6 +18,9 @@ internal sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSe
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(session => session.AgentSessionStateJson)
+            .HasColumnType("jsonb");
+
         builder.Property(session => session.CreatedAtUtc)
             .IsRequired();
 

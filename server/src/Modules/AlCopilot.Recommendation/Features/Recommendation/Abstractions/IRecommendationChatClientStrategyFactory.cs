@@ -10,4 +10,4 @@ public interface IRecommendationChatClientStrategyFactory
 public sealed record RecommendationChatClientStrategy(
     IChatClient ChatClient,
     ChatOptions ChatOptions,
-    int MaxHistoryTurns);
+    int MaxHistoryMessages);

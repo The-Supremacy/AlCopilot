@@ -1,37 +1,51 @@
-using System.Text;
 using AlCopilot.CustomerProfile.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using Microsoft.Extensions.AI;
 
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
-internal sealed class RecommendationNarrationComposer : IRecommendationNarrationComposer
+internal static class RecommendationNarrationMessageBuilder
 {
-    public string BuildContextInstructions(
-        string customerMessage,
-        CustomerProfileDto profile,
-        IReadOnlyCollection<RecommendationGroupDto> recommendationGroups,
-        IReadOnlyCollection<DrinkDetailDto> catalogSnapshot)
+    internal static RecommendationNarrationContext CreateContext(RecommendationNarrationRequest request)
     {
-        return BuildContextMessage(customerMessage, profile, recommendationGroups, catalogSnapshot);
+        var ingredientNames = BuildIngredientNameLookup(request.CatalogSnapshot);
+
+        return new RecommendationNarrationContext(
+            BuildProfileSummary(request.CustomerMessage, request.Profile, ingredientNames),
+            BuildCandidateSummary(request.RecommendationGroups));
     }
 
-    private static string BuildContextMessage(
+    internal static IReadOnlyList<ChatMessage> BuildContextMessages(RecommendationNarrationContext context)
+    {
+        return
+        [
+            new ChatMessage(ChatRole.System, "Use the recommendation snapshot below as authoritative product context."),
+            new ChatMessage(ChatRole.System, context.ProfileSummary),
+            new ChatMessage(ChatRole.System, context.CandidateSummary),
+        ];
+    }
+
+    private static string BuildProfileSummary(
         string customerMessage,
         CustomerProfileDto profile,
-        IReadOnlyCollection<RecommendationGroupDto> groups,
-        IReadOnlyCollection<DrinkDetailDto> catalogSnapshot)
+        IReadOnlyDictionary<Guid, string> ingredientNames)
     {
-        var ingredientNames = BuildIngredientNameLookup(catalogSnapshot);
-        var builder = new StringBuilder();
-        builder.AppendLine("Customer profile context:");
+        var builder = new System.Text.StringBuilder();
+        builder.AppendLine("Customer profile snapshot:");
         builder.AppendLine($"- favorites: {FormatIngredientList(profile.FavoriteIngredientIds, ingredientNames)}");
         builder.AppendLine($"- dislikes: {FormatIngredientList(profile.DislikedIngredientIds, ingredientNames)}");
         builder.AppendLine($"- prohibited: {FormatIngredientList(profile.ProhibitedIngredientIds, ingredientNames)}");
         builder.AppendLine($"- owned: {FormatIngredientList(profile.OwnedIngredientIds, ingredientNames)}");
         builder.AppendLine($"- current request: {customerMessage}");
-        builder.AppendLine();
+
+        return builder.ToString().Trim();
+    }
+
+    private static string BuildCandidateSummary(IReadOnlyCollection<RecommendationGroupDto> groups)
+    {
+        var builder = new System.Text.StringBuilder();
         builder.AppendLine("Deterministic candidate groups:");
 
         foreach (var group in groups.Where(group => group.Items.Count > 0))

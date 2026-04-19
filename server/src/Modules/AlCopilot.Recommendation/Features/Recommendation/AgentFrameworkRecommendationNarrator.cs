@@ -6,22 +6,9 @@ using Microsoft.Extensions.Logging;
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
 internal sealed class AgentFrameworkRecommendationNarrator(
-    IRecommendationAgentFactory agentFactory,
+    AIAgent agent,
     ILogger<AgentFrameworkRecommendationNarrator> logger) : IRecommendationNarrator
 {
-    internal const string BartenderInstructions =
-        """
-        You are an experienced bartender.
-        Base your answer only on the provided customer context and deterministic recommendation candidates.
-        Prefer concise, practical guidance.
-        Do not invent unavailable drinks or ignore prohibited ingredients.
-        """;
-
-    private static readonly RecommendationAgentDefinition NarratorDefinition = new(
-        Name: "recommendation-narrator",
-        Description: "Turns deterministic recommendation candidates into a concise bartender-style response.",
-        Instructions: AgentFrameworkRecommendationNarrator.BartenderInstructions);
-
     public async Task<RecommendationNarrationResult> NarrateAsync(
         RecommendationNarrationRequest request,
         CancellationToken cancellationToken = default)
@@ -43,17 +30,17 @@ internal sealed class AgentFrameworkRecommendationNarrator(
         RecommendationNarrationRequest request,
         CancellationToken cancellationToken)
     {
-        var runtime = agentFactory.Create(
-            NarratorDefinition,
-            request.ContextInstructions,
-            request.Session);
-        var session = await runtime.Agent.CreateSessionAsync(
-            request.Session.Id.ToString(),
+        var session = await CreateOrRestoreSessionAsync(
+            agent,
+            request.Session,
             cancellationToken);
-        var response = await runtime.Agent.RunAsync(
+        var context = RecommendationNarrationMessageBuilder.CreateContext(request);
+        RecommendationNarrationContextProvider.SetContext(session, context);
+
+        var response = await agent.RunAsync(
             request.CustomerMessage,
             session,
-            new ChatClientAgentRunOptions(runtime.ChatOptions),
+            options: null,
             cancellationToken);
 
         var content = string.IsNullOrWhiteSpace(response.Text)
@@ -65,6 +52,27 @@ internal sealed class AgentFrameworkRecommendationNarrator(
             throw new InvalidOperationException("Recommendation LLM returned an empty assistant message.");
         }
 
-        return new RecommendationNarrationResult(content.Trim(), []);
+        var serializedSession = await agent.SerializeSessionAsync(
+            session,
+            cancellationToken: cancellationToken);
+
+        return new RecommendationNarrationResult(
+            content.Trim(),
+            [],
+            serializedSession.GetRawText());
+    }
+
+    private static async Task<AgentSession> CreateOrRestoreSessionAsync(
+        AIAgent agent,
+        ChatSession session,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(session.AgentSessionStateJson))
+        {
+            return await agent.CreateSessionAsync(cancellationToken);
+        }
+
+        using var document = System.Text.Json.JsonDocument.Parse(session.AgentSessionStateJson);
+        return await agent.DeserializeSessionAsync(document.RootElement.Clone(), cancellationToken: cancellationToken);
     }
 }

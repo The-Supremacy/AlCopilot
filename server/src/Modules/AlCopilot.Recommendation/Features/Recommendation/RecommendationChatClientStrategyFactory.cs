@@ -43,6 +43,6 @@ internal sealed class RecommendationChatClientStrategyFactory(
                 Temperature = 0.2f,
                 TopP = 0.9f,
             },
-            options.MaxHistoryTurns);
+            options.GetEffectiveMaxHistoryMessages());
     }
 }

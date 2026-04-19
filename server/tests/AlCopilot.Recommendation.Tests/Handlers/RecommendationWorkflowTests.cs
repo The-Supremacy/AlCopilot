@@ -21,7 +21,6 @@ public sealed class RecommendationWorkflowTests
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var mediator = Substitute.For<IMediator>();
         var candidateBuilder = Substitute.For<IRecommendationCandidateBuilder>();
-        var narrationComposer = Substitute.For<IRecommendationNarrationComposer>();
         var narrator = Substitute.For<IRecommendationNarrator>();
 
         mediator.Send(Arg.Any<AlCopilot.CustomerProfile.Contracts.Queries.GetCustomerProfileQuery>(), Arg.Any<CancellationToken>())
@@ -51,16 +50,11 @@ public sealed class RecommendationWorkflowTests
                     "Make Now",
                     [new RecommendationItemDto(Guid.NewGuid(), "Gimlet", "Bright and citrusy", [], ["citrusy"], 100)])
             ]);
-        narrationComposer.BuildContextInstructions(
-                Arg.Any<string>(),
-                Arg.Any<CustomerProfileDto>(),
-                Arg.Any<IReadOnlyCollection<RecommendationGroupDto>>(),
-                Arg.Any<IReadOnlyCollection<DrinkDetailDto>>())
-            .Returns("context");
+        var serializedSession = """{"stateBag":{"messages":[]}}""";
         narrator.NarrateAsync(Arg.Any<RecommendationNarrationRequest>(), Arg.Any<CancellationToken>())
-            .Returns(new RecommendationNarrationResult("Try the Gimlet.", []));
+            .Returns(new RecommendationNarrationResult("Try the Gimlet.", [], serializedSession));
 
-        var workflow = new RecommendationWorkflow(repository, unitOfWork, mediator, candidateBuilder, narrationComposer, narrator);
+        var workflow = new RecommendationWorkflow(repository, unitOfWork, mediator, candidateBuilder, narrator);
 
         var result = await workflow.ExecuteAsync(
             "customer-1",
@@ -73,7 +67,8 @@ public sealed class RecommendationWorkflowTests
         result.Turns.Last().Role.ShouldBe("assistant");
         result.Turns.Last().RecommendationGroups.Count.ShouldBeGreaterThan(0);
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
-        repository.Received(1).Add(Arg.Any<ChatSession>());
+        repository.Received(1).Add(Arg.Is<ChatSession>(session =>
+            session.AgentSessionStateJson == serializedSession));
     }
 
     [Fact]
@@ -83,7 +78,6 @@ public sealed class RecommendationWorkflowTests
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var mediator = Substitute.For<IMediator>();
         var candidateBuilder = Substitute.For<IRecommendationCandidateBuilder>();
-        var narrationComposer = Substitute.For<IRecommendationNarrationComposer>();
         var narrator = Substitute.For<IRecommendationNarrator>();
         var existingSession = ChatSession.Create("customer-1", "First request");
 
@@ -98,16 +92,11 @@ public sealed class RecommendationWorkflowTests
             [
                 new RecommendationGroupDto("make-now", "Make Now", [])
             ]);
-        narrationComposer.BuildContextInstructions(
-                Arg.Any<string>(),
-                Arg.Any<CustomerProfileDto>(),
-                Arg.Any<IReadOnlyCollection<RecommendationGroupDto>>(),
-                Arg.Any<IReadOnlyCollection<DrinkDetailDto>>())
-            .Returns("context");
+        var serializedSession = """{"stateBag":{"messages":[{"role":"user"}]}}""";
         narrator.NarrateAsync(Arg.Any<RecommendationNarrationRequest>(), Arg.Any<CancellationToken>())
-            .Returns(new RecommendationNarrationResult("No great matches right now.", []));
+            .Returns(new RecommendationNarrationResult("No great matches right now.", [], serializedSession));
 
-        var workflow = new RecommendationWorkflow(repository, unitOfWork, mediator, candidateBuilder, narrationComposer, narrator);
+        var workflow = new RecommendationWorkflow(repository, unitOfWork, mediator, candidateBuilder, narrator);
 
         var result = await workflow.ExecuteAsync(
             "customer-1",
@@ -118,6 +107,7 @@ public sealed class RecommendationWorkflowTests
         result.SessionId.ShouldBe(existingSession.Id);
         repository.DidNotReceive().Add(Arg.Any<ChatSession>());
         result.Turns.Last().Role.ShouldBe("assistant");
+        existingSession.AgentSessionStateJson.ShouldBe(serializedSession);
     }
 
     [Fact]
@@ -127,14 +117,12 @@ public sealed class RecommendationWorkflowTests
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var mediator = Substitute.For<IMediator>();
         var candidateBuilder = Substitute.For<IRecommendationCandidateBuilder>();
-        var narrationComposer = Substitute.For<IRecommendationNarrationComposer>();
         var narrator = Substitute.For<IRecommendationNarrator>();
         var workflow = new RecommendationWorkflow(
             repository,
             unitOfWork,
             mediator,
             candidateBuilder,
-            narrationComposer,
             narrator);
 
         await Should.ThrowAsync<ValidationException>(() =>
