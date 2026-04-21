@@ -55,4 +55,31 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
                 "recommendation.assistant-message-recorded.v1",
             ]);
     }
+
+    [Fact]
+    public async Task SaveExistingSession_PersistsSerializedAgentState_AndAdditionalTurns()
+    {
+        var repository = new ChatSessionRepository(_db);
+        var session = ChatSession.Create("customer-1", "Something refreshing");
+        session.AppendUserTurn("Something refreshing");
+        session.AppendAssistantTurn("Try a Gimlet.", [], []);
+
+        repository.Add(session);
+        await _db.SaveChangesAsync();
+
+        var reloaded = await repository.GetByCustomerSessionIdAsync("customer-1", session.Id);
+        reloaded.ShouldNotBeNull();
+
+        reloaded!.UpdateAgentSessionState("""{"stateBag":{"session":"restored"}}""");
+        reloaded.AppendUserTurn("Something bitter");
+        reloaded.AppendAssistantTurn("Try a Negroni.", [], []);
+        await _db.SaveChangesAsync();
+
+        var persisted = await repository.GetByCustomerSessionIdAsync("customer-1", session.Id);
+        persisted.ShouldNotBeNull();
+        persisted!.AgentSessionStateJson.ShouldBe("""{"stateBag":{"session":"restored"}}""");
+        persisted.Turns.Count.ShouldBe(4);
+        persisted.Turns.Select(turn => turn.Role)
+            .ShouldBe(["user", "assistant", "user", "assistant"]);
+    }
 }

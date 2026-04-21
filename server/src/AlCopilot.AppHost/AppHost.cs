@@ -21,9 +21,7 @@ var drinkCatalogDb = postgres.AddDatabase("drink-catalog");
 var customerProfileDb = postgres.AddDatabase("customer-profile");
 var recommendationDb = postgres.AddDatabase("recommendation");
 
-var ollama = builder.AddOllama("ollama")
-    .WithDataVolume()
-    .WithOpenWebUI();
+var ollama = builder.AddOllamaLocal("ollama");
 var recommendationModel = ollama.AddModel("gemma4", "gemma4:e4b");
 
 var parameter = builder.AddParameter("quadrant-api-key", "QDRANT_API_KEY");

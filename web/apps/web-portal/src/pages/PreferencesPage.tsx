@@ -58,7 +58,12 @@ export function PreferencesPage() {
         title="Preferences"
         description="Shape chat results with favorite ingredients, soft dislikes, and hard prohibitions."
         action={
-          <Button onClick={handleSave} loading={saveMutation.isPending} loadingText="Saving">
+          <Button
+            className="w-full sm:w-auto"
+            onClick={handleSave}
+            loading={saveMutation.isPending}
+            loadingText="Saving"
+          >
             Save preferences
           </Button>
         }

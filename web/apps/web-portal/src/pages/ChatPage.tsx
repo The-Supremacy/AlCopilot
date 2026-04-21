@@ -1,7 +1,6 @@
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { InlineMessage } from '@/components/InlineMessage';
-import { SectionCard } from '@/components/SectionCard';
 import {
   useSubmitRecommendationRequestMutation,
   useRecommendationSession,
@@ -37,8 +36,8 @@ export function ChatPage() {
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_360px]">
-      <div className="space-y-5">
+    <div className="mx-auto flex min-h-[calc(100vh-16rem)] w-full max-w-5xl flex-col">
+      <div className="flex-1 space-y-5">
         {sessionQuery.isError ? (
           <InlineMessage
             tone="danger"
@@ -49,30 +48,13 @@ export function ChatPage() {
         <RecommendationTurnList session={sessionQuery.data ?? null} />
       </div>
 
-      <div className="space-y-5">
-        <SectionCard
-          title={sessionId ? 'Continue the session' : 'Start a recommendation chat'}
-          description="Describe the mood, spirits, ingredients, or effort level you want. The assistant will answer with prose plus structured groups."
-        >
+      <div className="sticky bottom-0 mt-6 border-t border-border/70 bg-[linear-gradient(180deg,transparent,hsl(var(--background))_18%)] pt-4">
+        <div className="rounded-[28px] border border-border/70 bg-background/95 p-4 shadow-soft backdrop-blur md:p-5">
           <RecommendationComposer
             onSubmit={handleSubmit}
             isSubmitting={submitMutation.isPending || sessionQuery.isLoading}
           />
-        </SectionCard>
-
-        <SectionCard
-          title="How this stays grounded"
-          description="The first customer slice keeps filtering and grouping deterministic before the model adds explanation."
-        >
-          <div className="space-y-3 text-sm leading-6 text-muted-foreground">
-            <p>Prohibited ingredients are removed before ranking.</p>
-            <p>`Make now` and `buy next` stay visually explicit and do not rely on prose alone.</p>
-            <p>
-              Profile changes in `My Bar` and `Preferences` shape future replies without extra token
-              handling in the browser.
-            </p>
-          </div>
-        </SectionCard>
+        </div>
       </div>
     </div>
   );

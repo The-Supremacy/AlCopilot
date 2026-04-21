@@ -9,6 +9,8 @@ internal sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSe
     public void Configure(EntityTypeBuilder<ChatSession> builder)
     {
         builder.HasKey(session => session.Id);
+        builder.Property(session => session.Id)
+            .ValueGeneratedNever();
 
         builder.Property(session => session.CustomerId)
             .IsRequired()

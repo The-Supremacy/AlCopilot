@@ -9,14 +9,14 @@ namespace AlCopilot.Recommendation.Features.Recommendation;
 
 public sealed class SubmitRecommendationRequestHandler(
     ICurrentActorAccessor currentActorAccessor,
-    IRecommendationWorkflow workflow) : IRequestHandler<SubmitRecommendationRequestCommand, RecommendationSessionDto>
+    IRecommendationConversationService conversationService) : IRequestHandler<SubmitRecommendationRequestCommand, RecommendationSessionDto>
 {
     public async ValueTask<RecommendationSessionDto> Handle(
         SubmitRecommendationRequestCommand request,
         CancellationToken cancellationToken)
     {
         var customerId = RecommendationActorResolver.GetCustomerId(currentActorAccessor);
-        return await workflow.ExecuteAsync(
+        return await conversationService.SendMessageAsync(
             customerId,
             request.SessionId,
             request.Message,

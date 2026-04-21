@@ -15,9 +15,9 @@ public sealed class SubmitRecommendationRequestHandlerTests
     public async Task Handle_DelegatesToWorkflowForAuthenticatedCustomer()
     {
         var actorAccessor = Substitute.For<ICurrentActorAccessor>();
-        var workflow = Substitute.For<IRecommendationWorkflow>();
+        var conversationService = Substitute.For<IRecommendationConversationService>();
         actorAccessor.GetCurrent().Returns(new CurrentActor("customer-1", "customer@example.com", true, ["user"]));
-        workflow.ExecuteAsync("customer-1", null, "Give me something citrusy", Arg.Any<CancellationToken>())
+        conversationService.SendMessageAsync("customer-1", null, "Give me something citrusy", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new RecommendationSessionDto(
                 Guid.NewGuid(),
                 "Citrusy ideas",
@@ -27,14 +27,14 @@ public sealed class SubmitRecommendationRequestHandlerTests
 
         var handler = new SubmitRecommendationRequestHandler(
             actorAccessor,
-            workflow);
+            conversationService);
 
         var result = await handler.Handle(
             new SubmitRecommendationRequestCommand(null, "Give me something citrusy"),
             CancellationToken.None);
 
         result.Title.ShouldBe("Citrusy ideas");
-        await workflow.Received(1).ExecuteAsync(
+        await conversationService.Received(1).SendMessageAsync(
             "customer-1",
             null,
             "Give me something citrusy",
@@ -45,12 +45,12 @@ public sealed class SubmitRecommendationRequestHandlerTests
     public async Task Handle_Throws_WhenActorIsAnonymous()
     {
         var actorAccessor = Substitute.For<ICurrentActorAccessor>();
-        var workflow = Substitute.For<IRecommendationWorkflow>();
+        var conversationService = Substitute.For<IRecommendationConversationService>();
         actorAccessor.GetCurrent().Returns(CurrentActor.Anonymous);
 
         var handler = new SubmitRecommendationRequestHandler(
             actorAccessor,
-            workflow);
+            conversationService);
 
         await Should.ThrowAsync<InvalidOperationException>(() =>
             handler.Handle(
@@ -62,15 +62,15 @@ public sealed class SubmitRecommendationRequestHandlerTests
     public async Task Handle_PassesThroughWorkflowValidation()
     {
         var actorAccessor = Substitute.For<ICurrentActorAccessor>();
-        var workflow = Substitute.For<IRecommendationWorkflow>();
+        var conversationService = Substitute.For<IRecommendationConversationService>();
         actorAccessor.GetCurrent().Returns(new CurrentActor("customer-1", "customer@example.com", true, ["user"]));
-        workflow.ExecuteAsync("customer-1", null, "   ", Arg.Any<CancellationToken>())
+        conversationService.SendMessageAsync("customer-1", null, "   ", Arg.Any<CancellationToken>())
             .Returns(Task.FromException<RecommendationSessionDto>(
                 new AlCopilot.Shared.Errors.ValidationException("Recommendation message is required.")));
 
         var handler = new SubmitRecommendationRequestHandler(
             actorAccessor,
-            workflow);
+            conversationService);
 
         await Should.ThrowAsync<AlCopilot.Shared.Errors.ValidationException>(() =>
             handler.Handle(

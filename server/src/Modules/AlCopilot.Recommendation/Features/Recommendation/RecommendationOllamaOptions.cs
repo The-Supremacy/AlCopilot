@@ -12,8 +12,6 @@ public sealed class RecommendationOllamaOptions
 
     public int MaxHistoryTurns { get; init; }
 
-    public bool EnableReadOnlyTools { get; init; }
-
     internal int GetEffectiveMaxHistoryMessages()
     {
         if (MaxHistoryMessages > 0)

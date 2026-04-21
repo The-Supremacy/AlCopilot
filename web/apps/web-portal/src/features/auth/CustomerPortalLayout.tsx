@@ -200,7 +200,7 @@ function PortalShell({
         )}
 
         <div className="min-w-0 bg-card/45">
-          <header className="border-b border-border/70 px-5 py-4 md:px-6 md:py-5">
+          <header className="border-b border-border/70 px-4 py-4 md:px-6 md:py-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
                 {showNavigation ? (
@@ -223,31 +223,46 @@ function PortalShell({
                       <SheetDescription className="sr-only">
                         Navigate between chat, profile, history, and account areas.
                       </SheetDescription>
-                      <RecommendationSessionRail
-                        sessions={sessions}
-                        activeSessionId={activeSessionId}
-                        onNavigate={() => setIsMobileNavOpen(false)}
-                      />
+                      <div className="space-y-6">
+                        <div>{utility}</div>
+                        <nav
+                          aria-label="Mobile primary navigation"
+                          className="flex flex-wrap gap-2"
+                        >
+                          {navigationItems.map((item) => (
+                            <Button key={item.to} asChild variant="secondary" size="sm">
+                              <Link to={item.to} onClick={() => setIsMobileNavOpen(false)}>
+                                {item.label}
+                              </Link>
+                            </Button>
+                          ))}
+                        </nav>
+                        <RecommendationSessionRail
+                          sessions={sessions}
+                          activeSessionId={activeSessionId}
+                          onNavigate={() => setIsMobileNavOpen(false)}
+                        />
+                      </div>
                     </SheetContent>
                   </Sheet>
                 ) : null}
 
                 <div className="min-w-0">
                   <Badge variant="secondary">Customer Portal</Badge>
-                  <h1 className="mt-3 font-display text-3xl text-foreground">
+                  <h1 className="mt-2 font-display text-2xl text-foreground md:mt-3 md:text-3xl">
                     Chat-first drinks guidance
                   </h1>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-muted-foreground md:block">
                     Move between recommendation chat, your bar, and taste preferences without losing
                     the thread.
                   </p>
                 </div>
               </div>
-              <div className="shrink-0">{utility}</div>
+              <div className="hidden shrink-0 md:block">{utility}</div>
             </div>
 
             {showNavigation ? (
-              <nav aria-label="Primary navigation" className="mt-5 flex flex-wrap gap-2">
+              <nav aria-label="Primary navigation" className="mt-4 hidden flex-wrap gap-2 md:flex">
                 {navigationItems.map((item) => (
                   <Button key={item.to} asChild variant="ghost" size="sm">
                     <Link to={item.to}>{item.label}</Link>
@@ -257,7 +272,7 @@ function PortalShell({
             ) : null}
           </header>
 
-          <main className="min-w-0 px-5 py-5 md:px-6 md:py-6">{children}</main>
+          <main className="min-w-0 px-4 py-5 md:px-6 md:py-6">{children}</main>
         </div>
       </div>
     </div>

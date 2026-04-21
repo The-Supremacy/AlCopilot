@@ -2,9 +2,9 @@ using AlCopilot.Recommendation.Contracts.DTOs;
 
 namespace AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
-public interface IRecommendationWorkflow
+public interface IRecommendationConversationService
 {
-    Task<RecommendationSessionDto> ExecuteAsync(
+    Task<RecommendationSessionDto> SendMessageAsync(
         string customerId,
         Guid? sessionId,
         string message,

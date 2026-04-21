@@ -56,7 +56,8 @@ describe('RecommendationTurnList', () => {
 
     expect(screen.getByLabelText('Make now')).toBeInTheDocument();
     expect(screen.getByLabelText('Buy next')).toBeInTheDocument();
-    expect(screen.getByText('Ready to make with your current bar.')).toBeInTheDocument();
+    expect(screen.getByText('Ready now: everything is already in your bar.')).toBeInTheDocument();
     expect(screen.getByText('Buy next: Green Chartreuse')).toBeInTheDocument();
+    expect(screen.getByText('Matches: lime, rum')).toBeInTheDocument();
   });
 });

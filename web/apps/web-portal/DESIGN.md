@@ -23,7 +23,7 @@ When global UI invariants change, update this DESIGN.md.
   - compact account and session affordances
   - contextual entry points to `My Bar` and `Preferences`
 - Desktop shell keeps the current chat session central and treats supporting profile areas as secondary navigation destinations.
-- Mobile shell favors a compact top bar with drawer access to chat history and supporting areas.
+- Mobile shell favors a compact top bar with drawer access to chat history, primary navigation, and account/session controls.
 - Footer policy: optional and minimal.
 - Default landing page: Chat.
 - Primary page action placement: inline with the active workspace header rather than in a global command bar.
@@ -45,9 +45,9 @@ When global UI invariants change, update this DESIGN.md.
 
 ## Page Template Invariants
 
-- Chat template: primary conversation column plus recommendation result surface with structured drink groupings.
+- Chat template: wide centered conversation workspace with the message history as the dominant surface and a composer pinned to the lower edge of the viewport or workspace.
 - Sidebar template: session history, account state, and secondary navigation may share one rail when screen width allows.
-- Form template: `My Bar` and `Preferences` use focused edit surfaces with clear save feedback and low-friction search or selection controls.
+- Form template: `My Bar` and `Preferences` use focused edit surfaces with clear save feedback and low-friction search-first selection controls rather than overwhelming full lists by default.
 - Account template: if present, it focuses on session state, sign-out, and links out to the identity-provider-managed account surface rather than in-portal credential editing.
 - History template: previous sessions appear as lightweight revisit entries rather than dense operational tables.
 - Empty states should be encouraging and guided, especially before the user has set preferences or bar inventory.
@@ -56,7 +56,7 @@ When global UI invariants change, update this DESIGN.md.
 ## Interaction and Feedback Invariants
 
 - Global feedback pattern: inline guidance plus toast confirmation.
-- Recommendation results should combine conversational explanation with stable structured cards or grouped lists.
+- Recommendation results should combine conversational explanation with stable grouped summaries that stay easy to scan, especially through simple make-now versus buy-next bullet-style presentation.
 - Signed-in gating uses a consistent local sign-in-required state before redirecting to the identity provider.
 - Potentially sensitive profile edits such as prohibited ingredients should use clear plain-language confirmations and summaries.
 - The portal should keep users oriented about whether a recommendation is available now or needs extra ingredients without relying on chat prose alone.
@@ -67,6 +67,7 @@ When global UI invariants change, update this DESIGN.md.
 - Data density baseline: comfortable.
 - The customer portal should feel more inviting and expressive than the management portal while still staying grounded and readable.
 - The chat workspace should remain visually dominant over supporting controls.
+- User and assistant turns should be visually distinct, with user turns right-aligned and assistant turns left-aligned to preserve conversational orientation.
 - Reuse shared brand foundations from workspace packages instead of creating a separate portal-local visual identity system.
 
 ## Accessibility and Responsive Baseline
@@ -87,3 +88,4 @@ When global UI invariants change, update this DESIGN.md.
 ## Change Log and Decision Notes
 
 - 2026-04-14: Initial customer web portal design guide created for the first signed-in recommendation-focused portal baseline.
+- 2026-04-21: Refined the chat shell toward a centered conversation workspace with a pinned composer, search-first ingredient pickers, mobile drawer utility consolidation, and simpler grouped recommendation summaries.

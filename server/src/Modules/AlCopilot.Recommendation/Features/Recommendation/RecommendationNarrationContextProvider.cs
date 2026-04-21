@@ -1,62 +1,36 @@
-using System.Text.Json;
-using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
-internal sealed class RecommendationNarrationContextProvider : AIContextProvider
+internal sealed class RecommendationNarrationContextProvider(IServiceScopeFactory scopeFactory) : MessageAIContextProvider
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
-    private static readonly IReadOnlyList<string> ProviderStateKeys = [RecommendationNarrationContextState.StateKey];
-
-    public RecommendationNarrationContextProvider()
-        : base(null, null, null)
-    {
-    }
-
-    public override IReadOnlyList<string> StateKeys => ProviderStateKeys;
-
-    protected override ValueTask<AIContext> ProvideAIContextAsync(
+    protected override async ValueTask<IEnumerable<ChatMessage>> ProvideMessagesAsync(
         InvokingContext context,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (context.Session is null ||
-            !context.Session.StateBag.TryGetValue<RecommendationNarrationContextState>(
-                RecommendationNarrationContextState.StateKey,
-                out var state,
-                SerializerOptions) ||
-            state is null)
+        var customerMessage = context.RequestMessages
+            .Where(message => message.Role == ChatRole.User)
+            .Select(message => message.Text)
+            .LastOrDefault(text => !string.IsNullOrWhiteSpace(text));
+        if (string.IsNullOrWhiteSpace(customerMessage))
         {
-            return ValueTask.FromResult(new AIContext());
+            return [];
         }
 
-        var messages = RecommendationNarrationMessageBuilder.BuildContextMessages(
-            new RecommendationNarrationContext(
-                state.ProfileSummary,
-                state.CandidateSummary));
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var queryService = scope.ServiceProvider.GetRequiredService<IRecommendationNarrationContextQueryService>();
+        var snapshot = await queryService.GetSnapshotAsync(customerMessage, cancellationToken);
 
-        return ValueTask.FromResult(new AIContext
-        {
-            Messages = messages,
-        });
-    }
-
-    internal static void SetContext(AgentSession session, RecommendationNarrationContext context)
-    {
-        session.StateBag.SetValue(
-            RecommendationNarrationContextState.StateKey,
-            new RecommendationNarrationContextState(
-                context.ProfileSummary,
-                context.CandidateSummary),
-            SerializerOptions);
-    }
-
-    internal sealed record RecommendationNarrationContextState(
-        string ProfileSummary,
-        string CandidateSummary)
-    {
-        internal const string StateKey = "recommendation-narration-context";
+        return
+        [
+            new ChatMessage(
+                ChatRole.System,
+                RecommendationNarrationMessageBuilder.BuildCurrentRecommendationSnapshot(snapshot)),
+        ];
     }
 }

@@ -43,7 +43,12 @@ export function MyBarPage() {
       title="My Bar"
       description="Track what is already on hand so chat can separate immediate pours from drinks that need a shopping run."
       action={
-        <Button onClick={handleSave} loading={saveMutation.isPending} loadingText="Saving">
+        <Button
+          className="w-full sm:w-auto"
+          onClick={handleSave}
+          loading={saveMutation.isPending}
+          loadingText="Saving"
+        >
           Save my bar
         </Button>
       }

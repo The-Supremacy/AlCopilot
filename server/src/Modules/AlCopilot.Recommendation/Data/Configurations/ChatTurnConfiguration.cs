@@ -9,6 +9,8 @@ internal sealed class ChatTurnConfiguration : IEntityTypeConfiguration<ChatTurn>
     public void Configure(EntityTypeBuilder<ChatTurn> builder)
     {
         builder.HasKey(turn => turn.Id);
+        builder.Property(turn => turn.Id)
+            .ValueGeneratedNever();
 
         builder.Property(turn => turn.Role)
             .IsRequired()

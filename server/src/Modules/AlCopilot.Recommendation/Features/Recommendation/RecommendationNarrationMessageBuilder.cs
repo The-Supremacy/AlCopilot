@@ -8,44 +8,26 @@ namespace AlCopilot.Recommendation.Features.Recommendation;
 
 internal static class RecommendationNarrationMessageBuilder
 {
-    internal static RecommendationNarrationContext CreateContext(RecommendationNarrationRequest request)
+    internal static string BuildCurrentRecommendationSnapshot(RecommendationNarrationSnapshot snapshot)
     {
-        var ingredientNames = BuildIngredientNameLookup(request.CatalogSnapshot);
-
-        return new RecommendationNarrationContext(
-            BuildProfileSummary(request.CustomerMessage, request.Profile, ingredientNames),
-            BuildCandidateSummary(request.RecommendationGroups));
+        var ingredientNames = BuildIngredientNameLookup(snapshot.CatalogSnapshot);
+        return BuildRecommendationSnapshot(snapshot.Profile, snapshot.RecommendationGroups, ingredientNames);
     }
 
-    internal static IReadOnlyList<ChatMessage> BuildContextMessages(RecommendationNarrationContext context)
-    {
-        return
-        [
-            new ChatMessage(ChatRole.System, "Use the recommendation snapshot below as authoritative product context."),
-            new ChatMessage(ChatRole.System, context.ProfileSummary),
-            new ChatMessage(ChatRole.System, context.CandidateSummary),
-        ];
-    }
-
-    private static string BuildProfileSummary(
-        string customerMessage,
+    private static string BuildRecommendationSnapshot(
         CustomerProfileDto profile,
+        IReadOnlyCollection<RecommendationGroupDto> groups,
         IReadOnlyDictionary<Guid, string> ingredientNames)
     {
         var builder = new System.Text.StringBuilder();
+        builder.AppendLine("Use this current recommendation snapshot as authoritative product context for this response only.");
+        builder.AppendLine();
         builder.AppendLine("Customer profile snapshot:");
         builder.AppendLine($"- favorites: {FormatIngredientList(profile.FavoriteIngredientIds, ingredientNames)}");
         builder.AppendLine($"- dislikes: {FormatIngredientList(profile.DislikedIngredientIds, ingredientNames)}");
         builder.AppendLine($"- prohibited: {FormatIngredientList(profile.ProhibitedIngredientIds, ingredientNames)}");
         builder.AppendLine($"- owned: {FormatIngredientList(profile.OwnedIngredientIds, ingredientNames)}");
-        builder.AppendLine($"- current request: {customerMessage}");
-
-        return builder.ToString().Trim();
-    }
-
-    private static string BuildCandidateSummary(IReadOnlyCollection<RecommendationGroupDto> groups)
-    {
-        var builder = new System.Text.StringBuilder();
+        builder.AppendLine();
         builder.AppendLine("Deterministic candidate groups:");
 
         foreach (var group in groups.Where(group => group.Items.Count > 0))
