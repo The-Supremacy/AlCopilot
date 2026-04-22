@@ -1,4 +1,4 @@
-namespace AlCopilot.DrinkCatalog.Features.ImportBatch;
+namespace AlCopilot.DrinkCatalog.Features.ImportBatch.Abstractions;
 
 public interface IImportBatchApplyService
 {

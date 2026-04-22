@@ -17,7 +17,7 @@ The system SHALL apply deterministic recommendation preparation before model nar
 #### Scenario: Inventory split distinguishes available and near-miss drinks
 
 - **WHEN** the system evaluates candidate drinks against the customer's owned ingredients
-- **THEN** the system SHALL separate recommendation results into drinks the customer can make now and drinks that require additional ingredients
+- **THEN** the system SHALL separate recommendation results into drinks that are available now and drinks that are better framed as restock candidates
 
 ### Requirement: Structured Recommendation Responses
 
@@ -33,7 +33,12 @@ The system SHALL return recommendation-chat assistant responses as structured re
 - **WHEN** the assistant returns recommendation results
 - **THEN** the system SHALL include prose that explains the recommendation outcome in customer-facing language
 
-### Requirement: Limited Read-Only Semantic Kernel Tool Calling
+#### Scenario: Recommendation reply supports lightweight emphasis and bullets in portal rendering
+
+- **WHEN** the assistant returns prose containing `**highlighted text**` or `* bullet` lines
+- **THEN** the customer portal SHALL render those patterns as visual emphasis and bullet lists rather than displaying the raw punctuation literally
+
+### Requirement: Limited Read-Only Model Tool Calling
 
 The system SHALL keep recommendation execution bounded so that model-owned execution remains read-only and persistence stays outside model-controlled actions.
 
@@ -62,3 +67,8 @@ The system SHALL orchestrate recommendation execution through a bounded workflow
 
 - **WHEN** the recommendation workflow finishes recommendation generation
 - **THEN** the system SHALL append and persist the resulting conversation turns outside model-owned execution
+
+#### Scenario: Workflow can persist internal execution diagnostics separate from the customer transcript
+
+- **WHEN** development-time execution diagnostics are enabled for recommendation chat
+- **THEN** the system SHALL persist internal step traces, including tool activity and returned reasoning metadata, separately from the customer-facing recommendation turn payload

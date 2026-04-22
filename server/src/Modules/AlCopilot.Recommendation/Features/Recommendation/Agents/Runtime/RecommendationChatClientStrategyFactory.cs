@@ -23,26 +23,39 @@ internal sealed class RecommendationChatClientStrategyFactory(
 
     private RecommendationChatClientStrategy CreateOllamaStrategy()
     {
-        var options = ollamaOptions.Value;
-        if (string.IsNullOrWhiteSpace(options.ModelId))
+        var ollama = ollamaOptions.Value;
+        var llm = llmOptions.Value;
+        if (string.IsNullOrWhiteSpace(ollama.ModelId))
         {
             throw new InvalidOperationException("Recommendation Ollama model id is required.");
         }
 
-        if (!Uri.TryCreate(options.Endpoint, UriKind.Absolute, out var endpoint))
+        if (!Uri.TryCreate(ollama.Endpoint, UriKind.Absolute, out var endpoint))
         {
             throw new InvalidOperationException(
-                $"Recommendation Ollama endpoint '{options.Endpoint}' is invalid.");
+                $"Recommendation Ollama endpoint '{ollama.Endpoint}' is invalid.");
+        }
+
+        var chatOptions = new ChatOptions
+        {
+            ModelId = ollama.ModelId,
+            Temperature = llm.Sampling.Temperature,
+            TopP = llm.Sampling.TopP,
+            TopK = llm.Sampling.TopK,
+        };
+
+        if (llm.Reasoning.Enabled)
+        {
+            chatOptions.Reasoning = new ReasoningOptions
+            {
+                Effort = llm.Reasoning.Effort,
+                Output = llm.Reasoning.Output,
+            };
         }
 
         return new RecommendationChatClientStrategy(
-            new OllamaApiClient(endpoint, options.ModelId),
-            new ChatOptions
-            {
-                ModelId = options.ModelId,
-                Temperature = 0.2f,
-                TopP = 0.9f,
-            },
-            options.GetEffectiveMaxHistoryMessages());
+            new OllamaApiClient(endpoint, ollama.ModelId),
+            chatOptions,
+            ollama.GetEffectiveMaxHistoryMessages());
     }
 }

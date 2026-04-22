@@ -267,16 +267,16 @@ public sealed class HandlerConventionTests
                 .ToArray();
 
             constructorParameterTypes.ShouldNotContain(
-                typeof(AlCopilot.DrinkCatalog.Features.Drink.IDrinkRepository),
+                typeof(AlCopilot.DrinkCatalog.Features.Drink.Abstractions.IDrinkRepository),
                 $"{handlerType.Name} should depend on a query service, not IDrinkRepository.");
             constructorParameterTypes.ShouldNotContain(
-                typeof(AlCopilot.DrinkCatalog.Features.Tag.ITagRepository),
+                typeof(AlCopilot.DrinkCatalog.Features.Tag.Abstractions.ITagRepository),
                 $"{handlerType.Name} should depend on a query service, not ITagRepository.");
             constructorParameterTypes.ShouldNotContain(
-                typeof(AlCopilot.DrinkCatalog.Features.Ingredient.IIngredientRepository),
+                typeof(AlCopilot.DrinkCatalog.Features.Ingredient.Abstractions.IIngredientRepository),
                 $"{handlerType.Name} should depend on a query service, not IIngredientRepository.");
             constructorParameterTypes.ShouldNotContain(
-                typeof(AlCopilot.DrinkCatalog.Features.Audit.IAuditLogEntryRepository),
+                typeof(AlCopilot.DrinkCatalog.Features.Audit.Abstractions.IAuditLogEntryRepository),
                 $"{handlerType.Name} should depend on a query service, not IAuditLogEntryRepository.");
         }
 
@@ -313,9 +313,9 @@ public sealed class RepositoryConventionTests
     {
         var repositoryTypes = new[]
         {
-            typeof(AlCopilot.DrinkCatalog.Features.Drink.IDrinkRepository),
-            typeof(AlCopilot.DrinkCatalog.Features.Tag.ITagRepository),
-            typeof(AlCopilot.DrinkCatalog.Features.Ingredient.IIngredientRepository),
+            typeof(AlCopilot.DrinkCatalog.Features.Drink.Abstractions.IDrinkRepository),
+            typeof(AlCopilot.DrinkCatalog.Features.Tag.Abstractions.ITagRepository),
+            typeof(AlCopilot.DrinkCatalog.Features.Ingredient.Abstractions.IIngredientRepository),
             typeof(AlCopilot.CustomerProfile.Features.Profile.Abstractions.ICustomerProfileRepository),
             typeof(AlCopilot.Recommendation.Features.Recommendation.Abstractions.IChatSessionRepository),
         };

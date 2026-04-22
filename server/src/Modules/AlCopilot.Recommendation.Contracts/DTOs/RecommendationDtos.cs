@@ -6,7 +6,13 @@ public sealed record RecommendationItemDto(
     string? Description,
     List<string> MissingIngredientNames,
     List<string> MatchedSignals,
-    int Score);
+    int Score,
+    List<RecommendationRecipeEntryDto>? RecipeEntries = null);
+
+public sealed record RecommendationRecipeEntryDto(
+    string IngredientName,
+    string Quantity,
+    bool IsOwned);
 
 public sealed record RecommendationGroupDto(
     string Key,

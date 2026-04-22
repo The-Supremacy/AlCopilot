@@ -36,10 +36,10 @@ Specifically:
 - Recommendation persistence SHALL remain module-owned and SHALL stay outside model-owned execution.
 - Recommendation narration SHALL use a stable Agent Framework `ChatClientAgent` with native `AgentSession` persistence as the primary carrier for model-visible conversation state.
 - Recommendation narration SHALL keep per-conversation history inside framework-managed session-backed chat history rather than reconstructing it from the business transcript on each run.
-- Recommendation narration SHALL pass deterministic per-run recommendation context as explicit `ChatMessage` input to the run rather than mutating request-scoped `AIContextProvider` state before invocation.
+- Recommendation narration SHALL pass deterministic per-run recommendation context to the run as model-visible system-message input, either through explicit `ChatMessage` input or through an `AIContextProvider` that resolves the current request snapshot before invocation.
 - Read-only model tools MAY still be used when helpful, but Agent Framework workflows replace Semantic Kernel tool calling as the primary orchestration mechanism.
 - The recommendation module SHOULD prefer `ChatClientAgentOptions`, `AgentSession`, and framework-managed chat history for model-side conversation state.
-- `AIContextProvider` SHOULD be reserved for durable agent memory or retrieval-style augmentation where the provider can resolve context from the session or backing services without request-scoped setter calls.
+- `AIContextProvider` MAY be used for deterministic per-run context injection when it resolves the current recommendation snapshot from module-owned services at invocation time rather than relying on ad-hoc prompt mutation inside the model workflow.
 - Semantic Kernel MAY remain as an implementation detail for model integration where it adds value, but it is no longer the architectural center of recommendation execution.
 - The default local CPU-oriented development model profile for recommendation SHALL be `gemma4:e4b` via Ollama unless a more suitable local default is later documented.
 
@@ -61,7 +61,7 @@ The project can allocate roughly 16 GB of RAM to local model execution, which ma
 - Recommendation docs and specs should stop describing Semantic Kernel tool calling as the primary orchestration model.
 - Recommendation code will keep a deliberate split where the domain aggregate stores business-visible turns/events, while the serialized Agent Framework session stores the canonical model-visible conversation state.
 - Recommendation agent sessions may remain ephemeral objects per request, but the persisted framework session becomes the canonical carrier for model-visible history across requests.
-- Recommendation narration input is now intentionally split between durable framework session state and explicit per-run context messages, which keeps transient recommendation snapshots out of long-term session memory.
+- Recommendation narration input is now intentionally split between durable framework session state and per-run context messages, which keeps transient recommendation snapshots out of long-term session memory while allowing either explicit message injection or provider-backed system-message assembly.
 - Local development defaults should be updated away from older model choices toward `gemma4:e4b`.
 - Agent Framework is now on a stable release line, so future upgrades should track current stable packages rather than preview or RC builds by default.
 

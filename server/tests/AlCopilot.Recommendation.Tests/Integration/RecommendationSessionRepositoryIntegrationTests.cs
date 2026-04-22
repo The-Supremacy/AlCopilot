@@ -1,6 +1,7 @@
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Recommendation.Data;
 using AlCopilot.Recommendation.Features.Recommendation;
+using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
 
@@ -33,8 +34,17 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
         session.AppendUserTurn("Something refreshing");
         session.AppendAssistantTurn(
             "Try a Gimlet.",
-            [new RecommendationGroupDto("make-now", "Make Now", [new RecommendationItemDto(Guid.NewGuid(), "Gimlet", null, [], [], 100)])],
-            []);
+            [new RecommendationGroupDto("make-now", "Available Now", [new RecommendationItemDto(Guid.NewGuid(), "Gimlet", null, [], [], 100)])],
+            [],
+            [
+                new RecommendationExecutionTraceStep(
+                    "agent.run",
+                    "completed",
+                    "Generated recommendation response.",
+                    DateTimeOffset.UtcNow,
+                    new Dictionary<string, string?> { ["finishReason"] = "stop" },
+                    [])
+            ]);
 
         repository.Add(session);
         await _db.SaveChangesAsync();
@@ -43,6 +53,7 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
         loaded.ShouldNotBeNull();
         loaded!.Turns.Count.ShouldBe(2);
         loaded.Turns.Last().Role.ShouldBe("assistant");
+        loaded.Turns.Last().GetExecutionTraceSteps().Single().StepName.ShouldBe("agent.run");
         var domainEvents = await _db.DomainEventRecords
             .OrderBy(record => record.Id)
             .ToListAsync();

@@ -1,6 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
 
-namespace AlCopilot.DrinkCatalog.Features.Drink;
+namespace AlCopilot.DrinkCatalog.Features.Drink.Abstractions;
 
 public interface IDrinkRecipeIntegrityValidator
 {

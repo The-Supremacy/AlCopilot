@@ -1,6 +1,6 @@
 using AlCopilot.Shared.Data;
 
-namespace AlCopilot.DrinkCatalog.Features.ImportBatch;
+namespace AlCopilot.DrinkCatalog.Features.ImportBatch.Abstractions;
 
 public interface IImportBatchRepository : IRepository<ImportBatch, Guid>
 {

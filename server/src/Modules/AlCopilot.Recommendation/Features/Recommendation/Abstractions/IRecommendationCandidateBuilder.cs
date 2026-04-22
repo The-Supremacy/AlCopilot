@@ -8,6 +8,7 @@ public interface IRecommendationCandidateBuilder
 {
     List<RecommendationGroupDto> Build(
         string customerRequest,
+        RecommendationRequestIntent intent,
         CustomerProfileDto profile,
         IReadOnlyCollection<DrinkDetailDto> drinks);
 }

@@ -8,7 +8,8 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationRecipeLookupTool(
     IMediator mediator,
-    IRecommendationToolInvocationRecorder toolInvocationRecorder)
+    IRecommendationToolInvocationRecorder toolInvocationRecorder,
+    IRecommendationExecutionTraceRecorder executionTraceRecorder)
 {
     [Description("Look up the full recipe details for a specific known drink from the catalog.")]
     public async Task<RecommendationRecipeLookupResult> LookupDrinkRecipeAsync(
@@ -18,6 +19,18 @@ internal sealed class RecommendationRecipeLookupTool(
         var drink = await ResolveDrinkAsync(drinkId, drinkName);
         if (drink is null)
         {
+            executionTraceRecorder.Record(
+                new RecommendationExecutionTraceStep(
+                    "tool.lookup_drink_recipe",
+                    "not-found",
+                    "No matching drink was found for the provided id or name.",
+                    DateTimeOffset.UtcNow,
+                    new Dictionary<string, string?>
+                    {
+                        ["drinkId"] = drinkId,
+                        ["drinkName"] = drinkName,
+                    },
+                    []));
             return new RecommendationRecipeLookupResult(
                 "not-found",
                 "No matching drink was found for the provided id or name.",
@@ -27,6 +40,19 @@ internal sealed class RecommendationRecipeLookupTool(
         toolInvocationRecorder.Record(
             "lookup_drink_recipe",
             $"Looked up the full recipe details for {drink.Name}.");
+        executionTraceRecorder.Record(
+            new RecommendationExecutionTraceStep(
+                "tool.lookup_drink_recipe",
+                "ok",
+                $"Found recipe details for {drink.Name}.",
+                DateTimeOffset.UtcNow,
+                new Dictionary<string, string?>
+                {
+                    ["drinkId"] = drink.Id.ToString(),
+                    ["drinkName"] = drink.Name,
+                    ["recipeEntryCount"] = drink.RecipeEntries.Count.ToString(),
+                },
+                []));
 
         return new RecommendationRecipeLookupResult(
             "ok",
@@ -38,7 +64,11 @@ internal sealed class RecommendationRecipeLookupTool(
     {
         if (Guid.TryParse(drinkId, out var parsedDrinkId))
         {
-            return await mediator.Send(new GetDrinkByIdQuery(parsedDrinkId), CancellationToken.None);
+            var drinkById = await mediator.Send(new GetDrinkByIdQuery(parsedDrinkId), CancellationToken.None);
+            if (drinkById is not null)
+            {
+                return drinkById;
+            }
         }
 
         if (string.IsNullOrWhiteSpace(drinkName))
@@ -46,19 +76,8 @@ internal sealed class RecommendationRecipeLookupTool(
             return null;
         }
 
-        var normalizedName = drinkName.Trim();
         var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), CancellationToken.None);
-        var exactMatch = drinks.FirstOrDefault(drink =>
-            string.Equals(drink.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
-        if (exactMatch is not null)
-        {
-            return exactMatch;
-        }
-
-        var partialMatches = drinks
-            .Where(drink => drink.Name.Contains(normalizedName, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        return partialMatches.Count == 1 ? partialMatches[0] : null;
+        return RecommendationCatalogMatcher.FindDrink(drinks, drinkId, drinkName);
     }
 }
 

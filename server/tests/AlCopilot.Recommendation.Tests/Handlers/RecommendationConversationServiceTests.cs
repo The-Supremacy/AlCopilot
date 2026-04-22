@@ -9,7 +9,9 @@ using AlCopilot.Shared.Errors;
 using Microsoft.Agents.AI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
 
@@ -21,11 +23,14 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_CreatesSession_AssemblesHistory_AndPersistsResult()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var runContextQueryService = Substitute.For<IRecommendationRunContextQueryService>();
+        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
+        var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
+        var hostEnvironment = Substitute.For<IHostEnvironment>();
         var agent = new FakeAgent("Try the Gimlet.");
         var agentSession = Substitute.For<AgentSession>();
 
@@ -35,20 +40,25 @@ public sealed class RecommendationConversationServiceTests
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
         toolInvocationRecorder.Drain().Returns([]);
-        runContextQueryService.GetRunContextAsync("Give me something citrusy", Arg.Any<CancellationToken>())
+        runContextFactory.CreateAsync("Give me something citrusy", Arg.Any<CancellationToken>())
             .Returns(new RecommendationRunContext(
+                new RecommendationRequestIntent(
+                    RecommendationRequestIntentKind.Recommendation,
+                    null,
+                    null,
+                    ["citrusy"]),
                 new CustomerProfileDto([], [], [], []),
                 [
                     new RecommendationGroupDto(
                         "make-now",
-                        "Make Now",
+                        "Available Now",
                         [new RecommendationItemDto(Guid.NewGuid(), "Gimlet", "Bright and citrusy", [], ["citrusy"], 100)])
                 ],
                 new Dictionary<Guid, string>(),
                 [
                     new RecommendationRunContextGroup(
                         "make-now",
-                        "Make Now",
+                        "Available Now",
                         [
                             new RecommendationRunContextItem(
                                 Guid.NewGuid(),
@@ -59,17 +69,22 @@ public sealed class RecommendationConversationServiceTests
                                 ["Gin"],
                                 null,
                                 null,
+                                ["citrusy"],
                                 100)
                         ])
                 ]));
 
         var service = new RecommendationConversationService(
             repository,
-            runContextQueryService,
+            runContextFactory,
             agentFactory,
             sessionStore,
+            currentRunContextAccessor,
+            executionTraceRecorder,
             toolInvocationRecorder,
             unitOfWork,
+            hostEnvironment,
+            Options.Create(new RecommendationObservabilityOptions()),
             NullLogger<RecommendationConversationService>.Instance);
 
         var result = await service.SendMessageAsync(
@@ -96,11 +111,14 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_ReusesExistingSession_AndPersistsRecordedToolInvocations()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var runContextQueryService = Substitute.For<IRecommendationRunContextQueryService>();
+        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
+        var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
+        var hostEnvironment = Substitute.For<IHostEnvironment>();
         var agent = new FakeAgent("No great matches right now.");
         var agentSession = Substitute.For<AgentSession>();
         var existingSession = ChatSession.Create("customer-1", "First request");
@@ -118,20 +136,29 @@ public sealed class RecommendationConversationServiceTests
             .Returns([
                 new RecommendationToolInvocationDto("lookup_drink_recipe", "Looked up the full recipe details for Negroni.")
             ]);
-        runContextQueryService.GetRunContextAsync("Something else", Arg.Any<CancellationToken>())
+        runContextFactory.CreateAsync("Something else", Arg.Any<CancellationToken>())
             .Returns(new RecommendationRunContext(
+                new RecommendationRequestIntent(
+                    RecommendationRequestIntentKind.Recommendation,
+                    null,
+                    null,
+                    []),
                 new CustomerProfileDto([], [], [], []),
-                [new RecommendationGroupDto("make-now", "Make Now", [])],
+                [new RecommendationGroupDto("make-now", "Available Now", [])],
                 new Dictionary<Guid, string>(),
                 []));
 
         var service = new RecommendationConversationService(
             repository,
-            runContextQueryService,
+            runContextFactory,
             agentFactory,
             sessionStore,
+            currentRunContextAccessor,
+            executionTraceRecorder,
             toolInvocationRecorder,
             unitOfWork,
+            hostEnvironment,
+            Options.Create(new RecommendationObservabilityOptions()),
             NullLogger<RecommendationConversationService>.Instance);
 
         var result = await service.SendMessageAsync(
@@ -156,19 +183,26 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_Throws_WhenMessageIsBlank()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var runContextQueryService = Substitute.For<IRecommendationRunContextQueryService>();
+        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
+        var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
+        var hostEnvironment = Substitute.For<IHostEnvironment>();
 
         var service = new RecommendationConversationService(
             repository,
-            runContextQueryService,
+            runContextFactory,
             agentFactory,
             sessionStore,
+            currentRunContextAccessor,
+            executionTraceRecorder,
             toolInvocationRecorder,
             unitOfWork,
+            hostEnvironment,
+            Options.Create(new RecommendationObservabilityOptions()),
             NullLogger<RecommendationConversationService>.Instance);
 
         await Should.ThrowAsync<AlCopilot.Shared.Errors.ValidationException>(() =>
@@ -179,11 +213,14 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_ThrowsConflict_WhenSaveHitsConcurrencyException()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var runContextQueryService = Substitute.For<IRecommendationRunContextQueryService>();
+        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
+        var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
+        var hostEnvironment = Substitute.For<IHostEnvironment>();
         var agent = new FakeAgent("Try the Gimlet.");
         var agentSession = Substitute.For<AgentSession>();
 
@@ -193,10 +230,15 @@ public sealed class RecommendationConversationServiceTests
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
         toolInvocationRecorder.Drain().Returns([]);
-        runContextQueryService.GetRunContextAsync("Give me something citrusy", Arg.Any<CancellationToken>())
+        runContextFactory.CreateAsync("Give me something citrusy", Arg.Any<CancellationToken>())
             .Returns(new RecommendationRunContext(
+                new RecommendationRequestIntent(
+                    RecommendationRequestIntentKind.Recommendation,
+                    null,
+                    null,
+                    ["citrusy"]),
                 new CustomerProfileDto([], [], [], []),
-                [new RecommendationGroupDto("make-now", "Make Now", [])],
+                [new RecommendationGroupDto("make-now", "Available Now", [])],
                 new Dictionary<Guid, string>(),
                 []));
         unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
@@ -204,17 +246,83 @@ public sealed class RecommendationConversationServiceTests
 
         var service = new RecommendationConversationService(
             repository,
-            runContextQueryService,
+            runContextFactory,
             agentFactory,
             sessionStore,
+            currentRunContextAccessor,
+            executionTraceRecorder,
             toolInvocationRecorder,
             unitOfWork,
+            hostEnvironment,
+            Options.Create(new RecommendationObservabilityOptions()),
             NullLogger<RecommendationConversationService>.Instance);
 
         var ex = await Should.ThrowAsync<ConflictException>(() =>
             service.SendMessageAsync("customer-1", null, "Give me something citrusy", CancellationToken.None));
 
         ex.Message.ShouldBe("This recommendation session was changed while your message was being processed. Please retry.");
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_PersistsExecutionTrace_WhenDevelopmentDiagnosticsAreEnabled()
+    {
+        var repository = Substitute.For<IChatSessionRepository>();
+        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
+        var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
+        var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
+        var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
+        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
+        var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
+        var hostEnvironment = Substitute.For<IHostEnvironment>();
+        var agent = new FakeAgent("Try the Gimlet.");
+        var agentSession = Substitute.For<AgentSession>();
+
+        hostEnvironment.EnvironmentName.Returns(Environments.Development);
+        agentFactory.Create().Returns(agent);
+        sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
+            .Returns(agentSession);
+        sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
+            .Returns("""{"stateBag":{"session":"saved"}}""");
+        toolInvocationRecorder.Drain().Returns([]);
+        runContextFactory.CreateAsync("Give me something citrusy", Arg.Any<CancellationToken>())
+            .Returns(new RecommendationRunContext(
+                new RecommendationRequestIntent(
+                    RecommendationRequestIntentKind.Recommendation,
+                    null,
+                    null,
+                    ["citrusy"]),
+                new CustomerProfileDto([], [], [], []),
+                [new RecommendationGroupDto("make-now", "Available Now", [])],
+                new Dictionary<Guid, string>(),
+                []));
+
+        var service = new RecommendationConversationService(
+            repository,
+            runContextFactory,
+            agentFactory,
+            sessionStore,
+            currentRunContextAccessor,
+            executionTraceRecorder,
+            toolInvocationRecorder,
+            unitOfWork,
+            hostEnvironment,
+            Options.Create(new RecommendationObservabilityOptions
+            {
+                PersistExecutionTraceInDevelopment = true,
+            }),
+            NullLogger<RecommendationConversationService>.Instance);
+
+        var result = await service.SendMessageAsync(
+            "customer-1",
+            null,
+            "Give me something citrusy",
+            CancellationToken.None);
+
+        var assistantTurn = result.Turns.Last();
+        assistantTurn.Role.ShouldBe("assistant");
+        repository.Received(1).Add(Arg.Is<ChatSession>(session =>
+            session.Turns.Last().GetExecutionTraceSteps().Any(step => step.StepName == "agent.run")));
     }
 
     private sealed class FakeAgent(string assistantText) : AIAgent

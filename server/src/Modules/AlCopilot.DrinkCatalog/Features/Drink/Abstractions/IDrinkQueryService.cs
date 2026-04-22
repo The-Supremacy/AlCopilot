@@ -2,7 +2,7 @@ using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
 using AlCopilot.Shared.Models;
 
-namespace AlCopilot.DrinkCatalog.Features.Drink;
+namespace AlCopilot.DrinkCatalog.Features.Drink.Abstractions;
 
 public interface IDrinkQueryService
 {

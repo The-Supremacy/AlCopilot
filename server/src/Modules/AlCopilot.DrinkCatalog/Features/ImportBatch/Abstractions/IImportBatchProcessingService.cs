@@ -1,6 +1,7 @@
 using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
+using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies.Abstractions;
 
-namespace AlCopilot.DrinkCatalog.Features.ImportBatch;
+namespace AlCopilot.DrinkCatalog.Features.ImportBatch.Abstractions;
 
 public interface IImportBatchProcessingService
 {

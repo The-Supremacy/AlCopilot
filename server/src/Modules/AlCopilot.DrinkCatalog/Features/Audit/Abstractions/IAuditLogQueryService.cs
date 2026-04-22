@@ -1,6 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 
-namespace AlCopilot.DrinkCatalog.Features.Audit;
+namespace AlCopilot.DrinkCatalog.Features.Audit.Abstractions;
 
 public interface IAuditLogQueryService
 {

@@ -3,6 +3,7 @@ using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.CustomerProfile.Contracts.Queries;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
 using AlCopilot.Recommendation.Features.Recommendation;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using Mediator;
 using NSubstitute;
@@ -29,7 +30,7 @@ public sealed class RecommendationEvaluationCorpusTests
             new CustomerProfileDto([], [], [], [IngredientIds.Gin, IngredientIds.SweetVermouth]),
             BuildCatalog(),
             ["Martini"],
-            ["Gimlet", "Negroni"],
+            ["Negroni", "Gimlet"],
             [],
             ["Negroni", "missing Campari", "owned Gin, Sweet Vermouth"]),
         new RecommendationEvaluationCase(
@@ -53,11 +54,14 @@ public sealed class RecommendationEvaluationCorpusTests
         mediator.Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>())
             .Returns(evaluationCase.Drinks.ToList());
 
-        var queryService = new RecommendationRunContextQueryService(
-            mediator,
-            new DeterministicRecommendationCandidateBuilder());
+        var runInputsQueryService = new RecommendationRunInputsQueryService(mediator);
+        var factory = new RecommendationRunContextFactory(
+            runInputsQueryService,
+            new RecommendationRequestIntentResolver(),
+            new DeterministicRecommendationCandidateBuilder(),
+            new RecommendationExecutionTraceRecorder());
 
-        var runContext = await queryService.GetRunContextAsync(evaluationCase.Prompt, CancellationToken.None);
+        var runContext = await factory.CreateAsync(evaluationCase.Prompt, CancellationToken.None);
         var prompt = RecommendationRunContextMessageBuilder.Build(runContext);
 
         runContext.RecommendationGroups.Single(group => group.Key == "make-now").Items.Select(item => item.DrinkName)

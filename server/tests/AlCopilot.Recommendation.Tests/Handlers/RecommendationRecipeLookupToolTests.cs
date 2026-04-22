@@ -15,6 +15,7 @@ public sealed class RecommendationRecipeLookupToolTests
     {
         var mediator = Substitute.For<IMediator>();
         var recorder = new RecommendationToolInvocationRecorder();
+        var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         var drinkId = Guid.NewGuid();
         mediator.Send(Arg.Any<GetDrinkByIdQuery>(), Arg.Any<CancellationToken>())
             .Returns(new DrinkDetailDto(
@@ -31,7 +32,7 @@ public sealed class RecommendationRecipeLookupToolTests
                     new RecipeEntryDto(new IngredientDto(Guid.NewGuid(), "Campari", ["Campari"]), "1 oz", null),
                 ]));
 
-        var tool = new RecommendationRecipeLookupTool(mediator, recorder);
+        var tool = new RecommendationRecipeLookupTool(mediator, recorder, executionTraceRecorder);
 
         var result = await tool.LookupDrinkRecipeAsync(drinkId.ToString(), null);
 
@@ -46,10 +47,11 @@ public sealed class RecommendationRecipeLookupToolTests
     {
         var mediator = Substitute.For<IMediator>();
         var recorder = new RecommendationToolInvocationRecorder();
+        var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         mediator.Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>())
             .Returns([]);
 
-        var tool = new RecommendationRecipeLookupTool(mediator, recorder);
+        var tool = new RecommendationRecipeLookupTool(mediator, recorder, executionTraceRecorder);
 
         var result = await tool.LookupDrinkRecipeAsync(null, "Unknown");
 

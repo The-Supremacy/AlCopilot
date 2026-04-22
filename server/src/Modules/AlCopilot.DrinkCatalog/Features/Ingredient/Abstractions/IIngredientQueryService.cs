@@ -1,6 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 
-namespace AlCopilot.DrinkCatalog.Features.Ingredient;
+namespace AlCopilot.DrinkCatalog.Features.Ingredient.Abstractions;
 
 public interface IIngredientQueryService
 {

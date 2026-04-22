@@ -1,4 +1,4 @@
-namespace AlCopilot.DrinkCatalog.Features.Audit;
+namespace AlCopilot.DrinkCatalog.Features.Audit.Abstractions;
 
 public interface IAuditLogWriter
 {

@@ -1,6 +1,8 @@
 using AlCopilot.CustomerProfile.Contracts.DTOs;
 using AlCopilot.Recommendation.Contracts.DTOs;
+using AlCopilot.Recommendation.Features.Recommendation;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Shouldly;
 
@@ -20,6 +22,42 @@ public sealed class RecommendationNarrationServiceTests
     }
 
     [Fact]
+    public void Create_AppliesSamplingAndReasoningConfiguration()
+    {
+        var strategyFactory = new RecommendationChatClientStrategyFactory(
+            Options.Create(new RecommendationLlmOptions
+            {
+                Provider = RecommendationLlmOptions.OllamaProvider,
+                Sampling = new RecommendationSamplingOptions
+                {
+                    Temperature = 0.35f,
+                    TopP = 0.85f,
+                    TopK = 32,
+                },
+                Reasoning = new RecommendationReasoningOptions
+                {
+                    Enabled = true,
+                    Effort = ReasoningEffort.Medium,
+                    Output = ReasoningOutput.Summary,
+                },
+            }),
+            Options.Create(new RecommendationOllamaOptions
+            {
+                Endpoint = "http://localhost:11434",
+                ModelId = "gemma4:e4b",
+            }));
+
+        var strategy = strategyFactory.Create();
+
+        strategy.ChatOptions.Temperature.ShouldBe(0.35f);
+        strategy.ChatOptions.TopP.ShouldBe(0.85f);
+        strategy.ChatOptions.TopK.ShouldBe(32);
+        strategy.ChatOptions.Reasoning.ShouldNotBeNull();
+        strategy.ChatOptions.Reasoning!.Effort.ShouldBe(ReasoningEffort.Medium);
+        strategy.ChatOptions.Reasoning!.Output.ShouldBe(ReasoningOutput.Summary);
+    }
+
+    [Fact]
     public void Build_BuildsBarAwareRecommendationRunContext()
     {
         var ginId = Guid.Parse("00000000-0000-0000-0000-000000000021");
@@ -27,8 +65,13 @@ public sealed class RecommendationNarrationServiceTests
 
         var message = RecommendationRunContextMessageBuilder.Build(
             new RecommendationRunContext(
+                new RecommendationRequestIntent(
+                    RecommendationRequestIntentKind.IngredientDiscovery,
+                    null,
+                    "Gin",
+                    ["citrusy"]),
                 new CustomerProfileDto([ginId], [], [campariId], [ginId]),
-                [new RecommendationGroupDto("buy-next", "Buy Next", [new RecommendationItemDto(Guid.NewGuid(), "Negroni", null, ["Campari"], [], 70)])],
+                [new RecommendationGroupDto("buy-next", "Consider for Restock", [new RecommendationItemDto(Guid.NewGuid(), "Negroni", null, ["Campari"], [], 70)])],
                 new Dictionary<Guid, string>
                 {
                     [ginId] = "Gin",
@@ -37,7 +80,7 @@ public sealed class RecommendationNarrationServiceTests
                 [
                     new RecommendationRunContextGroup(
                         "buy-next",
-                        "Buy Next",
+                        "Consider for Restock",
                         [
                             new RecommendationRunContextItem(
                                 Guid.NewGuid(),
@@ -48,6 +91,7 @@ public sealed class RecommendationNarrationServiceTests
                                 ["Campari", "Gin", "Sweet Vermouth"],
                                 "Stir",
                                 "Orange twist",
+                                ["Gin", "citrusy"],
                                 70)
                         ])
                 ]));
@@ -55,7 +99,10 @@ public sealed class RecommendationNarrationServiceTests
         message.ShouldContain("recommendation run context");
         message.ShouldContain("owned: Gin");
         message.ShouldContain("prohibited: Campari");
+        message.ShouldContain("search_drinks");
+        message.ShouldContain("lookup_drinks_by_ingredient");
         message.ShouldContain("lookup_drink_recipe");
+        message.ShouldContain("kind: IngredientDiscovery");
         message.ShouldContain("Negroni");
         message.ShouldContain("owned Gin");
         message.ShouldContain("missing Campari");

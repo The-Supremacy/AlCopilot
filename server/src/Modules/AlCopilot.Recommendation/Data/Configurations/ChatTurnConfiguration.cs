@@ -27,6 +27,9 @@ internal sealed class ChatTurnConfiguration : IEntityTypeConfiguration<ChatTurn>
             .IsRequired()
             .HasColumnType("jsonb");
 
+        builder.Property(turn => turn.ExecutionTraceJson)
+            .HasColumnType("jsonb");
+
         builder.Property(turn => turn.CreatedAtUtc)
             .IsRequired();
     }

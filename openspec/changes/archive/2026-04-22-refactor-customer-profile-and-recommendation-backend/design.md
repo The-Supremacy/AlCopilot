@@ -1,6 +1,6 @@
 ## Context
 
-`CustomerProfile` and `Recommendation` currently work, but they still reflect the earlier backend shape that predates the `DrinkCatalog` refactor. `CustomerProfile` uses the older flat feature layout and does not yet emit meaningful preserved domain events even though the module already registers the shared interceptor and event storage. `Recommendation` persists chat sessions, but its runtime still centers on direct handler orchestration and a thin Semantic Kernel wrapper rather than a workflow-oriented execution model.
+`CustomerProfile` and `Recommendation` currently work, but they still reflect the earlier backend shape that predates the `DrinkCatalog` refactor. `CustomerProfile` uses the older flat feature layout and does not yet emit meaningful preserved domain events even though the module already registers the shared interceptor and event storage. `Recommendation` persists chat sessions, but its runtime still centers on direct handler orchestration and a thin Semantic Kernel wrapper rather than a more AI-native Agent Framework execution model with bounded tools and model-visible run context.
 
 This change updates both modules to match the backend direction already established by ADR 0010 and `DrinkCatalog`, while also adopting the newly accepted recommendation-runtime direction from ADR 0015. The implementation remains inside the modular monolith and preserves `.Contracts` boundaries, one `DbContext` per module, and module-owned persistence.
 
@@ -11,7 +11,7 @@ This change updates both modules to match the backend direction already establis
 - Align `CustomerProfile` and `Recommendation` with the current backend feature structure, especially `Features/<Feature>/Abstractions`.
 - Make each aggregate in the affected modules emit meaningful preserved domain events into module-owned domain-event storage.
 - Introduce Microsoft Agent Framework workflows as the orchestration layer for recommendation execution without moving recommendation policy into the workflow graph.
-- Keep deterministic hard filtering, candidate scoring, and make-now versus buy-next grouping explicit, testable, and framework-agnostic.
+- Keep deterministic hard filtering, candidate scoring, and available-now versus restock grouping explicit, testable, and framework-agnostic.
 - Update local recommendation runtime defaults toward a CPU-friendly Ollama-hosted model profile based on `gemma4:e4b`.
 
 **Non-Goals:**
@@ -55,12 +55,14 @@ The workflow coordinates:
 - loading the current customer profile snapshot
 - loading the recommendation catalog or future derived recommendation projection
 - applying hard exclusions and candidate scoring
-- grouping results into make-now and buy-next outcomes
-- invoking the narration/model step
+- grouping results into available-now and restock-oriented outcomes
+- resolving request intent and assembling bounded run context
+- invoking the narration/model step with bounded read-only tools
+- optionally recording internal step diagnostics for development-time troubleshooting
 - appending assistant output and persisting the session
 
-The workflow does not become the home of business rules.
-Deterministic policy lives in normal collaborators such as candidate builders, retrieval services, and narration services.
+The orchestration path does not become the home of business rules.
+Deterministic policy lives in normal collaborators such as candidate builders, retrieval services, intent resolvers, and narration-context builders.
 
 Aggregate roots and value objects:
 
@@ -74,10 +76,13 @@ the workflow model is a better fit for the team's learning goals and future AI-o
 Why this over putting all logic inside workflow nodes:
 keeping business policy outside the workflow graph preserves reuse, testability, and replaceability.
 
+Diagnostic traces produced during recommendation execution remain internal workflow metadata.
+They may be persisted on assistant turns for development-only troubleshooting, but they are not part of the public recommendation transcript contract and must stay outside customer-facing DTOs.
+
 ### 4. Semantic Kernel becomes optional implementation detail rather than architectural center
 
 Semantic Kernel may still be used where it helps with Ollama integration, prompt composition, or model abstractions, but the architectural center of recommendation execution becomes the Agent Framework workflow.
-Read-only tools remain optional helpers rather than the primary runtime model.
+Read-only tools remain bounded helpers for drink search, ingredient lookup, and recipe lookup rather than the primary runtime model.
 
 Why this over keeping Semantic Kernel as the primary orchestration story:
 the new workflow direction should be reflected explicitly in the module architecture instead of hidden behind a handler plus a single model-call wrapper.
@@ -101,8 +106,8 @@ the project can allocate roughly 16 GB of RAM for the model on a 32 GB developme
 ## Migration Plan
 
 1. Refactor `CustomerProfile` structure and aggregate behavior first, including domain events, repository/query-service placement, and migration updates.
-2. Introduce the new recommendation workflow alongside the current module shape, then migrate handlers to the workflow path.
-3. Replace the Semantic Kernel-centered orchestration path after the workflow can produce equivalent persisted session behavior.
+2. Introduce the new recommendation orchestration path alongside the current module shape, including intent resolution, bounded tool wiring, and model-visible run-context assembly.
+3. Replace the Semantic Kernel-centered orchestration path after the Agent Framework narration path can produce equivalent persisted session behavior.
 4. Update module configuration defaults to the new Ollama model profile.
 5. Run module unit tests, integration tests, and architecture tests before treating the refactor as complete.
 

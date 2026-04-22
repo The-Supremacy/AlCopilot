@@ -56,10 +56,10 @@ When global UI invariants change, update this DESIGN.md.
 ## Interaction and Feedback Invariants
 
 - Global feedback pattern: inline guidance plus toast confirmation.
-- Recommendation results should combine conversational explanation with stable grouped summaries that stay easy to scan, especially through simple make-now versus buy-next bullet-style presentation.
+- Recommendation results should combine conversational explanation with stable grouped summaries that stay easy to scan, especially through simple available-now versus restock-oriented presentation.
 - Signed-in gating uses a consistent local sign-in-required state before redirecting to the identity provider.
 - Potentially sensitive profile edits such as prohibited ingredients should use clear plain-language confirmations and summaries.
-- The portal should keep users oriented about whether a recommendation is available now or needs extra ingredients without relying on chat prose alone.
+- The portal should keep users oriented about whether a recommendation is available now or better framed as a restock candidate without relying on chat prose alone.
 
 ## Visual and Density Principles
 
@@ -89,3 +89,4 @@ When global UI invariants change, update this DESIGN.md.
 
 - 2026-04-14: Initial customer web portal design guide created for the first signed-in recommendation-focused portal baseline.
 - 2026-04-21: Refined the chat shell toward a centered conversation workspace with a pinned composer, search-first ingredient pickers, mobile drawer utility consolidation, and simpler grouped recommendation summaries.
+- 2026-04-22: Recommendation turns render lightweight emphasis and bullet formatting from assistant prose, and grouped summaries use softer available-now versus restock language.

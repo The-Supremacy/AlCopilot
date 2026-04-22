@@ -1,4 +1,4 @@
-namespace AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
+namespace AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies.Abstractions;
 
 public interface IImportSourceStrategy
 {

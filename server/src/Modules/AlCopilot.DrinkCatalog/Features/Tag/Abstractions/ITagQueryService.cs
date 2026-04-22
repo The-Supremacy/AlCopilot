@@ -1,6 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 
-namespace AlCopilot.DrinkCatalog.Features.Tag;
+namespace AlCopilot.DrinkCatalog.Features.Tag.Abstractions;
 
 public interface ITagQueryService
 {

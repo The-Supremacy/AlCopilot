@@ -36,11 +36,17 @@ public static class RecommendationModule
         services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
         services.AddScoped<IRecommendationSessionQueryService, RecommendationSessionQueryService>();
         services.AddScoped<IRecommendationCandidateBuilder, DeterministicRecommendationCandidateBuilder>();
-        services.AddScoped<IRecommendationRunContextQueryService, RecommendationRunContextQueryService>();
+        services.AddScoped<IRecommendationRunInputsQueryService, RecommendationRunInputsQueryService>();
+        services.AddScoped<IRecommendationRequestIntentResolver, RecommendationRequestIntentResolver>();
+        services.AddScoped<IRecommendationRunContextFactory, RecommendationRunContextFactory>();
         services.AddSingleton<IRecommendationChatClientStrategyFactory, RecommendationChatClientStrategyFactory>();
         services.AddScoped<IRecommendationNarratorAgentFactory, RecommendationNarratorAgentFactory>();
         services.AddSingleton<IRecommendationAgentSessionStore, RecommendationAgentSessionStore>();
+        services.AddScoped<IRecommendationCurrentRunContextAccessor, RecommendationCurrentRunContextAccessor>();
+        services.AddScoped<IRecommendationExecutionTraceRecorder, RecommendationExecutionTraceRecorder>();
         services.AddScoped<IRecommendationToolInvocationRecorder, RecommendationToolInvocationRecorder>();
+        services.AddScoped<RecommendationDrinkSearchTool>();
+        services.AddScoped<RecommendationIngredientLookupTool>();
         services.AddScoped<RecommendationRecipeLookupTool>();
         services.AddScoped<IRecommendationConversationService, RecommendationConversationService>();
         services.AddSingleton<IRecommendationEmbeddingRuntime, RecommendationEmbeddingRuntime>();

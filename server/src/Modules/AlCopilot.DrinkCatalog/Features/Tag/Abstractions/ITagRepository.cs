@@ -1,6 +1,6 @@
 using AlCopilot.Shared.Data;
 
-namespace AlCopilot.DrinkCatalog.Features.Tag;
+namespace AlCopilot.DrinkCatalog.Features.Tag.Abstractions;
 
 public interface ITagRepository : IRepository<Tag, Guid>
 {

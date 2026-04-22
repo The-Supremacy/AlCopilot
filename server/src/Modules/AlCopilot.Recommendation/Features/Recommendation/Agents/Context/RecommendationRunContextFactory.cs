@@ -1,19 +1,19 @@
-using AlCopilot.CustomerProfile.Contracts.Queries;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
-using AlCopilot.DrinkCatalog.Contracts.Queries;
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
-using Mediator;
+using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using System.Diagnostics;
 
-namespace AlCopilot.Recommendation.Features.Recommendation;
+namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
-internal sealed class RecommendationRunContextQueryService(
-    IMediator mediator,
-    IRecommendationCandidateBuilder candidateBuilder) : IRecommendationRunContextQueryService
+internal sealed class RecommendationRunContextFactory(
+    IRecommendationRunInputsQueryService runInputsQueryService,
+    IRecommendationRequestIntentResolver requestIntentResolver,
+    IRecommendationCandidateBuilder candidateBuilder,
+    IRecommendationExecutionTraceRecorder executionTraceRecorder) : IRecommendationRunContextFactory
 {
-    public async Task<RecommendationRunContext> GetRunContextAsync(
+    public async Task<RecommendationRunContext> CreateAsync(
         string customerMessage,
         CancellationToken cancellationToken = default)
     {
@@ -22,12 +22,12 @@ internal sealed class RecommendationRunContextQueryService(
             ActivityKind.Internal);
         activity?.SetTag("recommendation.customer_message.length", customerMessage.Length);
 
-        var profile = await mediator.Send(new GetCustomerProfileQuery(), cancellationToken);
-        var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), cancellationToken);
-        var groups = candidateBuilder.Build(customerMessage, profile, drinks);
-        var ownedIngredientIds = profile.OwnedIngredientIds.ToHashSet();
-        var drinkLookup = drinks.ToDictionary(drink => drink.Id);
-        var ingredientNames = drinks
+        var inputs = await runInputsQueryService.GetRunInputsAsync(cancellationToken);
+        var intent = requestIntentResolver.Resolve(customerMessage, inputs);
+        var groups = candidateBuilder.Build(customerMessage, intent, inputs.Profile, inputs.Drinks);
+        var ownedIngredientIds = inputs.Profile.OwnedIngredientIds.ToHashSet();
+        var drinkLookup = inputs.Drinks.ToDictionary(drink => drink.Id);
+        var ingredientNames = inputs.Drinks
             .SelectMany(drink => drink.RecipeEntries)
             .Select(entry => entry.Ingredient)
             .GroupBy(ingredient => ingredient.Id)
@@ -45,10 +45,27 @@ internal sealed class RecommendationRunContextQueryService(
                     .ToList()))
             .ToList();
 
+        activity?.SetTag("recommendation.intent.kind", intent.Kind.ToString());
         activity?.SetTag("recommendation.groups.count", runContextGroups.Count);
         activity?.SetTag("recommendation.items.count", runContextGroups.Sum(group => group.Items.Count));
+        executionTraceRecorder.Record(
+            new RecommendationExecutionTraceStep(
+                "run_context.build",
+                "ok",
+                $"Built {runContextGroups.Count} recommendation group(s) for {intent.Kind}.",
+                DateTimeOffset.UtcNow,
+                new Dictionary<string, string?>
+                {
+                    ["intentKind"] = intent.Kind.ToString(),
+                    ["requestedDrinkName"] = intent.RequestedDrinkName,
+                    ["requestedIngredientName"] = intent.RequestedIngredientName,
+                    ["matchedPreferenceSignals"] = string.Join(", ", intent.PreferenceSignals),
+                    ["groupCount"] = runContextGroups.Count.ToString(),
+                    ["itemCount"] = runContextGroups.Sum(group => group.Items.Count).ToString(),
+                },
+                []));
 
-        return new RecommendationRunContext(profile, groups, ingredientNames, runContextGroups);
+        return new RecommendationRunContext(intent, inputs.Profile, groups, ingredientNames, runContextGroups);
     }
 
     private static RecommendationRunContextItem BuildRunContextItem(
@@ -67,6 +84,7 @@ internal sealed class RecommendationRunContextQueryService(
                 [],
                 null,
                 null,
+                item.MatchedSignals,
                 item.Score);
         }
 
@@ -91,6 +109,7 @@ internal sealed class RecommendationRunContextQueryService(
             recipeIngredientNames,
             drink.Method,
             drink.Garnish,
+            item.MatchedSignals,
             item.Score);
     }
 }

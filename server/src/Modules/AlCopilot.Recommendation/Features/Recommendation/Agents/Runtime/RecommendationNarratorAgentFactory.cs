@@ -1,7 +1,7 @@
 using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,29 +11,40 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
 {
     private readonly IRecommendationChatClientStrategyFactory strategyFactory;
     private readonly ILoggerFactory loggerFactory;
-    private readonly IServiceProvider serviceProvider;
     private readonly IOptions<RecommendationObservabilityOptions> observabilityOptions;
+    private readonly IRecommendationRunContextFactory runContextFactory;
+    private readonly IRecommendationCurrentRunContextAccessor currentRunContextAccessor;
+    private readonly IServiceProvider serviceProvider;
+    private readonly RecommendationDrinkSearchTool drinkSearchTool;
     private readonly RecommendationRecipeLookupTool recipeLookupTool;
+    private readonly RecommendationIngredientLookupTool ingredientLookupTool;
 
     public RecommendationNarratorAgentFactory(
         IRecommendationChatClientStrategyFactory strategyFactory,
         ILoggerFactory loggerFactory,
-        IServiceProvider serviceProvider,
         IOptions<RecommendationObservabilityOptions> observabilityOptions,
-        RecommendationRecipeLookupTool recipeLookupTool)
+        IRecommendationRunContextFactory runContextFactory,
+        IRecommendationCurrentRunContextAccessor currentRunContextAccessor,
+        IServiceProvider serviceProvider,
+        RecommendationDrinkSearchTool drinkSearchTool,
+        RecommendationRecipeLookupTool recipeLookupTool,
+        RecommendationIngredientLookupTool ingredientLookupTool)
     {
         this.strategyFactory = strategyFactory;
         this.loggerFactory = loggerFactory;
-        this.serviceProvider = serviceProvider;
         this.observabilityOptions = observabilityOptions;
+        this.runContextFactory = runContextFactory;
+        this.currentRunContextAccessor = currentRunContextAccessor;
+        this.serviceProvider = serviceProvider;
+        this.drinkSearchTool = drinkSearchTool;
         this.recipeLookupTool = recipeLookupTool;
+        this.ingredientLookupTool = ingredientLookupTool;
     }
 
     public AIAgent Create()
     {
         var strategy = strategyFactory.Create();
-        var contextProvider = new RecommendationRunContextProvider(
-            serviceProvider.GetRequiredService<IServiceScopeFactory>());
+        var contextProvider = new RecommendationRunContextProvider(currentRunContextAccessor, runContextFactory);
         var instrumentedChatClient = new ChatClientBuilder(strategy.ChatClient)
             .UseOpenTelemetry(
                 loggerFactory,
@@ -45,12 +56,31 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
         chatOptions.Instructions =
             """
             You are an experienced bartender.
-            Base your answer only on the provided customer context and deterministic recommendation candidates.
+            Base your answer on the provided customer context, deterministic recommendation candidates, and tool results.
+            Follow the resolved request intent from the run context.
+            Prefer deterministic recommendation candidates when they satisfy the request.
+            If you need to resolve a drink name before looking up its recipe, call the drink search tool.
+            If the request is ingredient-led, or the deterministic candidates do not cover the request well enough, call the ingredient lookup tool before answering.
+            If exact measurements, method, garnish, or brand details are needed for a specific known drink, call the recipe lookup tool after you know which drink to inspect.
             Prefer concise, practical guidance.
             Do not invent unavailable drinks or ignore prohibited ingredients.
             """;
         chatOptions.Tools =
         [
+            AIFunctionFactory.Create(
+                drinkSearchTool.SearchDrinksAsync,
+                new AIFunctionFactoryOptions
+                {
+                    Name = "search_drinks",
+                    Description = "Search the catalog by drink name or partial drink name before looking up a drink recipe."
+                }),
+            AIFunctionFactory.Create(
+                ingredientLookupTool.LookupDrinksByIngredientAsync,
+                new AIFunctionFactoryOptions
+                {
+                    Name = "lookup_drinks_by_ingredient",
+                    Description = "Find catalog drinks that contain a requested ingredient when the customer asks for something with tequila, rum, gin, citrus, or another ingredient."
+                }),
             AIFunctionFactory.Create(
                 recipeLookupTool.LookupDrinkRecipeAsync,
                 new AIFunctionFactoryOptions
@@ -59,7 +89,7 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
                     Description = "Look up the full recipe details for a specific known drink from the catalog when exact measurements, method, garnish, or brand detail is needed."
                 }),
         ];
-        chatOptions.AllowMultipleToolCalls = false;
+        chatOptions.AllowMultipleToolCalls = true;
 
         var agent = new ChatClientAgent(
             instrumentedChatClient,

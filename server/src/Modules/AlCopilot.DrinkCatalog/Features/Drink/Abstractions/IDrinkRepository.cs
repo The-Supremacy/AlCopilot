@@ -1,6 +1,6 @@
 using AlCopilot.Shared.Data;
 
-namespace AlCopilot.DrinkCatalog.Features.Drink;
+namespace AlCopilot.DrinkCatalog.Features.Drink.Abstractions;
 
 public interface IDrinkRepository : IRepository<Drink, Guid>
 {
