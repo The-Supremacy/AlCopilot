@@ -103,6 +103,11 @@ public sealed class ContractsPurityTests
         foreach (var archType in types)
         {
             var type = archType.ReflectionType;
+            if (type is null)
+            {
+                continue;
+            }
+
             var isRecord = type.GetMethod("<Clone>$") is not null;
             var isSealed = type.IsSealed;
             var isAbstract = type.IsAbstract;
