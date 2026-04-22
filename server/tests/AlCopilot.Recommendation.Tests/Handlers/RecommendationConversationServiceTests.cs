@@ -1,12 +1,13 @@
 using AlCopilot.CustomerProfile.Contracts.DTOs;
-using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Recommendation.Data;
 using AlCopilot.Recommendation.Features.Recommendation;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Agents;
+using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using AlCopilot.Shared.Errors;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Agents.AI;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
@@ -20,9 +21,10 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_CreatesSession_AssemblesHistory_AndPersistsResult()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var contextQueryService = Substitute.For<IRecommendationNarrationContextQueryService>();
+        var runContextQueryService = Substitute.For<IRecommendationRunContextQueryService>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var agent = new FakeAgent("Try the Gimlet.");
         var agentSession = Substitute.For<AgentSession>();
@@ -32,8 +34,9 @@ public sealed class RecommendationConversationServiceTests
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
-        contextQueryService.GetSnapshotAsync("Give me something citrusy", Arg.Any<CancellationToken>())
-            .Returns(new RecommendationNarrationSnapshot(
+        toolInvocationRecorder.Drain().Returns([]);
+        runContextQueryService.GetRunContextAsync("Give me something citrusy", Arg.Any<CancellationToken>())
+            .Returns(new RecommendationRunContext(
                 new CustomerProfileDto([], [], [], []),
                 [
                     new RecommendationGroupDto(
@@ -41,24 +44,31 @@ public sealed class RecommendationConversationServiceTests
                         "Make Now",
                         [new RecommendationItemDto(Guid.NewGuid(), "Gimlet", "Bright and citrusy", [], ["citrusy"], 100)])
                 ],
+                new Dictionary<Guid, string>(),
                 [
-                    new DrinkDetailDto(
-                        Guid.NewGuid(),
-                        "Gimlet",
-                        null,
-                        "Bright and citrusy",
-                        null,
-                        null,
-                        null,
-                        [],
-                        [new RecipeEntryDto(new IngredientDto(Guid.NewGuid(), "Gin", []), "2 oz", null)])
+                    new RecommendationRunContextGroup(
+                        "make-now",
+                        "Make Now",
+                        [
+                            new RecommendationRunContextItem(
+                                Guid.NewGuid(),
+                                "Gimlet",
+                                "Bright and citrusy",
+                                ["Gin"],
+                                [],
+                                ["Gin"],
+                                null,
+                                null,
+                                100)
+                        ])
                 ]));
 
         var service = new RecommendationConversationService(
             repository,
-            contextQueryService,
+            runContextQueryService,
             agentFactory,
             sessionStore,
+            toolInvocationRecorder,
             unitOfWork,
             NullLogger<RecommendationConversationService>.Instance);
 
@@ -83,12 +93,13 @@ public sealed class RecommendationConversationServiceTests
     }
 
     [Fact]
-    public async Task SendMessageAsync_ReusesExistingSession_AndPassesPriorTurnsToAgent()
+    public async Task SendMessageAsync_ReusesExistingSession_AndPersistsRecordedToolInvocations()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var contextQueryService = Substitute.For<IRecommendationNarrationContextQueryService>();
+        var runContextQueryService = Substitute.For<IRecommendationRunContextQueryService>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var agent = new FakeAgent("No great matches right now.");
         var agentSession = Substitute.For<AgentSession>();
@@ -103,17 +114,23 @@ public sealed class RecommendationConversationServiceTests
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"restored"}}""");
-        contextQueryService.GetSnapshotAsync("Something else", Arg.Any<CancellationToken>())
-            .Returns(new RecommendationNarrationSnapshot(
+        toolInvocationRecorder.Drain()
+            .Returns([
+                new RecommendationToolInvocationDto("lookup_drink_recipe", "Looked up the full recipe details for Negroni.")
+            ]);
+        runContextQueryService.GetRunContextAsync("Something else", Arg.Any<CancellationToken>())
+            .Returns(new RecommendationRunContext(
                 new CustomerProfileDto([], [], [], []),
                 [new RecommendationGroupDto("make-now", "Make Now", [])],
+                new Dictionary<Guid, string>(),
                 []));
 
         var service = new RecommendationConversationService(
             repository,
-            contextQueryService,
+            runContextQueryService,
             agentFactory,
             sessionStore,
+            toolInvocationRecorder,
             unitOfWork,
             NullLogger<RecommendationConversationService>.Instance);
 
@@ -126,6 +143,7 @@ public sealed class RecommendationConversationServiceTests
         result.SessionId.ShouldBe(existingSession.Id);
         repository.DidNotReceive().Add(Arg.Any<ChatSession>());
         existingSession.AgentSessionStateJson.ShouldBe("""{"stateBag":{"session":"restored"}}""");
+        result.Turns.Last().ToolInvocations.ShouldContain(invocation => invocation.ToolName == "lookup_drink_recipe");
         agent.SeenMessages.Select(message => (message.Role, message.Text)).ShouldBe(
         [
             (ChatRole.User, "First request"),
@@ -138,16 +156,18 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_Throws_WhenMessageIsBlank()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var contextQueryService = Substitute.For<IRecommendationNarrationContextQueryService>();
+        var runContextQueryService = Substitute.For<IRecommendationRunContextQueryService>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
 
         var service = new RecommendationConversationService(
             repository,
-            contextQueryService,
+            runContextQueryService,
             agentFactory,
             sessionStore,
+            toolInvocationRecorder,
             unitOfWork,
             NullLogger<RecommendationConversationService>.Instance);
 
@@ -159,9 +179,10 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_ThrowsConflict_WhenSaveHitsConcurrencyException()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var contextQueryService = Substitute.For<IRecommendationNarrationContextQueryService>();
+        var runContextQueryService = Substitute.For<IRecommendationRunContextQueryService>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var agent = new FakeAgent("Try the Gimlet.");
         var agentSession = Substitute.For<AgentSession>();
@@ -171,19 +192,22 @@ public sealed class RecommendationConversationServiceTests
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
-        contextQueryService.GetSnapshotAsync("Give me something citrusy", Arg.Any<CancellationToken>())
-            .Returns(new RecommendationNarrationSnapshot(
+        toolInvocationRecorder.Drain().Returns([]);
+        runContextQueryService.GetRunContextAsync("Give me something citrusy", Arg.Any<CancellationToken>())
+            .Returns(new RecommendationRunContext(
                 new CustomerProfileDto([], [], [], []),
                 [new RecommendationGroupDto("make-now", "Make Now", [])],
+                new Dictionary<Guid, string>(),
                 []));
         unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns<Task<int>>(_ => throw new DbUpdateConcurrencyException("conflict"));
 
         var service = new RecommendationConversationService(
             repository,
-            contextQueryService,
+            runContextQueryService,
             agentFactory,
             sessionStore,
+            toolInvocationRecorder,
             unitOfWork,
             NullLogger<RecommendationConversationService>.Instance);
 

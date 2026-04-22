@@ -5,6 +5,15 @@ var builder = DistributedApplication.CreateBuilder(args);
 const string managementClientSecret = "alcopilot-management-dev-secret";
 const string customerClientSecret = "alcopilot-customer-dev-secret";
 const string managementAuthority = "http://localhost:8080/realms/alcopilot";
+const string defaultRecommendationProvider = "ollama";
+const string defaultRecommendationOllamaModelId = "gemma4:e4b";
+
+var recommendationProvider = builder.Configuration["Recommendation:Llm:Provider"] ?? defaultRecommendationProvider;
+var recommendationOllamaEndpoint = builder.Configuration["Recommendation:Ollama:Endpoint"]
+    ?? throw new InvalidOperationException(
+        "AppHost configuration value 'Recommendation:Ollama:Endpoint' is required.");
+var recommendationOllamaModelId = builder.Configuration["Recommendation:Ollama:ModelId"] ?? defaultRecommendationOllamaModelId;
+var recommendationOllamaMaxHistoryMessages = builder.Configuration["Recommendation:Ollama:MaxHistoryMessages"];
 
 var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak", "26.2")
     .WithHttpEndpoint(port: 8080, targetPort: 8080)
@@ -20,9 +29,6 @@ var postgres = builder.AddPostgres("postgres")
 var drinkCatalogDb = postgres.AddDatabase("drink-catalog");
 var customerProfileDb = postgres.AddDatabase("customer-profile");
 var recommendationDb = postgres.AddDatabase("recommendation");
-
-var ollama = builder.AddOllamaLocal("ollama");
-var recommendationModel = ollama.AddModel("gemma4", "gemma4:e4b");
 
 var parameter = builder.AddParameter("quadrant-api-key", "QDRANT_API_KEY");
 var qdrant = builder.AddQdrant("qdrant", parameter)
@@ -43,20 +49,19 @@ builder.AddProject<AlCopilot_Host>("alcopilot-host")
     .WithEnvironment("Authentication__Customer__Authority", managementAuthority)
     .WithEnvironment("Authentication__Customer__ClientId", "alcopilot-web-portal")
     .WithEnvironment("Authentication__Customer__ClientSecret", customerClientSecret)
-    .WithEnvironment("Recommendation__Llm__Provider", "ollama")
-    .WithEnvironment("Recommendation__Ollama__Endpoint", "http://localhost:11434")
-    .WithEnvironment("Recommendation__Ollama__ModelId", "gemma4:e4b")
+    .WithEnvironment("Recommendation__Llm__Provider", recommendationProvider)
+    .WithEnvironment("Recommendation__Ollama__Endpoint", recommendationOllamaEndpoint)
+    .WithEnvironment("Recommendation__Ollama__ModelId", recommendationOllamaModelId)
+    .WithEnvironment("Recommendation__Ollama__MaxHistoryMessages", recommendationOllamaMaxHistoryMessages)
     .WithReference(drinkCatalogDb)
     .WithReference(customerProfileDb)
     .WithReference(recommendationDb)
     .WithReference(qdrant)
-    .WithReference(recommendationModel)
     .WaitFor(keycloak)
     .WaitFor(drinkCatalogDb)
     .WaitFor(customerProfileDb)
     .WaitFor(recommendationDb)
     .WaitFor(qdrant)
-    .WaitFor(recommendationModel)
     .WaitForCompletion(migrator);
 
 builder.Build().Run();

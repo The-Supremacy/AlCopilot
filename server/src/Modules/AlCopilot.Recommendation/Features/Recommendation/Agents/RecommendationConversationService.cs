@@ -1,18 +1,20 @@
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Recommendation.Data;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using AlCopilot.Shared.Errors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace AlCopilot.Recommendation.Features.Recommendation;
+namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationConversationService(
     IChatSessionRepository chatSessionRepository,
-    IRecommendationNarrationContextQueryService contextQueryService,
+    IRecommendationRunContextQueryService runContextQueryService,
     IRecommendationNarratorAgentFactory agentFactory,
     IRecommendationAgentSessionStore sessionStore,
+    IRecommendationToolInvocationRecorder toolInvocationRecorder,
     IRecommendationUnitOfWork unitOfWork,
     ILogger<RecommendationConversationService> logger) : IRecommendationConversationService
 {
@@ -42,7 +44,7 @@ internal sealed class RecommendationConversationService(
         CancellationToken cancellationToken)
     {
         var session = await LoadOrCreateSessionAsync(request, cancellationToken);
-        var snapshot = await contextQueryService.GetSnapshotAsync(request.Message, cancellationToken);
+        var runContext = await runContextQueryService.GetRunContextAsync(request.Message, cancellationToken);
 
         var agent = agentFactory.Create();
         var agentSession = await sessionStore.RestoreAsync(
@@ -71,7 +73,10 @@ internal sealed class RecommendationConversationService(
 
         session.UpdateAgentSessionState(serializedSession);
         session.AppendUserTurn(request.Message);
-        session.AppendAssistantTurn(content.Trim(), snapshot.RecommendationGroups, []);
+        session.AppendAssistantTurn(
+            content.Trim(),
+            runContext.RecommendationGroups,
+            toolInvocationRecorder.Drain());
         await SaveSessionChangesAsync(session, cancellationToken);
 
         return session.ToDto();

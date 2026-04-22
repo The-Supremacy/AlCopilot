@@ -1,4 +1,4 @@
-namespace AlCopilot.Recommendation.Features.Recommendation;
+namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 public sealed class RecommendationOllamaOptions
 {

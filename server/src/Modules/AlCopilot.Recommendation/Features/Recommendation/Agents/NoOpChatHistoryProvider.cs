@@ -1,7 +1,7 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
-namespace AlCopilot.Recommendation.Features.Recommendation;
+namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class NoOpChatHistoryProvider : ChatHistoryProvider
 {

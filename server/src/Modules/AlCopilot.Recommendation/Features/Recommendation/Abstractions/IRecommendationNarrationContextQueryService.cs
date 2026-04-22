@@ -1,8 +1,10 @@
+using AlCopilot.Recommendation.Features.Recommendation.Agents;
+
 namespace AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
-public interface IRecommendationNarrationContextQueryService
+public interface IRecommendationRunContextQueryService
 {
-    Task<RecommendationNarrationSnapshot> GetSnapshotAsync(
+    Task<RecommendationRunContext> GetRunContextAsync(
         string customerMessage,
         CancellationToken cancellationToken = default);
 }

@@ -1,7 +1,7 @@
 using AlCopilot.Recommendation.Contracts.Commands;
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Recommendation.Features.Recommendation;
-using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Models;
 using NSubstitute;

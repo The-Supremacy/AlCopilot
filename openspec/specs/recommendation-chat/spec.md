@@ -35,7 +35,7 @@ The system SHALL apply deterministic recommendation preparation before invoking 
 
 ### Requirement: Structured Recommendation Responses
 
-The system SHALL return recommendation-chat assistant responses as structured recommendation groups plus conversational prose.
+The system SHALL return recommendation-chat assistant responses as structured recommendation groups plus conversational prose grounded in a deterministic recommendation run context.
 
 **Scenario: Recommendation reply includes machine-readable groups**
 
@@ -47,16 +47,46 @@ The system SHALL return recommendation-chat assistant responses as structured re
 - When the assistant returns recommendation results
 - Then the system SHALL include prose that explains the recommendation outcome in customer-facing language
 
-### Requirement: Limited Read-Only Semantic Kernel Tool Calling
+**Scenario: Recommendation run context is bar-aware**
 
-The system SHALL restrict the first recommendation tool-calling surface to read-only helpers.
+- When the system prepares recommendation narration for a customer with owned ingredients
+- Then the model-visible recommendation run context SHALL include owned ingredient names
+- And it SHALL identify which grouped drinks can be made now versus which require missing ingredients
 
-**Scenario: Read-only tool call can be used during recommendation**
+### Requirement: Limited Read-Only Tool Calling
 
-- When the recommendation flow invokes an allowed read-only helper through Semantic Kernel
-- Then the system SHALL allow the helper result to contribute to the generated recommendation response
+The system SHALL keep recommendation execution bounded so that model-owned execution remains read-only and persistence stays outside model-controlled actions.
+
+**Scenario: Read-only recipe lookup can contribute to a recommendation response**
+
+- When recommendation narration needs exact recipe details for a known drink
+- Then the recommendation flow SHALL allow a read-only recipe lookup tool result to contribute to the generated recommendation response
 
 **Scenario: Recommendation flow does not allow model-owned writes**
 
-- When the recommendation flow runs with Semantic Kernel tool calling enabled
+- When the recommendation flow runs with recommendation tools enabled
 - Then the system SHALL keep persistence and profile mutation outside model-owned tool execution
+
+**Scenario: Tool usage is recorded on assistant turns**
+
+- When the recommendation agent calls an allowed read-only tool during recommendation generation
+- Then the persisted assistant turn SHALL record the tool invocation metadata alongside the generated response
+
+### Requirement: Recommendation Runtime Is Observable
+
+The system SHALL emit recommendation-runtime traces that help developers understand recommendation execution without exposing private model reasoning.
+
+**Scenario: Recommendation invocation emits agent and model traces**
+
+- When a recommendation message is processed
+- Then the runtime SHALL emit spans for recommendation agent invocation and model/chat execution through the existing OpenTelemetry pipeline
+
+**Scenario: Tool execution emits trace data**
+
+- When the recommendation agent invokes the read-only recipe lookup tool
+- Then the runtime SHALL emit trace data for that tool execution through the existing OpenTelemetry pipeline
+
+**Scenario: Deterministic run-context assembly is traceable**
+
+- When the recommendation module assembles the deterministic run context before narration
+- Then the runtime SHALL emit a trace span for that run-context assembly step

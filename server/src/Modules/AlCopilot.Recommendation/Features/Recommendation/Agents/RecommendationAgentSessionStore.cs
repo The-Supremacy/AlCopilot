@@ -1,8 +1,8 @@
 using System.Text.Json;
-using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using Microsoft.Agents.AI;
 
-namespace AlCopilot.Recommendation.Features.Recommendation;
+namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationAgentSessionStore : IRecommendationAgentSessionStore
 {

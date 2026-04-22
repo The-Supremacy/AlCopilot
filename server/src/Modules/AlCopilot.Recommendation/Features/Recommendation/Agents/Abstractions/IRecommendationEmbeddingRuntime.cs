@@ -1,4 +1,4 @@
-namespace AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+namespace AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 
 internal interface IRecommendationEmbeddingRuntime
 {

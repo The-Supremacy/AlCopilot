@@ -1,8 +1,6 @@
 using AlCopilot.CustomerProfile.Contracts.DTOs;
-using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.Recommendation.Contracts.DTOs;
-using AlCopilot.Recommendation.Features.Recommendation;
-using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using Microsoft.Extensions.Options;
 using Shouldly;
 
@@ -22,41 +20,44 @@ public sealed class RecommendationNarrationServiceTests
     }
 
     [Fact]
-    public void BuildCurrentRecommendationSnapshot_BuildsEphemeralRecommendationContext()
+    public void Build_BuildsBarAwareRecommendationRunContext()
     {
         var ginId = Guid.Parse("00000000-0000-0000-0000-000000000021");
         var campariId = Guid.Parse("00000000-0000-0000-0000-000000000022");
-        var session = ChatSession.Create("customer-1", "Something bright with gin");
-        session.AppendUserTurn("Something bright with gin");
-        session.AppendAssistantTurn(
-            "Try a Gimlet.",
-            [new RecommendationGroupDto("make-now", "Make Now", [new RecommendationItemDto(Guid.NewGuid(), "Gimlet", null, [], [], 90)])],
-            []);
-        session.AppendUserTurn("What about something bitter?");
 
-        var snapshot = RecommendationNarrationMessageBuilder.BuildCurrentRecommendationSnapshot(
-            new RecommendationNarrationSnapshot(
+        var message = RecommendationRunContextMessageBuilder.Build(
+            new RecommendationRunContext(
                 new CustomerProfileDto([ginId], [], [campariId], [ginId]),
                 [new RecommendationGroupDto("buy-next", "Buy Next", [new RecommendationItemDto(Guid.NewGuid(), "Negroni", null, ["Campari"], [], 70)])],
+                new Dictionary<Guid, string>
+                {
+                    [ginId] = "Gin",
+                    [campariId] = "Campari",
+                },
                 [
-                    new DrinkDetailDto(
-                        Guid.NewGuid(),
-                        "Negroni",
-                        null,
-                        "Bittersweet and spirit-forward",
-                        null,
-                        null,
-                        null,
-                        [],
+                    new RecommendationRunContextGroup(
+                        "buy-next",
+                        "Buy Next",
                         [
-                            new RecipeEntryDto(new IngredientDto(ginId, "Gin", []), "1 oz", null),
-                            new RecipeEntryDto(new IngredientDto(campariId, "Campari", []), "1 oz", null),
+                            new RecommendationRunContextItem(
+                                Guid.NewGuid(),
+                                "Negroni",
+                                "Bittersweet and spirit-forward",
+                                ["Gin"],
+                                ["Campari"],
+                                ["Campari", "Gin", "Sweet Vermouth"],
+                                "Stir",
+                                "Orange twist",
+                                70)
                         ])
                 ]));
 
-        snapshot.ShouldContain("authoritative product context for this response only");
-        snapshot.ShouldContain("favorites: Gin");
-        snapshot.ShouldContain("prohibited: Campari");
-        snapshot.ShouldContain("Negroni");
+        message.ShouldContain("recommendation run context");
+        message.ShouldContain("owned: Gin");
+        message.ShouldContain("prohibited: Campari");
+        message.ShouldContain("lookup_drink_recipe");
+        message.ShouldContain("Negroni");
+        message.ShouldContain("owned Gin");
+        message.ShouldContain("missing Campari");
     }
 }

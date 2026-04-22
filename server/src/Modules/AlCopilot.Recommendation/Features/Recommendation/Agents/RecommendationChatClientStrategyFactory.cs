@@ -1,9 +1,9 @@
-using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using OllamaSharp;
 
-namespace AlCopilot.Recommendation.Features.Recommendation;
+namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationChatClientStrategyFactory(
     IOptions<RecommendationLlmOptions> llmOptions,

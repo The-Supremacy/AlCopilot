@@ -2,6 +2,8 @@ using AlCopilot.Recommendation.Contracts.Events;
 using AlCopilot.Recommendation.Data;
 using AlCopilot.Recommendation.Features.Recommendation;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Agents;
+using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using AlCopilot.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -34,16 +36,20 @@ public static class RecommendationModule
         services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
         services.AddScoped<IRecommendationSessionQueryService, RecommendationSessionQueryService>();
         services.AddScoped<IRecommendationCandidateBuilder, DeterministicRecommendationCandidateBuilder>();
-        services.AddScoped<IRecommendationNarrationContextQueryService, RecommendationNarrationContextQueryService>();
+        services.AddScoped<IRecommendationRunContextQueryService, RecommendationRunContextQueryService>();
         services.AddSingleton<IRecommendationChatClientStrategyFactory, RecommendationChatClientStrategyFactory>();
-        services.AddSingleton<IRecommendationNarratorAgentFactory, RecommendationNarratorAgentFactory>();
+        services.AddScoped<IRecommendationNarratorAgentFactory, RecommendationNarratorAgentFactory>();
         services.AddSingleton<IRecommendationAgentSessionStore, RecommendationAgentSessionStore>();
+        services.AddScoped<IRecommendationToolInvocationRecorder, RecommendationToolInvocationRecorder>();
+        services.AddScoped<RecommendationRecipeLookupTool>();
         services.AddScoped<IRecommendationConversationService, RecommendationConversationService>();
         services.AddSingleton<IRecommendationEmbeddingRuntime, RecommendationEmbeddingRuntime>();
         services.AddOptions<RecommendationLlmOptions>()
             .Bind(configuration.GetSection(RecommendationLlmOptions.SectionName));
         services.AddOptions<RecommendationOllamaOptions>()
             .Bind(configuration.GetSection(RecommendationOllamaOptions.SectionName));
+        services.AddOptions<RecommendationObservabilityOptions>()
+            .Bind(configuration.GetSection(RecommendationObservabilityOptions.SectionName));
 
         return services;
     }
