@@ -129,7 +129,7 @@ internal static class PortalAuthenticationBuilderExtensions
                 openIdConnect.ClientSecret = options.ClientSecret;
                 openIdConnect.ResponseType = "code";
                 openIdConnect.UsePkce = true;
-                openIdConnect.SaveTokens = false;
+                openIdConnect.SaveTokens = true;
                 openIdConnect.GetClaimsFromUserInfoEndpoint = false;
                 openIdConnect.RequireHttpsMetadata = !environment.IsDevelopment();
                 openIdConnect.CallbackPath = options.CallbackPath;

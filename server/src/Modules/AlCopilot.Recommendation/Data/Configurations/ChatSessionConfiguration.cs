@@ -9,6 +9,8 @@ internal sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSe
     public void Configure(EntityTypeBuilder<ChatSession> builder)
     {
         builder.HasKey(session => session.Id);
+        builder.Property(session => session.Id)
+            .ValueGeneratedNever();
 
         builder.Property(session => session.CustomerId)
             .IsRequired()
@@ -17,6 +19,9 @@ internal sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSe
         builder.Property(session => session.Title)
             .IsRequired()
             .HasMaxLength(200);
+
+        builder.Property(session => session.AgentSessionStateJson)
+            .HasColumnType("jsonb");
 
         builder.Property(session => session.CreatedAtUtc)
             .IsRequired();

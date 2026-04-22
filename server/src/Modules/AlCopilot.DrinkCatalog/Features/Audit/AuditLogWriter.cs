@@ -2,7 +2,7 @@ using AlCopilot.Shared.Models;
 
 namespace AlCopilot.DrinkCatalog.Features.Audit;
 
-public sealed class AuditLogWriter(IAuditLogEntryRepository repository, ICurrentActorAccessor? currentActorAccessor = null)
+public sealed class AuditLogWriter(IAuditLogEntryRepository repository, ICurrentActorAccessor? currentActorAccessor = null) : IAuditLogWriter
 {
     public void Write(
         string action,

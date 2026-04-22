@@ -1,3 +1,4 @@
+using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.Shared.Domain;
 
 namespace AlCopilot.DrinkCatalog.Features.Tag;
@@ -11,16 +12,20 @@ public sealed class Tag : AggregateRoot<Guid>
 
     public static Tag Create(TagName name)
     {
-        return new Tag
+        var tag = new Tag
         {
             Id = Guid.NewGuid(),
             Name = name,
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
+
+        tag.Raise(new TagCreatedEvent(tag.Id));
+        return tag;
     }
 
     public void Rename(TagName name)
     {
         Name = name;
+        Raise(new TagRenamedEvent(Id));
     }
 }

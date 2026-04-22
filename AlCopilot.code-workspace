@@ -31,7 +31,8 @@
 		"files.insertFinalNewline": true,
 		"markdown.marp.themes": [
 			"./docs/presentation/assets/theme-sigma.css"
-		]
+		],
+		"powershell.cwd": "root"
 	},
 	"extensions": {
 		"recommendations": [
@@ -43,7 +44,8 @@
 			"hashicorp.terraform",
 			"ms-azuretools.vscode-docker",
 			"GitHub.copilot-chat",
-			"microsoft-aspire.aspire-vscode"
+			"microsoft-aspire.aspire-vscode",
+			"openai.chatgpt"
 		]
 	}
 }

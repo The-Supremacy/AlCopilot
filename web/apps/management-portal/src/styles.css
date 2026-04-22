@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import '@alcopilot/frontend-theme/management-portal.css';
+@import 'tailwindcss';
 
 @layer base {
   * {

@@ -18,7 +18,7 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("drink_catalog")
-                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("ProductVersion", "10.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -143,7 +143,7 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                     b.ToTable("RecipeEntries", "drink_catalog");
                 });
 
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.ImportSync.ImportBatch", b =>
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.ImportBatch.ImportBatch", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -180,10 +180,6 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("ReviewConflicts")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
                     b.Property<string>("ReviewRows")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -193,10 +189,6 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
 
                     b.Property<DateTimeOffset?>("ReviewedAtUtc")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("SourceFingerprint")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -214,8 +206,6 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAtUtc");
-
-                    b.HasIndex("StrategyKey", "SourceFingerprint", "Status");
 
                     b.ToTable("ImportBatches", "drink_catalog");
                 });

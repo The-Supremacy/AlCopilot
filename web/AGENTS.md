@@ -27,12 +27,14 @@ Do not start a new page or portal with a custom CSS-only component layer unless 
 Initialize shadcn visibly with `components.json` and keep generated or normalized primitives under `src/components/ui/`.
 Use Radix-backed shadcn primitives when interaction behavior needs accessible component "brains" such as dialogs, menus, popovers, or composition slots.
 If Zustand is unnecessary for the change, that is fine; the requirement is to stay within the approved stack, not to force Zustand everywhere.
+Stable cross-portal shadcn-derived primitives may be shared from a workspace package such as `@alcopilot/ui`, but each portal should keep thin local entrypoints under `src/components/ui/` so app ownership and shadcn visibility remain clear.
 
 ## Workspace Structure
 
 - `web/apps/` — portal apps workspace (user and management portal boundaries)
 - `web/apps/web-portal/` — planned user-facing app path
 - `web/packages/` — shared cross-cutting packages (for example API contracts, shared UI primitives, reusable service clients)
+- Stable shared UI foundations belong in `web/packages/`, while portal-specific layout and feature composition stay inside the portal app
 - Root `pnpm-workspace.yaml` defines workspace packages
 - Route-level React files belong in `src/pages/`
 - Large pages should usually decompose into `src/features/<area>/` sections plus colocated page hooks
@@ -44,6 +46,10 @@ If Zustand is unnecessary for the change, that is fine; the requirement is to st
 - Prefer named exports over default exports (except page components)
 - Colocate tests next to source files (`.test.tsx` / `.test.ts`)
 - Use `function` declarations for components, not arrow functions
+- Call React hooks unconditionally at the top level of the component or hook before any conditional return that may skip later hooks
+- Prefer the component shape `hooks -> derived values -> conditional render branches -> final render`; put conditions inside hook bodies rather than around hook calls
+- If different branches need different hooks, split them into child components instead of conditionally calling hooks in one component
+- For route-level screens that outgrow a single file, prefer the shape `Page` + optional `usePageState` hook + `*View` or clearly named feature sections rather than keeping all orchestration and rendering in one component
 - Keep route orchestration in pages and move most rendering detail into feature sections or page-local hooks once a page starts to grow
 - For UI-affecting changes, update the impacted portal `DESIGN.md` before implementation work starts
 - OpenSpec proposal/design/spec/task artifacts for UI-affecting changes should reference impacted portal `DESIGN.md` guides
@@ -81,6 +87,9 @@ When reviewing React/TS code, verify:
 - [ ] Uses **Vitest** for tests — NOT Jest
 - [ ] Named exports (except page components)
 - [ ] `function` declarations for components (not arrow functions)
+- [ ] Hooks are never called conditionally or after an early return that may run on some renders but not others
+- [ ] Loading, not-found, auth-gate, and feature-flag branches occur after the component's hook section, or are split into child components
+- [ ] Large route components separate orchestration from rendering with a page-state hook and/or dedicated `*View` or section components when that improves clarity
 - [ ] `@/` path alias for `src/` imports
 - [ ] Tests colocated: `.test.tsx` / `.test.ts` next to source
 - [ ] User-centric queries in tests (not `getByTestId`)

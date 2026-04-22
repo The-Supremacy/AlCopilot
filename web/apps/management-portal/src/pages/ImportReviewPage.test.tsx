@@ -1,148 +1,107 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import { ImportReviewPage } from '@/pages/ImportReviewPage';
 
-const reviewImportBatchMutation = {
-  mutate: vi.fn(),
-  isPending: false,
-  error: null as null | Error,
-};
+const useImportReviewPageState = vi.fn();
 
-let batchId = 'batch-stale';
-const importBatchQuery = {
-  data: {
-    id: 'batch-stale',
-    strategyKey: 'iba-cocktails-snapshot',
-    status: 'InProgress',
-    source: { displayName: 'IBA Snapshot' },
-    diagnostics: [{ rowNumber: null, code: 'warn', message: 'Check row 1', severity: 'warning' }],
-    reviewConflicts: [
-      {
-        targetType: 'drink',
-        targetKey: 'Negroni',
-        action: 'update',
-        summary: "Drink 'Negroni' would update metadata, tags, or recipe entries.",
-      },
-    ],
-    reviewRows: [
-      {
-        targetType: 'drink',
-        targetKey: 'Negroni',
-        action: 'update',
-        changeSummary: "Drink 'Negroni' would update metadata, tags, or recipe entries.",
-        hasConflict: true,
-        hasError: false,
-      },
-    ],
-    reviewSummary: null as null | { createCount: number; updateCount: number; skipCount: number },
-    applySummary: null,
-    lastUpdatedAtUtc: '2026-04-12T00:00:00Z',
-    reviewedAtUtc: null as null | string,
-  },
-  isLoading: false,
-};
-
-vi.mock('@/features/imports/useImportData', () => ({
-  useImportBatch: () => importBatchQuery,
-  useReviewImportBatchMutation: () => reviewImportBatchMutation,
+vi.mock('@/features/imports/useImportReviewPageState', () => ({
+  useImportReviewPageState: () => useImportReviewPageState(),
 }));
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  useParams: () => ({ batchId }),
 }));
 
-function renderPage() {
-  const queryClient = new QueryClient();
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <ImportReviewPage />
-    </QueryClientProvider>,
-  );
-}
-
 beforeEach(() => {
-  batchId = 'batch-stale';
-  reviewImportBatchMutation.mutate.mockReset();
-  reviewImportBatchMutation.isPending = false;
-  reviewImportBatchMutation.error = null;
-  importBatchQuery.isLoading = false;
-  importBatchQuery.data = {
-    id: 'batch-stale',
-    strategyKey: 'iba-cocktails-snapshot',
-    status: 'InProgress',
-    source: { displayName: 'IBA Snapshot' },
-    diagnostics: [{ rowNumber: null, code: 'warn', message: 'Check row 1', severity: 'warning' }],
-    reviewConflicts: [
-      {
-        targetType: 'drink',
-        targetKey: 'Negroni',
-        action: 'update',
-        summary: "Drink 'Negroni' would update metadata, tags, or recipe entries.",
+  useImportReviewPageState.mockReset();
+});
+
+test('renders loading state while the review workspace is loading', () => {
+  useImportReviewPageState.mockReturnValue({
+    kind: 'loading',
+  });
+
+  render(<ImportReviewPage />);
+
+  expect(screen.getByText('Loading review workspace...')).toBeInTheDocument();
+});
+
+test('renders not-found state when the batch is missing', () => {
+  useImportReviewPageState.mockReturnValue({
+    kind: 'not-found',
+  });
+
+  render(<ImportReviewPage />);
+
+  expect(screen.getByText('Import batch not found.')).toBeInTheDocument();
+  expect(screen.getByText('Back to imports')).toBeInTheDocument();
+});
+
+test('renders the review workspace when review data is available', () => {
+  useImportReviewPageState.mockReturnValue({
+    kind: 'ready',
+    batch: {
+      id: 'batch-ready',
+      strategyKey: 'iba-cocktails-snapshot',
+      status: 'InProgress',
+      requiresReview: true,
+      applyReadiness: 'RequiresReview',
+      source: {
+        sourceReference: null,
+        displayName: 'IBA Snapshot',
+        contentType: null,
+        metadata: {},
       },
-    ],
-    reviewRows: [
+      diagnostics: [{ rowNumber: null, code: 'warn', message: 'Check row 1', severity: 'warning' }],
+      reviewRows: [
+        {
+          targetType: 'drink',
+          targetKey: 'Negroni',
+          action: 'update',
+          changeSummary: "Drink 'Negroni' would update metadata.",
+          requiresReview: true,
+          hasError: false,
+        },
+      ],
+      reviewSummary: null,
+      applySummary: null,
+      createdAtUtc: '2026-04-12T00:00:00Z',
+      validatedAtUtc: null,
+      reviewedAtUtc: null,
+      appliedAtUtc: null,
+      lastUpdatedAtUtc: '2026-04-12T00:00:00Z',
+    },
+    rows: [
       {
         targetType: 'drink',
         targetKey: 'Negroni',
         action: 'update',
-        changeSummary: "Drink 'Negroni' would update metadata, tags, or recipe entries.",
-        hasConflict: true,
+        changeSummary: "Drink 'Negroni' would update metadata.",
+        requiresReview: true,
         hasError: false,
       },
     ],
-    reviewSummary: null,
-    applySummary: null,
-    lastUpdatedAtUtc: '2026-04-12T00:00:00Z',
-    reviewedAtUtc: null,
-  };
-});
-
-test('triggers review refresh when review data is stale and batch is in progress', async () => {
-  renderPage();
-
-  await waitFor(() => {
-    expect(reviewImportBatchMutation.mutate).toHaveBeenCalledWith('batch-stale');
+    aggregateFilter: 'all',
+    actionFilter: 'all',
+    reviewStateFilter: 'all',
+    setAggregateFilter: vi.fn(),
+    setActionFilter: vi.fn(),
+    setReviewStateFilter: vi.fn(),
+    reviewIsStale: true,
+    canApply: false,
+    canCancel: true,
+    isMutating: false,
+    isApplying: false,
+    isCancelling: false,
+    reviewErrorMessage: null,
+    refreshReview: vi.fn(),
+    applyBatch: vi.fn(),
+    cancelBatch: vi.fn(),
   });
-});
 
-test('does not auto-refresh review for completed batches', async () => {
-  importBatchQuery.data = {
-    ...importBatchQuery.data,
-    id: 'batch-complete',
-    status: 'Completed',
-  };
-  batchId = 'batch-complete';
+  render(<ImportReviewPage />);
 
-  renderPage();
-
-  await waitFor(() => {
-    expect(screen.getByText('Review workspace')).toBeInTheDocument();
-  });
-  expect(reviewImportBatchMutation.mutate).not.toHaveBeenCalled();
-});
-
-test('renders diagnostics and lets the user record a conflict decision', async () => {
-  const user = userEvent.setup();
-  importBatchQuery.data = {
-    ...importBatchQuery.data,
-    id: 'batch-current',
-    reviewSummary: { createCount: 0, updateCount: 1, skipCount: 0 },
-    reviewedAtUtc: '2026-04-12T01:00:00Z',
-  };
-  batchId = 'batch-current';
-
-  renderPage();
-
+  expect(screen.getByRole('heading', { name: 'Review workspace' })).toBeInTheDocument();
   expect(screen.getByText('Check row 1')).toBeInTheDocument();
-
-  const selects = screen.getAllByRole('combobox');
-  await user.selectOptions(selects[3], 'reject-update');
-  const reasonInput = screen.getByPlaceholderText('Reason (optional)');
-  fireEvent.change(reasonInput, { target: { value: 'Keep the existing recipe' } });
-
-  expect(selects[3]).toHaveValue('reject-update');
-  expect(reasonInput).toHaveValue('Keep the existing recipe');
+  expect(screen.getByRole('button', { name: 'Generate review' })).toBeInTheDocument();
 });

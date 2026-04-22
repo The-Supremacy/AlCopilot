@@ -1,5 +1,7 @@
+using AlCopilot.CustomerProfile.Contracts.Events;
 using AlCopilot.CustomerProfile.Data;
 using AlCopilot.CustomerProfile.Features.Profile;
+using AlCopilot.CustomerProfile.Features.Profile.Abstractions;
 using AlCopilot.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +20,7 @@ public static class CustomerProfileModule
             ?? throw new InvalidOperationException(
                 "Connection string 'customer-profile' or fallback 'drink-catalog' is not configured.");
 
-        services.AddDomainEventAssembly(typeof(CustomerProfileModule).Assembly);
+        services.AddDomainEventAssembly(typeof(CustomerProfileCreatedEvent).Assembly);
         services.AddScoped<DomainEventInterceptor>();
 
         services.AddDbContext<CustomerProfileDbContext>((sp, options) =>
@@ -28,7 +30,7 @@ public static class CustomerProfileModule
             options.AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>());
         });
 
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<CustomerProfileDbContext>());
+        services.AddScoped<ICustomerProfileUnitOfWork>(sp => sp.GetRequiredService<CustomerProfileDbContext>());
         services.AddScoped<ICustomerProfileRepository, CustomerProfileRepository>();
         services.AddScoped<ICustomerProfileQueryService, CustomerProfileQueryService>();
 

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.AspNetCore.Authentication;
 
 namespace AlCopilot.Host.Authentication;
@@ -12,21 +13,27 @@ public static class ManagementAuthEndpoints
         group.MapGet("/session", (ClaimsPrincipal user) => Results.Ok(CreateSession(user)))
             .AllowAnonymous();
 
-        group.MapGet("/login", (HttpContext context, string? returnUrl) =>
+        group.MapGet("/login", (string? returnUrl, string? prompt) =>
             Results.Challenge(
-                new AuthenticationProperties
-                {
-                    RedirectUri = SanitizeReturnUrl(returnUrl),
-                },
+                CreateLoginProperties(returnUrl, prompt),
                 [PortalAuthenticationSchemes.ManagementOidcScheme]))
             .AllowAnonymous();
 
-        group.MapPost("/logout", () =>
+        group.MapGet("/account-management", (ManagementAuthOptions options) =>
+                Results.Redirect(BuildAccountManagementUrl(options.Authority)))
+            .AllowAnonymous();
+
+        group.MapPost("/logout", (string? returnUrl) =>
             Results.SignOut(
-                new AuthenticationProperties
-                {
-                    RedirectUri = "/",
-                },
+                CreateLogoutProperties(returnUrl),
+                [
+                    PortalAuthenticationSchemes.ManagementCookieScheme,
+                    PortalAuthenticationSchemes.ManagementOidcScheme,
+                ]));
+
+        group.MapPost("/switch-account", (string? returnUrl) =>
+            Results.SignOut(
+                CreateSwitchAccountProperties(returnUrl),
                 [
                     PortalAuthenticationSchemes.ManagementCookieScheme,
                     PortalAuthenticationSchemes.ManagementOidcScheme,
@@ -34,6 +41,33 @@ public static class ManagementAuthEndpoints
 
         return endpoints;
     }
+
+    private static AuthenticationProperties CreateLoginProperties(string? returnUrl, string? prompt)
+    {
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = SanitizeReturnUrl(returnUrl),
+        };
+
+        if (!string.IsNullOrWhiteSpace(prompt))
+        {
+            properties.Parameters["prompt"] = prompt.Trim();
+        }
+
+        return properties;
+    }
+
+    private static AuthenticationProperties CreateLogoutProperties(string? returnUrl) =>
+        new()
+        {
+            RedirectUri = SanitizeReturnUrl(returnUrl),
+        };
+
+    private static AuthenticationProperties CreateSwitchAccountProperties(string? returnUrl) =>
+        new()
+        {
+            RedirectUri = BuildSwitchAccountRedirectUrl(returnUrl),
+        };
 
     private static ManagementSessionDto CreateSession(ClaimsPrincipal user)
     {
@@ -65,6 +99,22 @@ public static class ManagementAuthEndpoints
         }
 
         return returnUrl;
+    }
+
+    private static string BuildAccountManagementUrl(string authority)
+    {
+        var normalizedAuthority = authority.TrimEnd('/');
+        return $"{normalizedAuthority}/account";
+    }
+
+    private static string BuildSwitchAccountRedirectUrl(string? returnUrl)
+    {
+        var loginUrl = "/api/auth/management/login";
+        return QueryHelpers.AddQueryString(loginUrl, new Dictionary<string, string?>
+        {
+            ["returnUrl"] = SanitizeReturnUrl(returnUrl),
+            ["prompt"] = "login",
+        });
     }
 
     public sealed record ManagementSessionDto(

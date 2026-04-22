@@ -2,18 +2,19 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="AlCopilot.Recommendation.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Mediator.Abstractions" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.Agents.AI" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.SemanticKernel" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" />
+    <PackageReference Include="OllamaSharp" />
   </ItemGroup>
 
   <ItemGroup>

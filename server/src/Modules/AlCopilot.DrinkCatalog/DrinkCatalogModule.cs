@@ -1,8 +1,8 @@
 using AlCopilot.DrinkCatalog.Contracts.Events;
 using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
-using AlCopilot.DrinkCatalog.Features.ImportSync;
-using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
+using AlCopilot.DrinkCatalog.Features.ImportBatch;
+using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
@@ -34,7 +34,7 @@ public static class DrinkCatalogModule
             options.AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>());
         });
 
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<DrinkCatalogDbContext>());
+        services.AddScoped<IDrinkCatalogUnitOfWork>(sp => sp.GetRequiredService<DrinkCatalogDbContext>());
         services.AddScoped<IDrinkRepository, DrinkRepository>();
         services.AddScoped<IDrinkQueryService, DrinkQueryService>();
         services.AddScoped<IDrinkRecipeIntegrityValidator, DrinkRecipeIntegrityValidator>();
@@ -45,8 +45,9 @@ public static class DrinkCatalogModule
         services.AddScoped<IImportBatchRepository, ImportBatchRepository>();
         services.AddScoped<IAuditLogEntryRepository, AuditLogEntryRepository>();
         services.AddScoped<IAuditLogQueryService, AuditLogQueryService>();
-        services.AddScoped<AuditLogWriter>();
-        services.AddScoped<ImportBatchWorkflowService>();
+        services.AddScoped<IAuditLogWriter, AuditLogWriter>();
+        services.AddScoped<IImportBatchProcessingService, ImportBatchProcessingService>();
+        services.AddScoped<IImportBatchApplyService, ImportBatchApplyService>();
         services.AddScoped<IImportSourceStrategy, IbaCocktailsSnapshotImportSourceStrategy>();
         services.AddScoped<IImportSourceStrategyResolver, ImportSourceStrategyResolver>();
 

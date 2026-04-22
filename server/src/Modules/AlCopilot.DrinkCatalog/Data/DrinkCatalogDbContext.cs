@@ -1,7 +1,7 @@
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
-using AlCopilot.DrinkCatalog.Features.ImportSync;
+using AlCopilot.DrinkCatalog.Features.ImportBatch;
 using AlCopilot.DrinkCatalog.Features.Tag;
 using AlCopilot.Shared.Data;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AlCopilot.DrinkCatalog.Data;
 
 public sealed class DrinkCatalogDbContext(DbContextOptions<DrinkCatalogDbContext> options)
-    : DbContext(options), IUnitOfWork
+    : DbContext(options), IDrinkCatalogUnitOfWork
 {
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
     public DbSet<Drink> Drinks => Set<Drink>();

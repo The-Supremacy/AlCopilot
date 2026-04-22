@@ -38,7 +38,7 @@ It provides the canonical vocabulary for drinks, ingredients, and drink labels u
 - **Guests and users** use the catalog to browse drinks, understand what a drink is, and recognize how drinks differ from one another.
 - **Product and AI features** use the catalog as shared reference data when presenting, filtering, or reasoning about drinks.
 - **Catalog managers** curate the drink library, ingredient library, and classification vocabulary.
-- **Catalog managers** also run explicit import sync batches that start with immediate validation, may review row-level changes, and then apply canonical catalog updates.
+- **Catalog managers** also run explicit import sync batches that start with immediate validation, expose row-level review snapshots, and then apply canonical catalog updates.
 
 ---
 
@@ -87,7 +87,7 @@ This means the upstream repository informs our seed workflow, but it does not de
 ## Persistence Notes
 
 Import batches are workflow records rather than core catalog aggregates.
-For that reason, the import workflow stores provenance, diagnostics, review rows, conflict summaries, and apply summaries as JSONB payloads on the batch record.
+For that reason, the import workflow stores provenance, diagnostics, review rows, workflow-history details, and apply summaries as JSONB payloads on the batch record.
 This is a narrow exception used to preserve operator review context without introducing many short-lived workflow tables.
 Core business aggregates such as Drink, Tag, and Ingredient should not treat JSONB as the default persistence pattern.
 

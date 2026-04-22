@@ -32,7 +32,12 @@ export function ImportPresetSection({
         </div>
 
         <form onSubmit={handleSubmit}>
-          <Button type="submit" loading={isSubmitting} loadingText="Starting import...">
+          <Button
+            variant="outline"
+            type="submit"
+            loading={isSubmitting}
+            loadingText="Starting import..."
+          >
             Import default preset
           </Button>
         </form>

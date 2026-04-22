@@ -18,7 +18,7 @@ namespace AlCopilot.Recommendation.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("recommendation")
-                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("ProductVersion", "10.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -28,6 +28,9 @@ namespace AlCopilot.Recommendation.Data.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("AgentSessionStateJson")
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -65,6 +68,9 @@ namespace AlCopilot.Recommendation.Data.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExecutionTraceJson")
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("RecommendationGroupsJson")
                         .IsRequired()

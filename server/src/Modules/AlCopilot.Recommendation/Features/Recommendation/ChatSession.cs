@@ -1,4 +1,6 @@
+using AlCopilot.Recommendation.Contracts.Events;
 using AlCopilot.Recommendation.Contracts.DTOs;
+using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using AlCopilot.Shared.Domain;
 using System.Text.Json;
 
@@ -8,6 +10,7 @@ public sealed class ChatSession : AggregateRoot<Guid>
 {
     public string CustomerId { get; private set; } = string.Empty;
     public string Title { get; private set; } = string.Empty;
+    public string? AgentSessionStateJson { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
@@ -20,7 +23,7 @@ public sealed class ChatSession : AggregateRoot<Guid>
     public static ChatSession Create(string customerId, string firstMessage)
     {
         var now = DateTimeOffset.UtcNow;
-        return new ChatSession
+        var session = new ChatSession
         {
             Id = Guid.NewGuid(),
             CustomerId = customerId,
@@ -28,26 +31,45 @@ public sealed class ChatSession : AggregateRoot<Guid>
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
         };
+
+        session.Raise(new RecommendationSessionStartedEvent(session.Id, customerId));
+        return session;
     }
 
     public void AppendUserTurn(string content)
     {
-        Turns.Add(ChatTurn.CreateUserTurn(Id, Turns.Count + 1, content));
+        var turn = ChatTurn.CreateUserTurn(Id, Turns.Count + 1, content);
+        Turns.Add(turn);
         UpdatedAtUtc = DateTimeOffset.UtcNow;
+        Raise(new RecommendationCustomerMessageRecordedEvent(Id, turn.Id));
     }
 
     public void AppendAssistantTurn(
         string content,
         IReadOnlyCollection<RecommendationGroupDto> recommendationGroups,
-        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
+        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations,
+        IReadOnlyCollection<RecommendationExecutionTraceStep>? executionTraceSteps = null)
     {
-        Turns.Add(
-            ChatTurn.CreateAssistantTurn(
-                Id,
-                Turns.Count + 1,
-                content,
-                recommendationGroups,
-                toolInvocations));
+        var turn = ChatTurn.CreateAssistantTurn(
+            Id,
+            Turns.Count + 1,
+            content,
+            recommendationGroups,
+            toolInvocations,
+            executionTraceSteps);
+        Turns.Add(turn);
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+        Raise(new RecommendationAssistantMessageRecordedEvent(Id, turn.Id));
+    }
+
+    public void UpdateAgentSessionState(string serializedState)
+    {
+        if (string.IsNullOrWhiteSpace(serializedState))
+        {
+            throw new ArgumentException("Serialized agent session state is required.", nameof(serializedState));
+        }
+
+        AgentSessionStateJson = serializedState;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 
@@ -74,6 +96,7 @@ public sealed class ChatTurn
     public string Content { get; private set; } = string.Empty;
     public string RecommendationGroupsJson { get; private set; } = "[]";
     public string ToolInvocationsJson { get; private set; } = "[]";
+    public string? ExecutionTraceJson { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     private ChatTurn()
@@ -98,7 +121,8 @@ public sealed class ChatTurn
         int sequence,
         string content,
         IReadOnlyCollection<RecommendationGroupDto> recommendationGroups,
-        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
+        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations,
+        IReadOnlyCollection<RecommendationExecutionTraceStep>? executionTraceSteps = null)
     {
         return new ChatTurn
         {
@@ -109,6 +133,7 @@ public sealed class ChatTurn
             Content = content,
             RecommendationGroupsJson = JsonSerializer.Serialize(recommendationGroups),
             ToolInvocationsJson = JsonSerializer.Serialize(toolInvocations),
+            ExecutionTraceJson = executionTraceSteps is null ? null : JsonSerializer.Serialize(executionTraceSteps),
             CreatedAtUtc = DateTimeOffset.UtcNow,
         };
     }
@@ -118,4 +143,9 @@ public sealed class ChatTurn
 
     public List<RecommendationToolInvocationDto> GetToolInvocations() =>
         JsonSerializer.Deserialize<List<RecommendationToolInvocationDto>>(ToolInvocationsJson, SerializerOptions) ?? [];
+
+    internal List<RecommendationExecutionTraceStep> GetExecutionTraceSteps() =>
+        string.IsNullOrWhiteSpace(ExecutionTraceJson)
+            ? []
+            : JsonSerializer.Deserialize<List<RecommendationExecutionTraceStep>>(ExecutionTraceJson, SerializerOptions) ?? [];
 }

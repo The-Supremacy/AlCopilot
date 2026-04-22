@@ -1,5 +1,6 @@
 using AlCopilot.CustomerProfile.Contracts.DTOs;
 using AlCopilot.CustomerProfile.Data;
+using AlCopilot.CustomerProfile.Features.Profile.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlCopilot.CustomerProfile.Features.Profile;

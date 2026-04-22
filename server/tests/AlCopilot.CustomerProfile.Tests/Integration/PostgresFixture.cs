@@ -1,3 +1,4 @@
+using AlCopilot.CustomerProfile.Contracts.Events;
 using AlCopilot.CustomerProfile.Data;
 using AlCopilot.Testing.Shared;
 using AlCopilot.Shared.Data;
@@ -11,7 +12,7 @@ public sealed class PostgresFixture : PostgreSqlContainerFixture, IAsyncLifetime
     public CustomerProfileDbContext CreateDbContext()
     {
         var services = new ServiceCollection();
-        services.AddDomainEventAssembly(typeof(AlCopilot.CustomerProfile.CustomerProfileModule).Assembly);
+        services.AddDomainEventAssembly(typeof(CustomerProfileCreatedEvent).Assembly);
         services.AddScoped<DomainEventInterceptor>();
         var serviceProvider = services.BuildServiceProvider();
 

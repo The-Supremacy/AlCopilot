@@ -26,7 +26,7 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.ImportSync.ImportBatch", b =>
+            modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.ImportBatch.ImportBatch", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()

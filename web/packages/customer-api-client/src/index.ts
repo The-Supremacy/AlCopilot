@@ -27,6 +27,13 @@ export type RecommendationItemDto = {
   missingIngredientNames: string[];
   matchedSignals: string[];
   score: number;
+  recipeEntries?: RecommendationRecipeEntryDto[] | null;
+};
+
+export type RecommendationRecipeEntryDto = {
+  ingredientName: string;
+  quantity: string;
+  isOwned: boolean;
 };
 
 export type RecommendationGroupDto = {

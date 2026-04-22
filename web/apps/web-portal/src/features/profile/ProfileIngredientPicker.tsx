@@ -27,6 +27,7 @@ export function ProfileIngredientPicker({
 }: ProfileIngredientPickerProps) {
   const [search, setSearch] = useState('');
   const [localSelection, setLocalSelection] = useState<string[]>(selectedIds);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     setLocalSelection(selectedIds);
@@ -36,6 +37,12 @@ export function ProfileIngredientPicker({
   const filteredIngredients = ingredients.filter((ingredient) =>
     ingredient.name.toLowerCase().includes(normalizedSearch),
   );
+  const selectedIngredients = ingredients.filter((ingredient) =>
+    localSelection.includes(ingredient.id),
+  );
+  const visibleIngredients =
+    normalizedSearch.length > 0 ? filteredIngredients : showAll ? ingredients : selectedIngredients;
+  const isSearchIdle = normalizedSearch.length === 0;
 
   function toggleIngredient(id: string, checked: boolean) {
     const nextIds = checked
@@ -76,23 +83,35 @@ export function ProfileIngredientPicker({
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search ingredients"
+          placeholder="Start typing to search ingredients"
           className="pl-9"
           aria-label={`Search ${title}`}
         />
       </div>
 
-      {filteredIngredients.length === 0 ? (
+      {isSearchIdle && !showAll ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-border/70 bg-background/65 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            Start typing to browse ingredients. Selected items stay visible here so you can review
+            them quickly.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => setShowAll(true)}>
+            Browse full list
+          </Button>
+        </div>
+      ) : null}
+
+      {!isSearchIdle && filteredIngredients.length === 0 ? (
         <InlineMessage tone="warning" message="No ingredients match that search yet." />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filteredIngredients.map((ingredient) => {
+          {visibleIngredients.map((ingredient) => {
             const checked = localSelection.includes(ingredient.id);
             return (
               <label
                 key={ingredient.id}
                 className={cn(
-                  'flex cursor-pointer items-start gap-3 rounded-2xl border border-border/70 bg-card/80 p-4 transition hover:border-primary/40 hover:bg-card',
+                  'grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-border/70 bg-card/80 p-4 transition hover:border-primary/40 hover:bg-card',
                   checked && 'border-primary/60 bg-primary/5',
                 )}
               >
@@ -116,6 +135,14 @@ export function ProfileIngredientPicker({
           })}
         </div>
       )}
+
+      {isSearchIdle && showAll && ingredients.length > 0 ? (
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={() => setShowAll(false)}>
+            Show selected only
+          </Button>
+        </div>
+      ) : null}
 
       {localSelection.length === 0 ? (
         <InlineMessage tone="warning" message={emptySelectionMessage} />

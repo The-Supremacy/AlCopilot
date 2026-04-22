@@ -5,11 +5,12 @@
   "type": "module",
   "sideEffects": [
     "./management-portal.css",
-    "./web-portal.css"
+    "./web-portal.css",
+    "./theme-contract.css"
   ],
   "exports": {
     "./management-portal.css": "./management-portal.css",
     "./web-portal.css": "./web-portal.css",
-    "./tailwind-preset": "./tailwind-preset.js"
+    "./theme-contract.css": "./theme-contract.css"
   }
 }

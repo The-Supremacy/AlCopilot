@@ -1,3 +1,4 @@
+using AlCopilot.CustomerProfile.Features.Profile.Abstractions;
 using AlCopilot.CustomerProfile.Data;
 using Microsoft.EntityFrameworkCore;
 

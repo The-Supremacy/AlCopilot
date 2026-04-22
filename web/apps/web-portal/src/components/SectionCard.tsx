@@ -17,7 +17,7 @@ export function SectionCard(props: SectionCardProps) {
             <CardTitle>{props.title}</CardTitle>
             {props.description ? <CardDescription>{props.description}</CardDescription> : null}
           </div>
-          {props.action ? <div>{props.action}</div> : null}
+          {props.action ? <div className="w-full shrink-0 sm:w-auto">{props.action}</div> : null}
         </CardHeader>
         <CardContent>{props.children}</CardContent>
       </Card>

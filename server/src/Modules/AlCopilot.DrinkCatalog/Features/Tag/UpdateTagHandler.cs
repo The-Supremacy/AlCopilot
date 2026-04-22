@@ -1,4 +1,5 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
@@ -8,8 +9,8 @@ namespace AlCopilot.DrinkCatalog.Features.Tag;
 
 public sealed class UpdateTagHandler(
     ITagRepository tagRepository,
-    AuditLogWriter auditLogWriter,
-    IUnitOfWork unitOfWork) : IRequestHandler<UpdateTagCommand, bool>
+    IAuditLogWriter auditLogWriter,
+    IDrinkCatalogUnitOfWork unitOfWork) : IRequestHandler<UpdateTagCommand, bool>
 {
     public async ValueTask<bool> Handle(UpdateTagCommand request, CancellationToken cancellationToken)
     {

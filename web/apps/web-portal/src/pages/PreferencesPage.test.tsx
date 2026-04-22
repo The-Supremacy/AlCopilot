@@ -37,7 +37,8 @@ describe('PreferencesPage', () => {
       </QueryClientProvider>,
     );
 
-    await user.click(screen.getAllByRole('checkbox', { name: 'Select Gin' })[0]);
+    await user.type(screen.getByRole('textbox', { name: 'Search Favorite ingredients' }), 'Gin');
+    await user.click(screen.getByRole('checkbox', { name: 'Select Gin' }));
     await user.click(screen.getByRole('button', { name: 'Save preferences' }));
 
     expect(saveSpy).toHaveBeenCalledWith({
@@ -46,5 +47,37 @@ describe('PreferencesPage', () => {
       prohibitedIngredientIds: [],
       ownedIngredientIds: [],
     });
+  });
+
+  it('keeps the ingredient list collapsed until the user searches or expands it', () => {
+    vi.mocked(profileHooks.useCustomerIngredients).mockReturnValue({
+      data: [
+        { id: 'gin', name: 'Gin', notableBrands: ['Plymouth'] },
+        { id: 'campari', name: 'Campari', notableBrands: [] },
+      ],
+    } as unknown as ReturnType<typeof profileHooks.useCustomerIngredients>);
+    vi.mocked(profileHooks.useCustomerProfile).mockReturnValue({
+      data: {
+        favoriteIngredientIds: [],
+        dislikedIngredientIds: [],
+        prohibitedIngredientIds: [],
+        ownedIngredientIds: [],
+      },
+    } as unknown as ReturnType<typeof profileHooks.useCustomerProfile>);
+    vi.mocked(profileHooks.useSaveCustomerProfileMutation).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof profileHooks.useSaveCustomerProfileMutation>);
+
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PreferencesPage />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getAllByText(/Start typing to browse ingredients/i)).toHaveLength(3);
+    expect(screen.queryByRole('checkbox', { name: 'Select Gin' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Browse full list' })).toHaveLength(3);
   });
 });

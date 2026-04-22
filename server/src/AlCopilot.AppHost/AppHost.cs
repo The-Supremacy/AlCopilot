@@ -18,10 +18,20 @@ var postgres = builder.AddPostgres("postgres")
     .WithDataVolume("postgres-data")
     .WithPgAdmin();
 var drinkCatalogDb = postgres.AddDatabase("drink-catalog");
+var customerProfileDb = postgres.AddDatabase("customer-profile");
+var recommendationDb = postgres.AddDatabase("recommendation");
+
+var parameter = builder.AddParameter("quadrant-api-key", "QDRANT_API_KEY");
+var qdrant = builder.AddQdrant("qdrant", parameter)
+    .WithDataVolume();
 
 var migrator = builder.AddProject<AlCopilot_Migrator>("alcopilot-migrator")
     .WithReference(drinkCatalogDb)
-    .WaitFor(drinkCatalogDb);
+    .WithReference(customerProfileDb)
+    .WithReference(recommendationDb)
+    .WaitFor(drinkCatalogDb)
+    .WaitFor(customerProfileDb)
+    .WaitFor(recommendationDb);
 
 builder.AddProject<AlCopilot_Host>("alcopilot-host")
     .WithEnvironment("Authentication__Management__Authority", managementAuthority)
@@ -30,12 +40,15 @@ builder.AddProject<AlCopilot_Host>("alcopilot-host")
     .WithEnvironment("Authentication__Customer__Authority", managementAuthority)
     .WithEnvironment("Authentication__Customer__ClientId", "alcopilot-web-portal")
     .WithEnvironment("Authentication__Customer__ClientSecret", customerClientSecret)
-    .WithEnvironment("Recommendation__Llm__Provider", "ollama")
-    .WithEnvironment("Recommendation__Ollama__Endpoint", "http://localhost:11434")
-    .WithEnvironment("Recommendation__Ollama__ModelId", "llama3.2:latest")
     .WithReference(drinkCatalogDb)
+    .WithReference(customerProfileDb)
+    .WithReference(recommendationDb)
+    .WithReference(qdrant)
     .WaitFor(keycloak)
     .WaitFor(drinkCatalogDb)
+    .WaitFor(customerProfileDb)
+    .WaitFor(recommendationDb)
+    .WaitFor(qdrant)
     .WaitForCompletion(migrator);
 
 builder.Build().Run();

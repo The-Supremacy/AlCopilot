@@ -1,3 +1,5 @@
+@import './theme-contract.css';
+
 :root {
   --brand-ink: 202 46% 10%;
   --brand-parchment: 44 67% 96%;

@@ -50,6 +50,8 @@ When global UI invariants change, update this DESIGN.md.
 - Detail template: create/edit forms are separate pages that reuse a single form component per aggregate.
 - Workspace template: action-oriented pages with clear primary/secondary action separation.
 - Import template: the Imports page emphasizes a single "current import" report surface with a supporting history list below; deeper row-level review lives on a dedicated Review page.
+- Review page template: deeper review pages should separate actions, current-batch summary, filters, the main review surface, and diagnostics into clearly distinct sections instead of one large content block.
+- Dense operator pages should keep the route/page component focused on page-level framing, while the detailed UI is split into dedicated sections.
 - Template definitions here describe layout patterns only, not feature flow steps.
 
 ## Interaction and Feedback Invariants
@@ -58,6 +60,8 @@ When global UI invariants change, update this DESIGN.md.
 - Destructive or high-impact actions require explicit confirmation affordances.
 - Status communication should favor clear, plain-language operator-facing messaging.
 - Protected management access uses a consistent local "sign in required" state before redirecting to the identity provider.
+- Local view controls such as search, sort, and filters may reset between visits unless the workflow clearly depends on keeping them.
+- Pages that collect unsaved operator draft input, such as review decisions or staged edits, should preserve that draft across accidental refresh or navigation until the operator applies, cancels, or resets it.
 
 ## Visual and Density Principles
 
@@ -93,9 +97,11 @@ When global UI invariants change, update this DESIGN.md.
 
 - Dashboard operational metrics such as suggestion acceptance/decline are future product backlog/OpenSpec concerns, not design invariants yet.
 - Expanded branding and broader design-system evolution are deferred until explicitly prioritized.
+- The specific persistence mechanism for long-lived management drafts is an implementation and architecture concern, not a portal design invariant.
 
 ## Change Log and Decision Notes
 
 - 2026-04-10: Initial management portal design guide baseline created
 - 2026-04-10: Refined to low-drift invariant-only model with explicit scope boundaries and governance alignment
 - 2026-04-14: Added responsive shell, mobile list-card, and route-level breadcrumb invariants to match the current portal structure
+- 2026-04-17: Added review-page composition and durable draft-preservation invariants for long-running operator workflows

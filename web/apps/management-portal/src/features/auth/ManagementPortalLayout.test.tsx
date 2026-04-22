@@ -6,11 +6,9 @@ import { vi } from 'vitest';
 import { ManagementPortalLayout } from '@/features/auth/ManagementPortalLayout';
 
 const mockedUseManagementSession = vi.fn();
-const mockedUseLogoutManagementMutation = vi.fn();
 
 vi.mock('@/state/auth/useManagementAuth', () => ({
   useManagementSession: () => mockedUseManagementSession(),
-  useLogoutManagementMutation: () => mockedUseLogoutManagementMutation(),
 }));
 
 vi.mock('@tanstack/react-router', async () => {
@@ -56,10 +54,7 @@ function renderLayout() {
 }
 
 beforeEach(() => {
-  mockedUseLogoutManagementMutation.mockReturnValue({
-    mutateAsync: vi.fn().mockResolvedValue(undefined),
-    isPending: false,
-  });
+  vi.restoreAllMocks();
 });
 
 test('shows a local sign-in required state for unauthenticated users', () => {
@@ -100,9 +95,7 @@ test('shows an access denied state for authenticated non-manager users', () => {
   expect(screen.queryByText('Protected portal content')).not.toBeInTheDocument();
 });
 
-test('renders the authenticated shell for manager sessions', async () => {
-  const logout = vi.fn().mockResolvedValue(undefined);
-
+test('renders the authenticated shell for manager sessions', () => {
   mockedUseManagementSession.mockReturnValue({
     isLoading: false,
     isError: false,
@@ -114,19 +107,17 @@ test('renders the authenticated shell for manager sessions', async () => {
       canAccessManagementPortal: true,
     },
   });
-  mockedUseLogoutManagementMutation.mockReturnValue({
-    mutateAsync: logout,
-    isPending: false,
-  });
 
   renderLayout();
 
   expect(screen.getByText('Protected portal content')).toBeInTheDocument();
   expect(screen.getByText('manager@alcopilot.local')).toBeInTheDocument();
-
-  await userEvent.setup().click(screen.getByRole('button', { name: 'Sign out' }));
-
-  expect(logout).toHaveBeenCalled();
+  expect(screen.getByRole('link', { name: 'Manage account' })).toHaveAttribute(
+    'href',
+    '/api/auth/management/account-management',
+  );
+  expect(screen.getByRole('button', { name: 'Switch account' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
 });
 
 test('shows account actions inside the mobile drawer', async () => {
@@ -148,5 +139,7 @@ test('shows account actions inside the mobile drawer', async () => {
 
   expect(screen.getByText('Account')).toBeInTheDocument();
   expect(screen.getAllByText('manager@alcopilot.local').length).toBeGreaterThan(0);
+  expect(screen.getAllByRole('link', { name: 'Manage account' }).length).toBeGreaterThan(0);
+  expect(screen.getAllByRole('button', { name: 'Switch account' }).length).toBeGreaterThan(0);
   expect(screen.getAllByRole('button', { name: 'Sign out' }).length).toBeGreaterThan(0);
 });

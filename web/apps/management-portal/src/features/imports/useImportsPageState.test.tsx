@@ -3,11 +3,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { toast } from 'sonner';
-import {
-  getStoredBatchDecisions,
-  useClearImportDecisionBatch,
-  useUpsertImportDecision,
-} from '@/features/imports/useImportDecisionStore';
 import { useImportsPageState } from '@/features/imports/useImportsPageState';
 
 const startImportMutation = {
@@ -35,16 +30,20 @@ vi.mock('sonner', () => ({
 const currentBatch = {
   id: 'batch-hook',
   status: 'InProgress',
+  requiresReview: true,
+  applyReadiness: 'RequiresReview',
+  reviewedAtUtc: null as null | string,
   diagnostics: [] as Array<{ severity: string }>,
-  reviewConflicts: [{ targetType: 'drink', targetKey: 'Negroni' }],
 };
+
+const importHistoryData = [{ id: 'batch-hook', status: 'InProgress' }];
 
 vi.mock('@/features/imports/useImportData', () => ({
   useImportHistory: () => ({
-    data: [{ id: 'batch-hook', status: 'InProgress' }],
+    data: importHistoryData,
   }),
-  useImportBatch: () => ({
-    data: currentBatch,
+  useImportBatch: (id: string | null) => ({
+    data: id ? currentBatch : null,
   }),
   useStartImportMutation: () => startImportMutation,
   useApplyImportBatchMutation: () => applyImportBatchMutation,
@@ -68,47 +67,38 @@ beforeEach(() => {
   cancelImportBatchMutation.error = null;
   vi.mocked(toast.promise).mockClear();
   currentBatch.status = 'InProgress';
+  currentBatch.requiresReview = true;
+  currentBatch.applyReadiness = 'RequiresReview';
+  currentBatch.reviewedAtUtc = null;
   currentBatch.diagnostics = [];
-  currentBatch.reviewConflicts = [{ targetType: 'drink', targetKey: 'Negroni' }];
-
-  const wrapper = createWrapper();
-  const { result } = renderHook(() => useClearImportDecisionBatch(), { wrapper });
-  result.current('batch-hook');
+  importHistoryData.splice(0, importHistoryData.length, { id: 'batch-hook', status: 'InProgress' });
 });
 
-test('reports unresolved conflicts until explicit decisions are stored', () => {
+test('reports review requirement until the batch has been explicitly reviewed', async () => {
   const wrapper = createWrapper();
-  const { result } = renderHook(() => useImportsPageState(), { wrapper });
+  const { result, rerender } = renderHook(() => useImportsPageState(), { wrapper });
 
-  expect(result.current.hasStoredDecisionForAllConflicts).toBe(false);
+  expect(result.current.requiresReviewBeforeApply).toBe(true);
 
-  const decisionHook = renderHook(() => useUpsertImportDecision(), { wrapper });
   act(() => {
-    decisionHook.result.current('batch-hook', {
-      targetType: 'drink',
-      targetKey: 'Negroni',
-      decision: 'approve-update',
-      reason: 'Accept the import update',
-    });
+    currentBatch.applyReadiness = 'Ready';
+    rerender();
   });
-  return waitFor(() => {
-    expect(result.current.hasStoredDecisionForAllConflicts).toBe(true);
+
+  await waitFor(() => {
+    expect(result.current.requiresReviewBeforeApply).toBe(false);
   });
 });
 
-test('applies using stored decisions and clears them after success', async () => {
+test('applies without row-level decision input', async () => {
   const wrapper = createWrapper();
-  const decisionHook = renderHook(() => useUpsertImportDecision(), { wrapper });
-  act(() => {
-    decisionHook.result.current('batch-hook', {
-      targetType: 'drink',
-      targetKey: 'Negroni',
-      decision: 'reject-update',
-      reason: 'Keep the current version',
-    });
-  });
+  currentBatch.applyReadiness = 'Ready';
 
-  applyImportBatchMutation.mutateAsync.mockResolvedValue({ id: 'batch-hook' });
+  applyImportBatchMutation.mutateAsync.mockResolvedValue({
+    batch: { ...currentBatch, applyReadiness: 'Completed', status: 'Completed' },
+    applyReadiness: 'Completed',
+    wasApplied: true,
+  });
 
   const { result } = renderHook(() => useImportsPageState(), { wrapper });
   await act(async () => {
@@ -117,35 +107,13 @@ test('applies using stored decisions and clears them after success', async () =>
 
   expect(applyImportBatchMutation.mutateAsync).toHaveBeenCalledWith({
     id: 'batch-hook',
-    input: {
-      overrideDuplicateFingerprint: false,
-      decisions: [
-        {
-          targetType: 'drink',
-          targetKey: 'Negroni',
-          decision: 'reject-update',
-          reason: 'Keep the current version',
-        },
-      ],
-    },
   });
 
   expect(toast.promise).toHaveBeenCalled();
-  expect(getStoredBatchDecisions('batch-hook')).toEqual([]);
 });
 
-test('clears stored decisions after cancel success', async () => {
+test('cancels without clearing local decision state because none is kept', async () => {
   const wrapper = createWrapper();
-  const decisionHook = renderHook(() => useUpsertImportDecision(), { wrapper });
-  act(() => {
-    decisionHook.result.current('batch-hook', {
-      targetType: 'drink',
-      targetKey: 'Negroni',
-      decision: 'approve-update',
-      reason: 'Ship the update',
-    });
-  });
-
   cancelImportBatchMutation.mutateAsync.mockResolvedValue({ id: 'batch-hook' });
 
   const { result } = renderHook(() => useImportsPageState(), { wrapper });
@@ -155,5 +123,19 @@ test('clears stored decisions after cancel success', async () => {
 
   expect(cancelImportBatchMutation.mutateAsync).toHaveBeenCalledWith('batch-hook');
   expect(toast.promise).toHaveBeenCalled();
-  expect(getStoredBatchDecisions('batch-hook')).toEqual([]);
+});
+
+test('does not resurrect older in-progress batches when the newest batch is already terminal', () => {
+  const wrapper = createWrapper();
+
+  importHistoryData.splice(
+    0,
+    importHistoryData.length,
+    { id: 'batch-new', status: 'Cancelled' },
+    { id: 'batch-old', status: 'InProgress' },
+  );
+
+  const { result } = renderHook(() => useImportsPageState(), { wrapper });
+
+  expect(result.current.currentBatch).toBeNull();
 });

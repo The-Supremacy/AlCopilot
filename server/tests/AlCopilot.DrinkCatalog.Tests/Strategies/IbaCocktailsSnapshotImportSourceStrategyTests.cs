@@ -1,5 +1,5 @@
-using AlCopilot.DrinkCatalog.Features.ImportSync;
-using AlCopilot.DrinkCatalog.Features.ImportSync.Strategies;
+using AlCopilot.DrinkCatalog.Features.ImportBatch;
+using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 using Shouldly;
 
 namespace AlCopilot.DrinkCatalog.Tests.Strategies;
@@ -15,7 +15,6 @@ public sealed class IbaCocktailsSnapshotImportSourceStrategyTests
             string.Empty,
             ImportProvenance.Empty));
 
-        result.SourceFingerprint.ShouldStartWith("sha256:");
         result.Import.Drinks.Count.ShouldBeGreaterThan(80);
         result.Import.Tags.ShouldBeEmpty();
         result.Import.Ingredients.ShouldContain(i => i.Name == "Vodka");

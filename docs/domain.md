@@ -28,9 +28,11 @@ They do not define technical design or supported behavior in place of OpenSpec s
 
 ## Module Domain Guides
 
-| Module         | Detailed guide                                         | Purpose                                                                            |
-| -------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| Drinks Catalog | [modules/drinks-catalog.md](modules/drinks-catalog.md) | Defines drinks, ingredients, categories, and tags as the shared catalog foundation |
+| Module           | Detailed guide                                             | Purpose                                                                                                 |
+| ---------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Drinks Catalog   | [modules/drinks-catalog.md](modules/drinks-catalog.md)     | Defines drinks, ingredients, categories, and tags as the shared catalog foundation                      |
+| Customer Profile | [modules/customer-profile.md](modules/customer-profile.md) | Defines customer-owned ingredient preferences and home-bar state for personalization                    |
+| Recommendation   | [modules/recommendation.md](modules/recommendation.md)     | Defines recommendation sessions, grouped suggestion outcomes, and conversational recommendation history |
 
 ---
 

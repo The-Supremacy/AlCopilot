@@ -45,6 +45,8 @@ aggregate repositories are command-side only, while read-side DTO projection bel
 Repositories load complete aggregates for command-side mutation.
 `IUnitOfWork.SaveChangesAsync` is called once at the end of a handler flow.
 Domain events improve traceability, but they do not replace explicit audit logging of successful mutating commands.
+Backend feature structure follows [ADR 0014](../adr/0014-feature-oriented-backend-module-structure.md):
+feature-local abstractions live under `Features/<Feature>/Abstractions`, while deeper technical or aggregate-specific folders remain optional when complexity justifies them.
 
 ---
 
@@ -66,6 +68,9 @@ Customer portal authentication direction uses a separate Keycloak client and a s
 When module-owned write paths need operator traceability, the Host resolves the authenticated principal into a shared `CurrentActor` abstraction and exposes it through `ICurrentActorAccessor` so modules can persist stable actor IDs without depending on `HttpContext`.
 Module endpoints are registered into the Host, but module behavior remains module-owned.
 Customer-facing recommendation behavior is planned around separate `CustomerProfile` and `Recommendation` modules that collaborate through contracts rather than Host-owned product logic, as accepted in [ADR 0012](../adr/0012-customer-profile-and-recommendation-modules-with-deterministic-candidate-building.md).
+Recommendation orchestration now uses bounded Microsoft Agent Framework workflows, while deterministic filtering and grouping remain in plain module code, as accepted in [ADR 0015](../adr/0015-recommendation-workflows-with-agent-framework.md).
+Within the Recommendation module, model-visible conversation state should flow through a stable `ChatClientAgent` plus persisted `AgentSession` state, while the module aggregate remains the durable business transcript.
+Deterministic narration snapshots such as the current profile summary and current recommendation groups should be passed as explicit run input messages rather than hidden in request-scoped provider mutation.
 
 ---
 
@@ -74,6 +79,8 @@ Customer-facing recommendation behavior is planned around separate `CustomerProf
 Local development uses Aspire orchestration.
 Production deployment is designed around GitHub Actions, GHCR, AKS, Flux, and PostgreSQL.
 Envoy Gateway is the external ingress layer.
+For recommendation development, the default local CPU-oriented Ollama profile is `gemma4:e4b` unless a newer documented default replaces it.
+Recommendation workflow execution should enable Agent Framework OpenTelemetry spans by default unless a future operational decision changes that baseline.
 Operationally queryable audit records should be stored in the owning module when mutation history must be reviewed directly by operators.
 Preserved domain events are module-owned machine-readable history and may support aggregate-level audit timelines, but workflow-rich operator audit can still require explicit audit records.
 
@@ -82,7 +89,7 @@ Preserved domain events are module-owned machine-readable history and may suppor
 ## JSONB Usage Guidance
 
 JSONB is allowed as a narrow workflow-storage exception, not as the default persistence style for domain aggregates.
-The current approved example is import-batch review state in the Drinks Catalog, where provenance, diagnostics, review rows, conflict summaries, and apply summaries need flexible operator-facing storage.
+The current approved example is import-batch review state in the Drinks Catalog, where provenance, diagnostics, review rows, and apply summaries need flexible operator-facing storage without introducing many short-lived workflow tables.
 Core aggregates should continue using explicit relational columns and child tables by default because that keeps migrations, query intent, and aggregate evolution clearer over time.
 
 ---

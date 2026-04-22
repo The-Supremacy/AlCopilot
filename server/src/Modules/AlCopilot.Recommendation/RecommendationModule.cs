@@ -1,5 +1,9 @@
+using AlCopilot.Recommendation.Contracts.Events;
 using AlCopilot.Recommendation.Data;
 using AlCopilot.Recommendation.Features.Recommendation;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Features.Recommendation.Agents;
+using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using AlCopilot.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +22,7 @@ public static class RecommendationModule
             ?? throw new InvalidOperationException(
                 "Connection string 'recommendation' or fallback 'drink-catalog' is not configured.");
 
-        services.AddDomainEventAssembly(typeof(RecommendationModule).Assembly);
+        services.AddDomainEventAssembly(typeof(RecommendationSessionStartedEvent).Assembly);
         services.AddScoped<DomainEventInterceptor>();
 
         services.AddDbContext<RecommendationDbContext>((sp, options) =>
@@ -28,19 +32,30 @@ public static class RecommendationModule
             options.AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>());
         });
 
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<RecommendationDbContext>());
+        services.AddScoped<IRecommendationUnitOfWork>(sp => sp.GetRequiredService<RecommendationDbContext>());
         services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
         services.AddScoped<IRecommendationSessionQueryService, RecommendationSessionQueryService>();
         services.AddScoped<IRecommendationCandidateBuilder, DeterministicRecommendationCandidateBuilder>();
-        services.AddScoped<IRecommendationNarrationComposer, RecommendationNarrationComposer>();
-        services.AddScoped<RecommendationKernelFactory>();
-        services.AddScoped<SemanticKernelRecommendationNarrator>();
-        services.AddScoped<IRecommendationNarrator>(sp => sp.GetRequiredService<SemanticKernelRecommendationNarrator>());
-        services.AddScoped<RecommendationReadOnlyTools>();
+        services.AddScoped<IRecommendationRunInputsQueryService, RecommendationRunInputsQueryService>();
+        services.AddScoped<IRecommendationRequestIntentResolver, RecommendationRequestIntentResolver>();
+        services.AddScoped<IRecommendationRunContextFactory, RecommendationRunContextFactory>();
+        services.AddSingleton<IRecommendationChatClientStrategyFactory, RecommendationChatClientStrategyFactory>();
+        services.AddScoped<IRecommendationNarratorAgentFactory, RecommendationNarratorAgentFactory>();
+        services.AddSingleton<IRecommendationAgentSessionStore, RecommendationAgentSessionStore>();
+        services.AddScoped<IRecommendationCurrentRunContextAccessor, RecommendationCurrentRunContextAccessor>();
+        services.AddScoped<IRecommendationExecutionTraceRecorder, RecommendationExecutionTraceRecorder>();
+        services.AddScoped<IRecommendationToolInvocationRecorder, RecommendationToolInvocationRecorder>();
+        services.AddScoped<RecommendationDrinkSearchTool>();
+        services.AddScoped<RecommendationIngredientLookupTool>();
+        services.AddScoped<RecommendationRecipeLookupTool>();
+        services.AddScoped<IRecommendationConversationService, RecommendationConversationService>();
+        services.AddSingleton<IRecommendationEmbeddingRuntime, RecommendationEmbeddingRuntime>();
         services.AddOptions<RecommendationLlmOptions>()
             .Bind(configuration.GetSection(RecommendationLlmOptions.SectionName));
         services.AddOptions<RecommendationOllamaOptions>()
             .Bind(configuration.GetSection(RecommendationOllamaOptions.SectionName));
+        services.AddOptions<RecommendationObservabilityOptions>()
+            .Bind(configuration.GetSection(RecommendationObservabilityOptions.SectionName));
 
         return services;
     }

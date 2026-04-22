@@ -17,6 +17,9 @@ public static class Extensions
 {
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
+    private const string RecommendationTelemetrySourceName = "AlCopilot.Recommendation";
+    private const string ExperimentalAgentsTelemetrySourceName = "Experimental.Microsoft.Agents.AI";
+    private const string ExperimentalExtensionsAiTelemetrySourceName = "Experimental.Microsoft.Extensions.AI";
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
@@ -62,6 +65,9 @@ public static class Extensions
             .WithTracing(tracing =>
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
+                    .AddSource(RecommendationTelemetrySourceName)
+                    .AddSource(ExperimentalAgentsTelemetrySourceName)
+                    .AddSource(ExperimentalExtensionsAiTelemetrySourceName)
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
                         tracing.Filter = context =>

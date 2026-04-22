@@ -1,5 +1,5 @@
 cd server
-dotnet build --no-restore -c Release
+dotnet build AlCopilot.slnx --no-restore -c Release -m:1
 
 cd ..
-pnpm --dir web/apps/management-portal exec tsc --noEmit
+pnpm -r --filter "./web/apps/**" lint

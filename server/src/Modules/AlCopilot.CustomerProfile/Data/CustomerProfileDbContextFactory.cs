@@ -1,3 +1,4 @@
+using AlCopilot.CustomerProfile.Contracts.Events;
 using AlCopilot.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -11,7 +12,7 @@ internal sealed class CustomerProfileDbContextFactory : IDesignTimeDbContextFact
     {
         var optionsBuilder = new DbContextOptionsBuilder<CustomerProfileDbContext>();
         var services = new ServiceCollection();
-        services.AddDomainEventAssembly(typeof(CustomerProfileModule).Assembly);
+        services.AddDomainEventAssembly(typeof(CustomerProfileCreatedEvent).Assembly);
         services.AddScoped<DomainEventInterceptor>();
 
         var serviceProvider = services.BuildServiceProvider();
