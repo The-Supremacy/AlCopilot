@@ -88,52 +88,7 @@ function RecommendationTurnCard({ turn }: { turn: RecommendationTurnDto }) {
                   </div>
                   <ul className="space-y-3">
                     {group.items.map((item) => (
-                      <li
-                        key={item.drinkId}
-                        className="rounded-xl border border-border/60 bg-card/95 px-4 py-3"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="font-medium text-foreground">{item.drinkName}</h4>
-                          <Badge variant="neutral">Score {item.score}</Badge>
-                        </div>
-                        {item.description ? (
-                          <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                        ) : null}
-                        <ul className="mt-3 space-y-1 text-sm leading-6 text-foreground">
-                          {item.recipeEntries && item.recipeEntries.length > 0 ? (
-                            <li>
-                              <span className="text-muted-foreground">Recipe:</span>{' '}
-                              {item.recipeEntries.map((entry) => (
-                                <Fragment key={`${item.drinkId}-${entry.ingredientName}`}>
-                                  <span
-                                    className={
-                                      entry.isOwned
-                                        ? 'font-medium text-foreground'
-                                        : 'text-foreground'
-                                    }
-                                  >
-                                    {entry.ingredientName} ({entry.quantity})
-                                  </span>
-                                  {!entry.isOwned ? (
-                                    <span className="text-muted-foreground"> need to restock</span>
-                                  ) : null}
-                                  {entry !== item.recipeEntries[item.recipeEntries.length - 1]
-                                    ? ', '
-                                    : null}
-                                </Fragment>
-                              ))}
-                            </li>
-                          ) : null}
-                          {item.matchedSignals.length > 0 ? (
-                            <li>Matches: {item.matchedSignals.join(', ')}</li>
-                          ) : null}
-                          {item.missingIngredientNames.length > 0 ? (
-                            <li>Consider for restock: {item.missingIngredientNames.join(', ')}</li>
-                          ) : (
-                            <li>Available now: everything is already in your bar.</li>
-                          )}
-                        </ul>
-                      </li>
+                      <RecommendationGroupItemCard key={item.drinkId} item={item} />
                     ))}
                   </ul>
                 </section>
@@ -143,6 +98,50 @@ function RecommendationTurnCard({ turn }: { turn: RecommendationTurnDto }) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function RecommendationGroupItemCard({
+  item,
+}: {
+  item: RecommendationTurnDto['recommendationGroups'][number]['items'][number];
+}) {
+  const recipeEntries = item.recipeEntries ?? [];
+
+  return (
+    <li className="rounded-xl border border-border/60 bg-card/95 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <h4 className="font-medium text-foreground">{item.drinkName}</h4>
+        <Badge variant="neutral">Score {item.score}</Badge>
+      </div>
+      {item.description ? (
+        <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+      ) : null}
+      <ul className="mt-3 space-y-1 text-sm leading-6 text-foreground">
+        {recipeEntries.length > 0 ? (
+          <li>
+            <span className="text-muted-foreground">Recipe:</span>{' '}
+            {recipeEntries.map((entry, index) => (
+              <Fragment key={`${item.drinkId}-${entry.ingredientName}`}>
+                <span className={entry.isOwned ? 'font-medium text-foreground' : 'text-foreground'}>
+                  {entry.ingredientName} ({entry.quantity})
+                </span>
+                {!entry.isOwned ? (
+                  <span className="text-muted-foreground"> need to restock</span>
+                ) : null}
+                {index < recipeEntries.length - 1 ? ', ' : null}
+              </Fragment>
+            ))}
+          </li>
+        ) : null}
+        {item.matchedSignals.length > 0 ? <li>Matches: {item.matchedSignals.join(', ')}</li> : null}
+        {item.missingIngredientNames.length > 0 ? (
+          <li>Consider for restock: {item.missingIngredientNames.join(', ')}</li>
+        ) : (
+          <li>Available now: everything is already in your bar.</li>
+        )}
+      </ul>
+    </li>
   );
 }
 
