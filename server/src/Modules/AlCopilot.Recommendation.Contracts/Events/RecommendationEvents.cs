@@ -22,3 +22,10 @@ public sealed record RecommendationAssistantMessageRecordedEvent(Guid SessionId,
     public Guid AggregateId => SessionId;
     public DateTimeOffset OccurredAtUtc { get; } = DateTimeOffset.UtcNow;
 }
+
+[DomainEventName("recommendation.turn-feedback-recorded")]
+public sealed record RecommendationTurnFeedbackRecordedEvent(Guid SessionId, Guid TurnId, string Rating) : IDomainEvent
+{
+    public Guid AggregateId => SessionId;
+    public DateTimeOffset OccurredAtUtc { get; } = DateTimeOffset.UtcNow;
+}

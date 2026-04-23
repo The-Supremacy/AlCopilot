@@ -28,5 +28,23 @@ internal static class RecommendationSessionEndpoints
             IMediator mediator,
             CancellationToken ct) =>
             Results.Ok(await mediator.Send(command, ct)));
+
+        group.MapPost("/sessions/{sessionId:guid}/turns/{turnId:guid}/feedback", async (
+            Guid sessionId,
+            Guid turnId,
+            SubmitRecommendationTurnFeedbackRequest request,
+            IMediator mediator,
+            CancellationToken ct) =>
+            Results.Ok(await mediator.Send(
+                new SubmitRecommendationTurnFeedbackCommand(
+                    sessionId,
+                    turnId,
+                    request.Rating,
+                    request.Comment),
+                ct)));
     }
+
+    private sealed record SubmitRecommendationTurnFeedbackRequest(
+        string Rating,
+        string? Comment);
 }

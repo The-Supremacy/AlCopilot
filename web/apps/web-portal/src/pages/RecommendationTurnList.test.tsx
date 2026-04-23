@@ -18,6 +18,7 @@ describe('RecommendationTurnList', () => {
               content: 'Here are two strong options.',
               createdAtUtc: '2026-04-15T00:10:00Z',
               toolInvocations: [],
+              feedback: null,
               recommendationGroups: [
                 {
                   key: 'make-now',
@@ -64,6 +65,7 @@ describe('RecommendationTurnList', () => {
               content: '**Top pick**\n* Bright and citrusy\n* Easy to make',
               createdAtUtc: '2026-04-15T00:12:00Z',
               toolInvocations: [],
+              feedback: null,
               recommendationGroups: [],
             },
           ],

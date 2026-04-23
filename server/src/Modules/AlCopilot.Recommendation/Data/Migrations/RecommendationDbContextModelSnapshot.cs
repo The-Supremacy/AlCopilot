@@ -72,6 +72,17 @@ namespace AlCopilot.Recommendation.Data.Migrations
                     b.Property<string>("ExecutionTraceJson")
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("FeedbackComment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset?>("FeedbackCreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FeedbackRating")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("RecommendationGroupsJson")
                         .IsRequired()
                         .HasColumnType("jsonb");

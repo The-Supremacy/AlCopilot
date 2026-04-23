@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using Mediator;
 
@@ -8,6 +9,7 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationIngredientLookupTool(
     IMediator mediator,
+    IRecommendationCatalogFuzzyLookupService fuzzyLookupService,
     IRecommendationToolInvocationRecorder toolInvocationRecorder,
     IRecommendationExecutionTraceRecorder executionTraceRecorder)
 {
@@ -28,10 +30,14 @@ internal sealed class RecommendationIngredientLookupTool(
 
         var normalizedIngredientName = ingredientName.Trim();
         var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), CancellationToken.None);
-        var matches = RecommendationCatalogMatcher.FindDrinksByIngredient(drinks, normalizedIngredientName, maxResults)
+        var resolvedIngredientName = await ResolveIngredientNameAsync(normalizedIngredientName);
+        var matches = RecommendationCatalogMatcher.FindDrinksByIngredient(
+                drinks,
+                resolvedIngredientName,
+                Math.Clamp(maxResults, 1, 10))
             .Select(drink => RecommendationIngredientLookupDrink.FromDrink(
                 drink,
-                RecommendationCatalogMatcher.GetMatchedIngredientNames(drink, normalizedIngredientName)))
+                RecommendationCatalogMatcher.GetMatchedIngredientNames(drink, resolvedIngredientName)))
             .ToList();
 
         if (matches.Count == 0)
@@ -54,6 +60,18 @@ internal sealed class RecommendationIngredientLookupTool(
             "ok",
             $"Found {matches.Count} drink(s) containing an ingredient matching '{normalizedIngredientName}'.",
             matches);
+    }
+
+    private async Task<string> ResolveIngredientNameAsync(string normalizedIngredientName)
+    {
+        var fuzzyMatches = await fuzzyLookupService.FindIngredientMatchesAsync(
+            normalizedIngredientName,
+            CancellationToken.None);
+
+        return fuzzyMatches
+            .OrderByDescending(match => match.Similarity)
+            .Select(match => match.Name)
+            .FirstOrDefault() ?? normalizedIngredientName;
     }
 
     private static RecommendationExecutionTraceStep BuildTraceStep(

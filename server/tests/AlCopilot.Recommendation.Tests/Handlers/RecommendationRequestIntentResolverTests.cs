@@ -107,11 +107,11 @@ public sealed class RecommendationRequestIntentResolverTests
 
         intent.Kind.ShouldBe(RecommendationRequestIntentKind.Recommendation);
         intent.RequestedDrinkName.ShouldBeNull();
-        intent.PreferenceSignals.ShouldBe(["light", "sparkling", "sweet"]);
+        intent.PreferenceSignals.ShouldBe(["sweet"]);
     }
 
     [Fact]
-    public async Task Resolve_ExtractsPreferenceSignalsFromSemanticDescriptors()
+    public async Task Resolve_DoesNotExtractPreferenceSignalsFromSemanticDescriptors()
     {
         var drink = CreateDrink("French 75", "Gin", "Prosecco");
         var intent = await resolver.ResolveAsync(
@@ -133,7 +133,7 @@ public sealed class RecommendationRequestIntentResolverTests
                         ["Sparkling, bright, and lightly sweet."])
                 }));
 
-        intent.PreferenceSignals.ShouldBe(["light", "sparkling", "sweet"]);
+        intent.PreferenceSignals.ShouldBeEmpty();
     }
 
     [Fact]

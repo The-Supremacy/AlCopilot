@@ -93,4 +93,29 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
         persisted.Turns.Select(turn => turn.Role)
             .ShouldBe(["user", "assistant", "user", "assistant"]);
     }
+
+    [Fact]
+    public async Task RecordTurnFeedback_PersistsFeedbackOnAssistantTurn()
+    {
+        var repository = new ChatSessionRepository(_db);
+        var session = ChatSession.Create("customer-1", "Something refreshing");
+        session.AppendUserTurn("Something refreshing");
+        session.AppendAssistantTurn("Try a Gimlet.", [], []);
+        var assistantTurnId = session.Turns.Last().Id;
+
+        repository.Add(session);
+        await _db.SaveChangesAsync();
+
+        var reloaded = await repository.GetByCustomerSessionIdAsync("customer-1", session.Id);
+        reloaded.ShouldNotBeNull();
+
+        reloaded!.RecordTurnFeedback(assistantTurnId, "negative", "Missed the prosecco request.");
+        await _db.SaveChangesAsync();
+
+        var persisted = await repository.GetByCustomerSessionIdAsync("customer-1", session.Id);
+        var feedback = persisted!.Turns.Single(turn => turn.Id == assistantTurnId).GetFeedback();
+        feedback.ShouldNotBeNull();
+        feedback!.Rating.ShouldBe("negative");
+        feedback.Comment.ShouldBe("Missed the prosecco request.");
+    }
 }

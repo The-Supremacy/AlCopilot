@@ -12,8 +12,12 @@ public sealed record RecommendationRequestIntent(
     RecommendationRequestIntentKind Kind,
     string? RequestedDrinkName,
     string? RequestedIngredientName,
-    IReadOnlyCollection<string> PreferenceSignals)
+    IReadOnlyCollection<string> PreferenceSignals,
+    bool LooksLikeRecipeLookup = false)
 {
+    public bool IsRecipeLookupRequest =>
+        LooksLikeRecipeLookup || Kind is RecommendationRequestIntentKind.RecipeLookup or RecommendationRequestIntentKind.Hybrid;
+
     public bool IsIngredientLed =>
         Kind is RecommendationRequestIntentKind.IngredientDiscovery or RecommendationRequestIntentKind.Hybrid
         && !string.IsNullOrWhiteSpace(RequestedIngredientName);

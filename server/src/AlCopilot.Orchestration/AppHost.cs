@@ -21,8 +21,8 @@ var drinkCatalogDb = postgres.AddDatabase("drink-catalog");
 var customerProfileDb = postgres.AddDatabase("customer-profile");
 var recommendationDb = postgres.AddDatabase("recommendation");
 
-var parameter = builder.AddParameter("quadrant-api-key", "QDRANT_API_KEY");
-var qdrant = builder.AddQdrant("qdrant", parameter)
+var qdrantApiKey = builder.AddParameter("qdrant-api-key", "QDRANT_API_KEY");
+var qdrant = builder.AddQdrant("qdrant", qdrantApiKey)
     .WithDataVolume();
 
 var migrator = builder.AddProject<AlCopilot_Migrator>("alcopilot-migrator")
@@ -33,13 +33,15 @@ var migrator = builder.AddProject<AlCopilot_Migrator>("alcopilot-migrator")
     .WaitFor(customerProfileDb)
     .WaitFor(recommendationDb);
 
-builder.AddProject<AlCopilot_Host>("alcopilot-host")
+var host = builder.AddProject<AlCopilot_Host>("alcopilot-host")
     .WithEnvironment("Authentication__Management__Authority", managementAuthority)
     .WithEnvironment("Authentication__Management__ClientId", "alcopilot-management-portal")
     .WithEnvironment("Authentication__Management__ClientSecret", managementClientSecret)
     .WithEnvironment("Authentication__Customer__Authority", managementAuthority)
     .WithEnvironment("Authentication__Customer__ClientId", "alcopilot-web-portal")
     .WithEnvironment("Authentication__Customer__ClientSecret", customerClientSecret)
+    .WithEnvironment("Recommendation__Semantic__QdrantEndpoint", qdrant.GetEndpoint("grpc"))
+    .WithEnvironment("Recommendation__Semantic__QdrantApiKey", qdrantApiKey)
     .WithReference(drinkCatalogDb)
     .WithReference(customerProfileDb)
     .WithReference(recommendationDb)
@@ -50,5 +52,19 @@ builder.AddProject<AlCopilot_Host>("alcopilot-host")
     .WaitFor(recommendationDb)
     .WaitFor(qdrant)
     .WaitForCompletion(migrator);
+
+builder.AddViteApp("management-portal", "../../../web/apps/management-portal")
+    .WithPnpm()
+    .WithEndpoint("http", endpoint => endpoint.Port = 4173)
+    .WithEnvironment("MANAGEMENT_API_PROXY_TARGET", host.GetEndpoint("http"))
+    .WithReference(host)
+    .WaitFor(host);
+
+builder.AddViteApp("web-portal", "../../../web/apps/web-portal")
+    .WithPnpm()
+    .WithEndpoint("http", endpoint => endpoint.Port = 4174)
+    .WithEnvironment("WEB_PORTAL_API_PROXY_TARGET", host.GetEndpoint("http"))
+    .WithReference(host)
+    .WaitFor(host);
 
 builder.Build().Run();

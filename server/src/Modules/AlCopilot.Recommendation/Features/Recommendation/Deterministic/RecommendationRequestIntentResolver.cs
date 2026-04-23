@@ -43,83 +43,67 @@ internal sealed class RecommendationRequestIntentResolver(
         "strong",
     ];
 
-    public RecommendationRequestIntent Resolve(string customerMessage, RecommendationRunInputs inputs)
-    {
-        var normalizedMessage = customerMessage.TrimOrEmpty();
-        var requestedDrinkName = RecommendationCatalogMatcher.FindMentionedDrinkName(inputs.Drinks, normalizedMessage);
-        var requestedIngredientName = RecommendationCatalogMatcher.FindMentionedIngredientName(inputs.Drinks, normalizedMessage);
-        var matchedPreferenceSignals = PreferenceSignals
-            .Where(signal => normalizedMessage.Contains(signal, StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(signal => signal, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var looksLikeRecipeLookup = RecipeLookupSignals.Any(signal =>
-            normalizedMessage.Contains(signal, StringComparison.OrdinalIgnoreCase));
-
-        var kind = ResolveKind(requestedDrinkName, requestedIngredientName, looksLikeRecipeLookup);
-        return new RecommendationRequestIntent(
-            kind,
-            requestedDrinkName,
-            requestedIngredientName,
-            matchedPreferenceSignals);
-    }
-
     public async Task<RecommendationRequestIntent> ResolveAsync(
         string customerMessage,
         RecommendationRunInputs inputs,
         RecommendationSemanticSearchResult semanticSearchResult,
         CancellationToken cancellationToken = default)
     {
-        var normalizedMessage = customerMessage.TrimOrEmpty();
-        var looksLikeRecipeLookup = RecipeLookupSignals.Any(signal =>
-            normalizedMessage.Contains(signal, StringComparison.OrdinalIgnoreCase));
+        var analysis = RecommendationRequestQueryAnalyzer.Analyze(customerMessage);
+        var entities = await ResolveEntitiesAsync(analysis, inputs, semanticSearchResult, cancellationToken);
+        var kind = ResolveKind(
+            entities.RequestedDrinkName,
+            entities.RequestedIngredientName,
+            analysis.LooksLikeRecipeLookup);
 
-        var requestedDrinkName = RecommendationCatalogMatcher.FindMentionedDrinkName(inputs.Drinks, normalizedMessage);
-        var requestedIngredientName = RecommendationCatalogMatcher.FindMentionedIngredientName(inputs.Drinks, normalizedMessage);
-        var fuzzyDrinkQuery = string.IsNullOrWhiteSpace(requestedDrinkName)
-            ? RecommendationCatalogMatcher.ExtractDrinkSearchText(normalizedMessage, looksLikeRecipeLookup)
-            : null;
-        var fuzzyIngredientQuery = string.IsNullOrWhiteSpace(requestedIngredientName)
-            ? RecommendationCatalogMatcher.ExtractIngredientSearchText(normalizedMessage)
-            : null;
+        return new RecommendationRequestIntent(
+            kind,
+            entities.RequestedDrinkName,
+            entities.RequestedIngredientName,
+            analysis.PreferenceSignals,
+            analysis.LooksLikeRecipeLookup);
+    }
 
-        if (string.IsNullOrWhiteSpace(requestedDrinkName))
+    private async Task<RecommendationResolvedRequestEntities> ResolveEntitiesAsync(
+        RecommendationRequestQueryAnalysis analysis,
+        RecommendationRunInputs inputs,
+        RecommendationSemanticSearchResult semanticSearchResult,
+        CancellationToken cancellationToken)
+    {
+        var requestedDrinkName = RecommendationCatalogMatcher.FindMentionedDrinkName(
+            inputs.Drinks,
+            analysis.NormalizedMessage);
+        var requestedIngredientName = RecommendationCatalogMatcher.FindMentionedIngredientName(
+            inputs.Drinks,
+            analysis.NormalizedMessage);
+
+        if (string.IsNullOrWhiteSpace(requestedDrinkName) && !string.IsNullOrWhiteSpace(analysis.DrinkSearchText))
         {
-            if (!string.IsNullOrWhiteSpace(fuzzyDrinkQuery))
-            {
-                var fuzzyDrinkMatches = await fuzzyLookupService.FindDrinkMatchesAsync(fuzzyDrinkQuery, cancellationToken);
-                requestedDrinkName = ResolveClearWinner(fuzzyDrinkMatches);
-            }
+            var fuzzyDrinkMatches = await fuzzyLookupService.FindDrinkMatchesAsync(
+                analysis.DrinkSearchText,
+                cancellationToken);
+            requestedDrinkName = ResolveClearWinner(fuzzyDrinkMatches);
         }
 
-        if (string.IsNullOrWhiteSpace(requestedIngredientName))
+        if (string.IsNullOrWhiteSpace(requestedIngredientName) && !string.IsNullOrWhiteSpace(analysis.IngredientSearchText))
         {
-            if (!string.IsNullOrWhiteSpace(fuzzyIngredientQuery))
-            {
-                var fuzzyIngredientMatches = await fuzzyLookupService.FindIngredientMatchesAsync(fuzzyIngredientQuery, cancellationToken);
-                requestedIngredientName = ResolveClearWinner(fuzzyIngredientMatches);
-            }
+            var fuzzyIngredientMatches = await fuzzyLookupService.FindIngredientMatchesAsync(
+                analysis.IngredientSearchText,
+                cancellationToken);
+            requestedIngredientName = ResolveClearWinner(fuzzyIngredientMatches);
         }
 
-        if (string.IsNullOrWhiteSpace(requestedDrinkName) && looksLikeRecipeLookup)
+        if (string.IsNullOrWhiteSpace(requestedDrinkName) && analysis.LooksLikeRecipeLookup)
         {
             requestedDrinkName = ResolveSemanticDrinkName(semanticSearchResult, options);
         }
 
-        if (string.IsNullOrWhiteSpace(requestedIngredientName) && !string.IsNullOrWhiteSpace(fuzzyIngredientQuery))
+        if (string.IsNullOrWhiteSpace(requestedIngredientName) && !string.IsNullOrWhiteSpace(analysis.IngredientSearchText))
         {
             requestedIngredientName = ResolveSemanticIngredientName(semanticSearchResult, options);
         }
-        var matchedPreferenceSignals = PreferenceSignals
-            .Where(signal => normalizedMessage.Contains(signal, StringComparison.OrdinalIgnoreCase))
-            .Concat(ExtractSemanticPreferenceSignals(semanticSearchResult))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(signal => signal, StringComparer.OrdinalIgnoreCase)
-            .ToList();
 
-        var kind = ResolveKind(requestedDrinkName, requestedIngredientName, looksLikeRecipeLookup);
-        return new RecommendationRequestIntent(kind, requestedDrinkName, requestedIngredientName, matchedPreferenceSignals);
+        return new RecommendationResolvedRequestEntities(requestedDrinkName, requestedIngredientName);
     }
 
     private static string? ResolveClearWinner(IReadOnlyCollection<RecommendationFuzzyMatch> matches)
@@ -138,15 +122,6 @@ internal sealed class RecommendationRequestIntentResolver(
         return best.Similarity >= 0.55d && best.Similarity - runnerUpSimilarity >= 0.08d
             ? best.Name
             : null;
-    }
-
-    private static IEnumerable<string> ExtractSemanticPreferenceSignals(
-        RecommendationSemanticSearchResult semanticSearchResult)
-    {
-        return semanticSearchResult.ByDrinkId.Values
-            .SelectMany(signal => signal.MatchedDescriptors)
-            .SelectMany(descriptor => PreferenceSignals.Where(signal =>
-                descriptor.Contains(signal, StringComparison.OrdinalIgnoreCase)));
     }
 
     private static string? ResolveSemanticDrinkName(
@@ -198,4 +173,41 @@ internal sealed class RecommendationRequestIntentResolver(
 
         return RecommendationRequestIntentKind.Recommendation;
     }
+
+    private static class RecommendationRequestQueryAnalyzer
+    {
+        internal static RecommendationRequestQueryAnalysis Analyze(string customerMessage)
+        {
+            var normalizedMessage = customerMessage.TrimOrEmpty();
+            var looksLikeRecipeLookup = RecipeLookupSignals.Any(signal =>
+                normalizedMessage.Contains(signal, StringComparison.OrdinalIgnoreCase));
+            var preferenceSignals = PreferenceSignals
+                .Where(signal => normalizedMessage.Contains(signal, StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(signal => signal, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var drinkSearchText = RecommendationCatalogMatcher.ExtractDrinkSearchText(
+                normalizedMessage,
+                looksLikeRecipeLookup);
+            var ingredientSearchText = RecommendationCatalogMatcher.ExtractIngredientSearchText(normalizedMessage);
+
+            return new RecommendationRequestQueryAnalysis(
+                normalizedMessage,
+                looksLikeRecipeLookup,
+                preferenceSignals,
+                drinkSearchText,
+                ingredientSearchText);
+        }
+    }
+
+    private sealed record RecommendationRequestQueryAnalysis(
+        string NormalizedMessage,
+        bool LooksLikeRecipeLookup,
+        IReadOnlyCollection<string> PreferenceSignals,
+        string? DrinkSearchText,
+        string? IngredientSearchText);
+
+    private sealed record RecommendationResolvedRequestEntities(
+        string? RequestedDrinkName,
+        string? RequestedIngredientName);
 }

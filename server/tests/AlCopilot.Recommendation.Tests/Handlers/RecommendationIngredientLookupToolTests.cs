@@ -1,5 +1,7 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
+using AlCopilot.Recommendation.Features.Recommendation;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using Mediator;
 using NSubstitute;
@@ -32,7 +34,11 @@ public sealed class RecommendationIngredientLookupToolTests
                     CreateRecipeEntry("Lime Juice")),
             ]);
 
-        var tool = new RecommendationIngredientLookupTool(mediator, recorder, executionTraceRecorder);
+        var tool = new RecommendationIngredientLookupTool(
+            mediator,
+            new StubCatalogFuzzyLookupService([]),
+            recorder,
+            executionTraceRecorder);
 
         var result = await tool.LookupDrinksByIngredientAsync("Tequila");
 
@@ -49,7 +55,11 @@ public sealed class RecommendationIngredientLookupToolTests
         var mediator = Substitute.For<IMediator>();
         var recorder = new RecommendationToolInvocationRecorder();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
-        var tool = new RecommendationIngredientLookupTool(mediator, recorder, executionTraceRecorder);
+        var tool = new RecommendationIngredientLookupTool(
+            mediator,
+            new StubCatalogFuzzyLookupService([]),
+            recorder,
+            executionTraceRecorder);
 
         var result = await tool.LookupDrinksByIngredientAsync("   ");
 
@@ -57,6 +67,31 @@ public sealed class RecommendationIngredientLookupToolTests
         result.Drinks.ShouldBeEmpty();
         await mediator.DidNotReceive().Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>());
         recorder.Drain().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task LookupDrinksByIngredientAsync_UsesFuzzyIngredientBeforeSubstringFallback()
+    {
+        var proseccoId = Guid.Parse("00000000-0000-0000-0000-000000000501");
+        var mediator = Substitute.For<IMediator>();
+        var recorder = new RecommendationToolInvocationRecorder();
+        var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
+        mediator.Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>())
+            .Returns(
+            [
+                CreateDrink("French 75", CreateRecipeEntry("Prosecco")),
+                CreateDrink("Gimlet", CreateRecipeEntry("Gin"), CreateRecipeEntry("Lime Juice")),
+            ]);
+        var tool = new RecommendationIngredientLookupTool(
+            mediator,
+            new StubCatalogFuzzyLookupService([new RecommendationFuzzyMatch(proseccoId, "Prosecco", 0.78d)]),
+            recorder,
+            executionTraceRecorder);
+
+        var result = await tool.LookupDrinksByIngredientAsync("Prosseco");
+
+        result.Status.ShouldBe("ok");
+        result.Drinks.Select(drink => drink.DrinkName).ShouldBe(["French 75"]);
     }
 
     private static DrinkDetailDto CreateDrink(string name, params RecipeEntryDto[] entries)
@@ -67,5 +102,19 @@ public sealed class RecommendationIngredientLookupToolTests
     private static RecipeEntryDto CreateRecipeEntry(string ingredientName)
     {
         return new RecipeEntryDto(new IngredientDto(Guid.NewGuid(), ingredientName, []), "1 oz", null);
+    }
+
+    private sealed class StubCatalogFuzzyLookupService(IReadOnlyCollection<RecommendationFuzzyMatch> ingredientMatches)
+        : IRecommendationCatalogFuzzyLookupService
+    {
+        public Task<IReadOnlyCollection<RecommendationFuzzyMatch>> FindDrinkMatchesAsync(
+            string searchText,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<RecommendationFuzzyMatch>>([]);
+
+        public Task<IReadOnlyCollection<RecommendationFuzzyMatch>> FindIngredientMatchesAsync(
+            string searchText,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(ingredientMatches);
     }
 }

@@ -129,14 +129,20 @@ internal sealed class DrinkQueryService(DrinkCatalogDbContext dbContext) : IDrin
 
         return await dbContext.Drinks
             .AsNoTracking()
-            .Select(drink => new FuzzyDrinkMatchDto(
+            .Select(drink => new
+            {
                 drink.Id,
-                drink.Name,
-                EF.Functions.TrigramsSimilarity(drink.Name, normalized)))
+                Name = (string)drink.Name,
+                Similarity = EF.Functions.TrigramsSimilarity(drink.Name, normalized)
+            })
             .Where(match => match.Similarity >= 0.30d)
             .OrderByDescending(match => match.Similarity)
-            .ThenBy(match => match.DrinkName)
+            .ThenBy(match => match.Name)
             .Take(clampedLimit)
+            .Select(match => new FuzzyDrinkMatchDto(
+                match.Id,
+                match.Name,
+                match.Similarity))
             .ToListAsync(cancellationToken);
     }
 
@@ -155,14 +161,20 @@ internal sealed class DrinkQueryService(DrinkCatalogDbContext dbContext) : IDrin
 
         return await dbContext.Ingredients
             .AsNoTracking()
-            .Select(ingredient => new FuzzyIngredientMatchDto(
+            .Select(ingredient => new
+            {
                 ingredient.Id,
-                ingredient.Name,
-                EF.Functions.TrigramsSimilarity(ingredient.Name, normalized)))
+                Name = (string)ingredient.Name,
+                Similarity = EF.Functions.TrigramsSimilarity(ingredient.Name, normalized)
+            })
             .Where(match => match.Similarity >= 0.30d)
             .OrderByDescending(match => match.Similarity)
-            .ThenBy(match => match.IngredientName)
+            .ThenBy(match => match.Name)
             .Take(clampedLimit)
+            .Select(match => new FuzzyIngredientMatchDto(
+                match.Id,
+                match.Name,
+                match.Similarity))
             .ToListAsync(cancellationToken);
     }
 

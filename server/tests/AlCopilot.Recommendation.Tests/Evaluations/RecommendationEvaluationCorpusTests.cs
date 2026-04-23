@@ -42,7 +42,16 @@ public sealed class RecommendationEvaluationCorpusTests
             ["Martini"],
             ["Gimlet"],
             ["Negroni"],
-            ["prohibited: Campari", "Martini"])
+            ["prohibited: Campari", "Martini"]),
+        new RecommendationEvaluationCase(
+            "Light sparkling prosecco request",
+            "I'm looking for a light sparkling drink, maybe with Prosecco?",
+            new CustomerProfileDto([], [], [], [IngredientIds.Gin, IngredientIds.Lime]),
+            BuildSparklingCatalog(),
+            [],
+            ["French 75"],
+            ["Negroni"],
+            ["requested ingredient: Prosecco", "preference signals: light, sparkling", "French 75", "missing Prosecco"])
     ];
 
     [Theory]
@@ -115,6 +124,33 @@ public sealed class RecommendationEvaluationCorpusTests
         ];
     }
 
+    private static List<DrinkDetailDto> BuildSparklingCatalog()
+    {
+        return
+        [
+            CreateDrink(
+                "French 75",
+                "Light, sparkling, and bright.",
+                "Shake and top",
+                "Lemon twist",
+                [
+                    CreateRecipeEntry(IngredientIds.Gin, "Gin"),
+                    CreateRecipeEntry(IngredientIds.Lime, "Lime"),
+                    CreateRecipeEntry(IngredientIds.Prosecco, "Prosecco")
+                ]),
+            CreateDrink(
+                "Negroni",
+                "Bittersweet and spirit-forward",
+                "Stir",
+                "Orange twist",
+                [
+                    CreateRecipeEntry(IngredientIds.Gin, "Gin"),
+                    CreateRecipeEntry(IngredientIds.Campari, "Campari"),
+                    CreateRecipeEntry(IngredientIds.SweetVermouth, "Sweet Vermouth")
+                ]),
+        ];
+    }
+
     private static DrinkDetailDto CreateDrink(
         string name,
         string description,
@@ -136,6 +172,7 @@ public sealed class RecommendationEvaluationCorpusTests
         internal static readonly Guid Lime = Guid.Parse("00000000-0000-0000-0000-000000000102");
         internal static readonly Guid SweetVermouth = Guid.Parse("00000000-0000-0000-0000-000000000103");
         internal static readonly Guid Campari = Guid.Parse("00000000-0000-0000-0000-000000000104");
+        internal static readonly Guid Prosecco = Guid.Parse("00000000-0000-0000-0000-000000000105");
     }
 
     public sealed record RecommendationEvaluationCase(

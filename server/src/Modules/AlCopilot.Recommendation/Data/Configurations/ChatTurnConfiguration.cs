@@ -30,6 +30,14 @@ internal sealed class ChatTurnConfiguration : IEntityTypeConfiguration<ChatTurn>
         builder.Property(turn => turn.ExecutionTraceJson)
             .HasColumnType("jsonb");
 
+        builder.Property(turn => turn.FeedbackRating)
+            .HasMaxLength(20);
+
+        builder.Property(turn => turn.FeedbackComment)
+            .HasMaxLength(1000);
+
+        builder.Property(turn => turn.FeedbackCreatedAtUtc);
+
         builder.Property(turn => turn.CreatedAtUtc)
             .IsRequired();
     }

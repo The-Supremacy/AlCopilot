@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using Mediator;
 
@@ -7,6 +8,7 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationDrinkSearchTool(
     IMediator mediator,
+    IRecommendationCatalogFuzzyLookupService fuzzyLookupService,
     IRecommendationToolInvocationRecorder toolInvocationRecorder,
     IRecommendationExecutionTraceRecorder executionTraceRecorder)
 {
@@ -27,7 +29,8 @@ internal sealed class RecommendationDrinkSearchTool(
 
         var normalizedQuery = query.Trim();
         var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), CancellationToken.None);
-        var matches = RecommendationCatalogMatcher.SearchDrinksByName(drinks, normalizedQuery, maxResults)
+        var matchingDrinks = await SearchAsync(drinks, normalizedQuery, maxResults);
+        var matches = matchingDrinks
             .Select(RecommendationDrinkSearchItem.FromDrink)
             .ToList();
 
@@ -51,6 +54,27 @@ internal sealed class RecommendationDrinkSearchTool(
             "ok",
             $"Found {matches.Count} drink(s) matching '{normalizedQuery}'.",
             matches);
+    }
+
+    private async Task<IReadOnlyCollection<AlCopilot.DrinkCatalog.Contracts.DTOs.DrinkDetailDto>> SearchAsync(
+        IReadOnlyCollection<AlCopilot.DrinkCatalog.Contracts.DTOs.DrinkDetailDto> drinks,
+        string normalizedQuery,
+        int maxResults)
+    {
+        var fuzzyMatches = await fuzzyLookupService.FindDrinkMatchesAsync(normalizedQuery, CancellationToken.None);
+        var fuzzyScores = fuzzyMatches.ToDictionary(match => match.Id, match => match.Similarity);
+
+        if (fuzzyScores.Count > 0)
+        {
+            return drinks
+                .Where(drink => fuzzyScores.ContainsKey(drink.Id))
+                .OrderByDescending(drink => fuzzyScores[drink.Id])
+                .ThenBy(drink => drink.Name, StringComparer.OrdinalIgnoreCase)
+                .Take(Math.Clamp(maxResults, 1, 10))
+                .ToList();
+        }
+
+        return RecommendationCatalogMatcher.SearchDrinksByName(drinks, normalizedQuery, maxResults);
     }
 
     private static RecommendationExecutionTraceStep BuildTraceStep(

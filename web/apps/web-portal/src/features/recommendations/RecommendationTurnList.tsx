@@ -3,15 +3,24 @@ import type {
   RecommendationSessionDto,
   RecommendationTurnDto,
 } from '@alcopilot/customer-api-client';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { formatRelativeDate } from '@/lib/format';
 
 type RecommendationTurnListProps = {
   session: RecommendationSessionDto | null;
+  onFeedback?: (turnId: string, rating: 'positive' | 'negative') => Promise<void>;
+  isFeedbackPending?: boolean;
 };
 
-export function RecommendationTurnList({ session }: RecommendationTurnListProps) {
+export function RecommendationTurnList({
+  session,
+  onFeedback,
+  isFeedbackPending = false,
+}: RecommendationTurnListProps) {
   if (!session || session.turns.length === 0) {
     return (
       <Card className="border-dashed bg-background/75">
@@ -30,13 +39,26 @@ export function RecommendationTurnList({ session }: RecommendationTurnListProps)
   return (
     <div className="space-y-4" data-testid="recommendation-turn-list">
       {session.turns.map((turn) => (
-        <RecommendationTurnCard key={turn.turnId} turn={turn} />
+        <RecommendationTurnCard
+          key={turn.turnId}
+          turn={turn}
+          onFeedback={onFeedback}
+          isFeedbackPending={isFeedbackPending}
+        />
       ))}
     </div>
   );
 }
 
-function RecommendationTurnCard({ turn }: { turn: RecommendationTurnDto }) {
+function RecommendationTurnCard({
+  turn,
+  onFeedback,
+  isFeedbackPending,
+}: {
+  turn: RecommendationTurnDto;
+  onFeedback?: (turnId: string, rating: 'positive' | 'negative') => Promise<void>;
+  isFeedbackPending: boolean;
+}) {
   const isAssistant = turn.role.toLowerCase() === 'assistant';
 
   return (
@@ -93,6 +115,39 @@ function RecommendationTurnCard({ turn }: { turn: RecommendationTurnDto }) {
                   </ul>
                 </section>
               ))}
+            </div>
+          ) : null}
+
+          {isAssistant && onFeedback ? (
+            <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'h-8 w-8 px-0',
+                  turn.feedback?.rating === 'positive' && 'bg-success-muted text-success',
+                )}
+                aria-label="Mark response helpful"
+                title="Mark response helpful"
+                disabled={isFeedbackPending}
+                onClick={() => onFeedback(turn.turnId, 'positive')}
+              >
+                <ThumbsUp className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'h-8 w-8 px-0',
+                  turn.feedback?.rating === 'negative' && 'bg-destructive-muted text-destructive',
+                )}
+                aria-label="Mark response unhelpful"
+                title="Mark response unhelpful"
+                disabled={isFeedbackPending}
+                onClick={() => onFeedback(turn.turnId, 'negative')}
+              >
+                <ThumbsDown className="h-4 w-4" />
+              </Button>
             </div>
           ) : null}
         </CardContent>

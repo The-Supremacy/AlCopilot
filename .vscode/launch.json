@@ -4,7 +4,7 @@
     {
       "type": "aspire",
       "request": "launch",
-      "name": "Aspire: Launch default apphost",
+      "name": "Aspire: Launch AlCopilot orchestration",
       "program": "${workspaceFolder}"
     }
   ]

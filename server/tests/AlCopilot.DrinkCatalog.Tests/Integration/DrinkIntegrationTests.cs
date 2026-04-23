@@ -163,6 +163,71 @@ public sealed class DrinkQueryServiceFilterTests(PostgresFixture fixture) : IAsy
 
 [Trait("Category", "Integration")]
 [Collection("Postgres")]
+public sealed class DrinkQueryServiceFuzzyMatchTests(PostgresFixture fixture) : IAsyncLifetime
+{
+    private DrinkCatalogDbContext _db = null!;
+
+    public async Task InitializeAsync()
+    {
+        _db = fixture.CreateDbContext();
+
+        _db.Ingredients.Add(Ingredient.Create(IngredientName.Create("Tequila"), ["Patron"]));
+        _db.Ingredients.Add(Ingredient.Create(IngredientName.Create("Gin"), ["Tanqueray"]));
+
+        var margarita = Drink.Create(
+            DrinkName.Create("Margarita"),
+            DrinkCategory.Create("The Unforgettables"),
+            "A tequila classic",
+            "Shake",
+            "Salt rim",
+            ImageUrl.Create(null));
+        var deletedMargarita = Drink.Create(
+            DrinkName.Create("Margarita Deleted"),
+            DrinkCategory.Create(null),
+            null,
+            null,
+            null,
+            ImageUrl.Create(null));
+        deletedMargarita.SoftDelete();
+
+        _db.Drinks.Add(margarita);
+        _db.Drinks.Add(deletedMargarita);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _db.Database.ExecuteSqlRawAsync("DELETE FROM drink_catalog.\"RecipeEntries\"; DELETE FROM drink_catalog.\"Drinks\"; DELETE FROM drink_catalog.\"Ingredients\";");
+        await _db.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task FindFuzzyDrinkMatches_TranslatesAndReturnsActiveMatches()
+    {
+        var queryService = new DrinkQueryService(_db);
+
+        var matches = await queryService.FindFuzzyDrinkMatchesAsync("Margarita");
+
+        var match = matches.ShouldHaveSingleItem();
+        match.DrinkName.ShouldBe("Margarita");
+        match.Similarity.ShouldBeGreaterThanOrEqualTo(0.30d);
+    }
+
+    [Fact]
+    public async Task FindFuzzyIngredientMatches_TranslatesAndReturnsMatches()
+    {
+        var queryService = new DrinkQueryService(_db);
+
+        var matches = await queryService.FindFuzzyIngredientMatchesAsync("Tequila");
+
+        var match = matches.ShouldHaveSingleItem();
+        match.IngredientName.ShouldBe("Tequila");
+        match.Similarity.ShouldBeGreaterThanOrEqualTo(0.30d);
+    }
+}
+
+[Trait("Category", "Integration")]
+[Collection("Postgres")]
 public sealed class DrinkQueryServiceDetailTests(PostgresFixture fixture) : IAsyncLifetime
 {
     private DrinkCatalogDbContext _db = null!;

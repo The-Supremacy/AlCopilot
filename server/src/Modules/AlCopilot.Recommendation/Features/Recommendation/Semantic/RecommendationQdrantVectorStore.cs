@@ -94,7 +94,17 @@ internal sealed class RecommendationQdrantVectorStore(
             host: endpoint.Host,
             port: endpoint.Port,
             https: string.Equals(endpoint.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase),
-            apiKey: string.IsNullOrWhiteSpace(endpoint.UserInfo) ? null : endpoint.UserInfo);
+            apiKey: ResolveApiKey(endpoint));
+    }
+
+    private string? ResolveApiKey(Uri endpoint)
+    {
+        if (!string.IsNullOrWhiteSpace(options.QdrantApiKey))
+        {
+            return options.QdrantApiKey;
+        }
+
+        return string.IsNullOrWhiteSpace(endpoint.UserInfo) ? null : endpoint.UserInfo;
     }
 
     private async Task RebuildCollectionAsync(
