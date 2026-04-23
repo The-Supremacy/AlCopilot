@@ -1,5 +1,5 @@
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
-internal sealed record RecommendationSemanticCatalogIndexResult(
+public sealed record RecommendationSemanticCatalogIndexResult(
     int DrinkCount,
     int PointCount);
