@@ -14,8 +14,9 @@
 - Detailed human-readable guidance should live in area docs under `docs/constitution/`, `docs/architecture/`, and `docs/testing/`
 - `docs/adr/` records architectural decisions and superseded choices over time
 - `docs/adr/README.md` defines ADR structure, statuses, and sync expectations
-- `docs/llm.md` covers local LLM and vector database setup
-- `docs/llm.md` also covers the recommended local subagent workflow for bounded review and exploration tasks
+- `docs/ai/llm.md` covers local LLM and vector database setup
+- `docs/ai/llm.md` also covers the recommended local subagent workflow for bounded review and exploration tasks
+- `docs/ai/embedding.md` is the distilled architecture-level embedding guide
 - New documentation goes in `docs/` unless it's module-specific (then it lives in the module)
 
 ## Information Architecture

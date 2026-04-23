@@ -23,7 +23,7 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_CreatesSession_AssemblesHistory_AndPersistsResult()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
+        var runContextService = Substitute.For<IRecommendationRunContextService>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
@@ -40,7 +40,7 @@ public sealed class RecommendationConversationServiceTests
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
         toolInvocationRecorder.Drain().Returns([]);
-        runContextFactory.CreateAsync("Give me something citrusy", Arg.Any<CancellationToken>())
+        runContextService.CreateAsync("Give me something citrusy", Arg.Any<CancellationToken>())
             .Returns(new RecommendationRunContext(
                 new RecommendationRequestIntent(
                     RecommendationRequestIntentKind.Recommendation,
@@ -70,13 +70,15 @@ public sealed class RecommendationConversationServiceTests
                                 null,
                                 null,
                                 ["citrusy"],
+                                [],
                                 100)
                         ])
-                ]));
+                ],
+                []));
 
         var service = new RecommendationConversationService(
             repository,
-            runContextFactory,
+            runContextService,
             agentFactory,
             sessionStore,
             currentRunContextAccessor,
@@ -111,7 +113,7 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_ReusesExistingSession_AndPersistsRecordedToolInvocations()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
+        var runContextService = Substitute.For<IRecommendationRunContextService>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
@@ -136,7 +138,7 @@ public sealed class RecommendationConversationServiceTests
             .Returns([
                 new RecommendationToolInvocationDto("lookup_drink_recipe", "Looked up the full recipe details for Negroni.")
             ]);
-        runContextFactory.CreateAsync("Something else", Arg.Any<CancellationToken>())
+        runContextService.CreateAsync("Something else", Arg.Any<CancellationToken>())
             .Returns(new RecommendationRunContext(
                 new RecommendationRequestIntent(
                     RecommendationRequestIntentKind.Recommendation,
@@ -146,11 +148,12 @@ public sealed class RecommendationConversationServiceTests
                 new CustomerProfileDto([], [], [], []),
                 [new RecommendationGroupDto("make-now", "Available Now", [])],
                 new Dictionary<Guid, string>(),
+                [],
                 []));
 
         var service = new RecommendationConversationService(
             repository,
-            runContextFactory,
+            runContextService,
             agentFactory,
             sessionStore,
             currentRunContextAccessor,
@@ -183,7 +186,7 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_Throws_WhenMessageIsBlank()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
+        var runContextService = Substitute.For<IRecommendationRunContextService>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
@@ -194,7 +197,7 @@ public sealed class RecommendationConversationServiceTests
 
         var service = new RecommendationConversationService(
             repository,
-            runContextFactory,
+            runContextService,
             agentFactory,
             sessionStore,
             currentRunContextAccessor,
@@ -213,7 +216,7 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_ThrowsConflict_WhenSaveHitsConcurrencyException()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
+        var runContextService = Substitute.For<IRecommendationRunContextService>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
@@ -230,7 +233,7 @@ public sealed class RecommendationConversationServiceTests
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
         toolInvocationRecorder.Drain().Returns([]);
-        runContextFactory.CreateAsync("Give me something citrusy", Arg.Any<CancellationToken>())
+        runContextService.CreateAsync("Give me something citrusy", Arg.Any<CancellationToken>())
             .Returns(new RecommendationRunContext(
                 new RecommendationRequestIntent(
                     RecommendationRequestIntentKind.Recommendation,
@@ -240,13 +243,14 @@ public sealed class RecommendationConversationServiceTests
                 new CustomerProfileDto([], [], [], []),
                 [new RecommendationGroupDto("make-now", "Available Now", [])],
                 new Dictionary<Guid, string>(),
+                [],
                 []));
         unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns<Task<int>>(_ => throw new DbUpdateConcurrencyException("conflict"));
 
         var service = new RecommendationConversationService(
             repository,
-            runContextFactory,
+            runContextService,
             agentFactory,
             sessionStore,
             currentRunContextAccessor,
@@ -267,7 +271,7 @@ public sealed class RecommendationConversationServiceTests
     public async Task SendMessageAsync_PersistsExecutionTrace_WhenDevelopmentDiagnosticsAreEnabled()
     {
         var repository = Substitute.For<IChatSessionRepository>();
-        var runContextFactory = Substitute.For<IRecommendationRunContextFactory>();
+        var runContextService = Substitute.For<IRecommendationRunContextService>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var currentRunContextAccessor = Substitute.For<IRecommendationCurrentRunContextAccessor>();
@@ -285,7 +289,7 @@ public sealed class RecommendationConversationServiceTests
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
         toolInvocationRecorder.Drain().Returns([]);
-        runContextFactory.CreateAsync("Give me something citrusy", Arg.Any<CancellationToken>())
+        runContextService.CreateAsync("Give me something citrusy", Arg.Any<CancellationToken>())
             .Returns(new RecommendationRunContext(
                 new RecommendationRequestIntent(
                     RecommendationRequestIntentKind.Recommendation,
@@ -295,11 +299,12 @@ public sealed class RecommendationConversationServiceTests
                 new CustomerProfileDto([], [], [], []),
                 [new RecommendationGroupDto("make-now", "Available Now", [])],
                 new Dictionary<Guid, string>(),
+                [],
                 []));
 
         var service = new RecommendationConversationService(
             repository,
-            runContextFactory,
+            runContextService,
             agentFactory,
             sessionStore,
             currentRunContextAccessor,

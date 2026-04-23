@@ -92,9 +92,11 @@ public sealed class RecommendationNarrationServiceTests
                                 "Stir",
                                 "Orange twist",
                                 ["Gin", "citrusy"],
+                                [],
                                 70)
                         ])
-                ]));
+                ],
+                []));
 
         message.ShouldContain("recommendation run context");
         message.ShouldContain("owned: Gin");

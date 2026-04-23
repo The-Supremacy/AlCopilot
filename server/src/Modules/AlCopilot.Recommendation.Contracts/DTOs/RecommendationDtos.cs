@@ -1,5 +1,7 @@
 namespace AlCopilot.Recommendation.Contracts.DTOs;
 
+using AlCopilot.DrinkCatalog.Contracts.DTOs;
+
 public sealed record RecommendationItemDto(
     Guid DrinkId,
     string DrinkName,
@@ -45,3 +47,7 @@ public sealed record RecommendationSessionSummaryDto(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     string LastAssistantMessage);
+
+public sealed record RecommendationSemanticCatalogIndexResultDto(
+    int DrinkCount,
+    int PointCount);

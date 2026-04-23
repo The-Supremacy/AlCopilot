@@ -1,11 +1,12 @@
 using AlCopilot.CustomerProfile.Contracts.DTOs;
-using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.CustomerProfile.Contracts.Queries;
+using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
 using AlCopilot.Recommendation.Features.Recommendation;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using Mediator;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
 
@@ -55,13 +56,17 @@ public sealed class RecommendationEvaluationCorpusTests
             .Returns(evaluationCase.Drinks.ToList());
 
         var runInputsQueryService = new RecommendationRunInputsQueryService(mediator);
-        var factory = new RecommendationRunContextFactory(
+        var service = new RecommendationRunContextService(
             runInputsQueryService,
-            new RecommendationRequestIntentResolver(),
+            new StubSemanticSearchService(),
+            new RecommendationRequestIntentResolver(
+                new StubCatalogFuzzyLookupService(),
+                Options.Create(new RecommendationSemanticOptions())),
             new DeterministicRecommendationCandidateBuilder(),
+            new RecommendationRunContextBuilder(),
             new RecommendationExecutionTraceRecorder());
 
-        var runContext = await factory.CreateAsync(evaluationCase.Prompt, CancellationToken.None);
+        var runContext = await service.CreateAsync(evaluationCase.Prompt, CancellationToken.None);
         var prompt = RecommendationRunContextMessageBuilder.Build(runContext);
 
         runContext.RecommendationGroups.Single(group => group.Key == "make-now").Items.Select(item => item.DrinkName)
@@ -144,5 +149,28 @@ public sealed class RecommendationEvaluationCorpusTests
         IReadOnlyList<string> RequiredPromptFragments)
     {
         public override string ToString() => Name;
+    }
+
+    private sealed class StubSemanticSearchService : IRecommendationSemanticSearchService
+    {
+        public Task<RecommendationSemanticSearchResult> SearchAsync(
+            string customerMessage,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(RecommendationSemanticSearchResult.Empty);
+        }
+    }
+
+    private sealed class StubCatalogFuzzyLookupService : IRecommendationCatalogFuzzyLookupService
+    {
+        public Task<IReadOnlyCollection<RecommendationFuzzyMatch>> FindDrinkMatchesAsync(
+            string searchText,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<RecommendationFuzzyMatch>>([]);
+
+        public Task<IReadOnlyCollection<RecommendationFuzzyMatch>> FindIngredientMatchesAsync(
+            string searchText,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<RecommendationFuzzyMatch>>([]);
     }
 }

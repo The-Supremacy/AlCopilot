@@ -17,6 +17,7 @@ internal static class RecommendationRunContextMessageBuilder
         builder.AppendLine($"- requested drink: {runContext.Intent.RequestedDrinkName ?? "none"}");
         builder.AppendLine($"- requested ingredient: {runContext.Intent.RequestedIngredientName ?? "none"}");
         builder.AppendLine($"- preference signals: {FormatTextList(runContext.Intent.PreferenceSignals)}");
+        builder.AppendLine($"- semantic hints: {FormatTextList(runContext.SemanticSummaryHints)}");
         builder.AppendLine();
         builder.AppendLine("Customer profile:");
         builder.AppendLine($"- favorites: {FormatIngredientList(runContext.Profile.FavoriteIngredientIds, runContext)}");
@@ -53,9 +54,12 @@ internal static class RecommendationRunContextMessageBuilder
                 var matchedSignals = item.MatchedSignals.Count == 0
                     ? "matched signals none"
                     : $"matched signals {string.Join(", ", item.MatchedSignals)}";
+                var semanticHints = item.SemanticHints.Count == 0
+                    ? "semantic hints none"
+                    : $"semantic hints {string.Join(", ", item.SemanticHints)}";
 
                 builder.AppendLine(
-                    $"  - {item.DrinkName} [id: {item.DrinkId}] (score {item.Score}; {ownedIngredients}; {missingIngredients}; {recipeIngredients}; {method}; {garnish}; {matchedSignals}; {description})");
+                    $"  - {item.DrinkName} [id: {item.DrinkId}] (score {item.Score}; {ownedIngredients}; {missingIngredients}; {recipeIngredients}; {method}; {garnish}; {matchedSignals}; {semanticHints}; {description})");
             }
         }
 

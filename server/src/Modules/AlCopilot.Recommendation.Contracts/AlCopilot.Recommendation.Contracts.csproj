@@ -5,6 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../AlCopilot.DrinkCatalog.Contracts/AlCopilot.DrinkCatalog.Contracts.csproj" />
     <ProjectReference Include="../../AlCopilot.Shared/AlCopilot.Shared.csproj" />
   </ItemGroup>
 

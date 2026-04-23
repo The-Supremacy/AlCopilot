@@ -8,7 +8,8 @@ public sealed record RecommendationRunContext(
     CustomerProfileDto Profile,
     IReadOnlyCollection<RecommendationGroupDto> RecommendationGroups,
     IReadOnlyDictionary<Guid, string> IngredientNames,
-    IReadOnlyCollection<RecommendationRunContextGroup> Groups);
+    IReadOnlyCollection<RecommendationRunContextGroup> Groups,
+    IReadOnlyCollection<string> SemanticSummaryHints);
 
 public sealed record RecommendationRunContextGroup(
     string Key,
@@ -25,4 +26,5 @@ public sealed record RecommendationRunContextItem(
     string? Method,
     string? Garnish,
     IReadOnlyCollection<string> MatchedSignals,
+    IReadOnlyCollection<string> SemanticHints,
     int Score);

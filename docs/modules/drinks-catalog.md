@@ -51,6 +51,7 @@ It provides the canonical vocabulary for drinks, ingredients, and drink labels u
 - Drink categories are core catalog labels for drinks.
 - The current seed dataset reference is [`rasmusab/iba-cocktails`](https://github.com/rasmusab/iba-cocktails), used as curated source material rather than as a runtime dependency.
 - The preferred upstream seed file is `iba-web/iba-cocktails-web.json`; `iba-web/iba-cocktails-ingredients-web.csv` is a supporting inspection source when recipe or ingredient parsing needs review.
+- AlCopilot may preserve separate project-owned extended snapshots when curated fields such as drink descriptions do not exist in the raw upstream file.
 - Import batch provenance is the stored source context for an import sync run, including source reference and operator-facing metadata.
 - Import diagnostics are persisted validation or normalization findings attached to an import batch.
 - Audit log entries capture successful mutating commands so operators can review catalog and import changes directly.
@@ -61,6 +62,7 @@ It provides the canonical vocabulary for drinks, ingredients, and drink labels u
 
 The current import-sync direction assumes curated snapshot import from the `rasmusab/iba-cocktails` repository, not direct remote fetching.
 That repository is useful because it already expresses the IBA cocktail set in JSON plus ingredient-row CSV forms that are close to our current importer shape.
+The raw upstream-derived preserved snapshot should remain intact even when AlCopilot keeps an extended preserved derivative for curated descriptions.
 
 The current preferred mapping is:
 

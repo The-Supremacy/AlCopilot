@@ -8,8 +8,11 @@ using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
+using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Shared.Models;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 using Shouldly;
 
 namespace AlCopilot.DrinkCatalog.Tests.Integration;
@@ -30,6 +33,7 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     private ImportBatchProcessingService _workflowService = null!;
     private IImportBatchApplyService _applyService = null!;
     private ImportSourceStrategyResolver _strategyResolver = null!;
+    private IMediator _mediator = null!;
 
     public Task InitializeAsync()
     {
@@ -51,6 +55,9 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
             _ingredientRepository,
             _drinkRepository);
         _strategyResolver = new ImportSourceStrategyResolver([new IbaCocktailsSnapshotImportSourceStrategy()]);
+        _mediator = Substitute.For<IMediator>();
+        _mediator.Send(Arg.Any<object>(), Arg.Any<CancellationToken>())
+            .Returns(new RecommendationSemanticCatalogIndexResultDto(0, 0));
 
         return Task.CompletedTask;
     }
@@ -67,7 +74,7 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
     {
         var createHandler = new InitializeImportBatchHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
         var reviewHandler = new ReviewImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
-        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _applyService, _auditLogWriter, _db);
+        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _applyService, _drinkQueryService, _mediator, _auditLogWriter, _db);
         var historyHandler = new GetImportHistoryHandler(_importBatchRepository);
 
         const string payload = """
@@ -142,7 +149,7 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
 
         var createHandler = new InitializeImportBatchHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
         var reviewHandler = new ReviewImportBatchHandler(_importBatchRepository, _workflowService, _auditLogWriter, _db);
-        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _applyService, _auditLogWriter, _db);
+        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _applyService, _drinkQueryService, _mediator, _auditLogWriter, _db);
 
         const string payload = """
         [
@@ -203,7 +210,7 @@ public sealed class ImportWorkflowIntegrationTests(PostgresFixture fixture) : IA
         await _db.SaveChangesAsync();
 
         var createHandler = new InitializeImportBatchHandler(_strategyResolver, _importBatchRepository, _workflowService, _auditLogWriter, _currentActorAccessor, _db);
-        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _applyService, _auditLogWriter, _db);
+        var applyHandler = new ApplyImportBatchHandler(_importBatchRepository, _workflowService, _applyService, _drinkQueryService, _mediator, _auditLogWriter, _db);
 
         const string payload = """
         [

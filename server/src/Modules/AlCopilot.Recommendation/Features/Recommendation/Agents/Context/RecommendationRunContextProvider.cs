@@ -8,7 +8,7 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationRunContextProvider(
     IRecommendationCurrentRunContextAccessor currentRunContextAccessor,
-    IRecommendationRunContextFactory runContextFactory) : MessageAIContextProvider
+    IRecommendationRunContextService runContextService) : MessageAIContextProvider
 {
     protected override async ValueTask<IEnumerable<ChatMessage>> ProvideMessagesAsync(
         InvokingContext context,
@@ -26,7 +26,7 @@ internal sealed class RecommendationRunContextProvider(
         }
 
         var runContext = currentRunContextAccessor.Current
-            ?? await runContextFactory.CreateAsync(customerMessage, cancellationToken);
+            ?? await runContextService.CreateAsync(customerMessage, cancellationToken);
         currentRunContextAccessor.Current = runContext;
 
         return

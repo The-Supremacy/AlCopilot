@@ -17,6 +17,7 @@
     <PackageVersion Include="Aspire.Hosting.Qdrant" Version="13.2.2" />
     <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Ollama" Version="13.1.1" />
     <PackageVersion Include="OllamaSharp" Version="5.4.25" />
+    <PackageVersion Include="Qdrant.Client" Version="1.16.1" />
     <!-- .NET -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.5.0" />

@@ -14,7 +14,7 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationConversationService(
     IChatSessionRepository chatSessionRepository,
-    IRecommendationRunContextFactory runContextFactory,
+    IRecommendationRunContextService runContextService,
     IRecommendationNarratorAgentFactory agentFactory,
     IRecommendationAgentSessionStore sessionStore,
     IRecommendationCurrentRunContextAccessor currentRunContextAccessor,
@@ -51,7 +51,7 @@ internal sealed class RecommendationConversationService(
         CancellationToken cancellationToken)
     {
         var session = await LoadOrCreateSessionAsync(request, cancellationToken);
-        var runContext = await runContextFactory.CreateAsync(request.Message, cancellationToken);
+        var runContext = await runContextService.CreateAsync(request.Message, cancellationToken);
         currentRunContextAccessor.Current = runContext;
 
         try

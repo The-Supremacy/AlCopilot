@@ -45,6 +45,7 @@ The system is a single deployable unit with internal module boundaries, one `DbC
 - [ADR 0012: Customer Profile And Recommendation Modules With Deterministic Candidate Building](adr/0012-customer-profile-and-recommendation-modules-with-deterministic-candidate-building.md) — accepted customer module split and recommendation orchestration direction
 - [ADR 0014: Feature-Oriented Backend Module Structure](adr/0014-feature-oriented-backend-module-structure.md) — accepted backend feature layout and abstraction-placement conventions
 - [ADR 0015: Recommendation Workflows With Agent Framework](adr/0015-recommendation-workflows-with-agent-framework.md) — accepted recommendation workflow orchestration and local runtime direction
+- [ADR 0016: Recommendation Semantic Retrieval With Qdrant](adr/0016-recommendation-semantic-retrieval-with-qdrant.md) — accepted vector-store and curated semantic-retrieval projection direction
 
 ---
 

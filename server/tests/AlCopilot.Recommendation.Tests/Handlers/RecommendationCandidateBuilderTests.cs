@@ -26,7 +26,12 @@ public sealed class RecommendationCandidateBuilderTests
             CreateDrink("Martini", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(Guid.NewGuid(), "Vermouth")]),
         };
 
-        var groups = _builder.Build("I want something bright with gin", DefaultIntent, profile, drinks);
+        var groups = _builder.Build(
+            "I want something bright with gin",
+            DefaultIntent,
+            profile,
+            drinks,
+            RecommendationSemanticSearchResult.Empty);
 
         groups.Single(group => group.Key == "make-now").Items.Select(item => item.DrinkName)
             .ShouldBe(["Gimlet"]);
@@ -48,7 +53,12 @@ public sealed class RecommendationCandidateBuilderTests
             CreateDrink("Gimlet", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(limeId, "Lime")]),
         };
 
-        var groups = _builder.Build("I want something bright", DefaultIntent, profile, drinks);
+        var groups = _builder.Build(
+            "I want something bright",
+            DefaultIntent,
+            profile,
+            drinks,
+            RecommendationSemanticSearchResult.Empty);
 
         groups.Single(group => group.Key == "make-now").Items.Select(item => item.DrinkName)
             .ShouldBe(["Gimlet", "Daiquiri"]);
@@ -71,7 +81,12 @@ public sealed class RecommendationCandidateBuilderTests
             null,
             ["citrusy"]);
 
-        var groups = _builder.Build("I want something bright with gin", intent, profile, drinks);
+        var groups = _builder.Build(
+            "I want something bright with gin",
+            intent,
+            profile,
+            drinks,
+            RecommendationSemanticSearchResult.Empty);
 
         groups.Single(group => group.Key == "make-now").Items.Single().MatchedSignals
             .ShouldBe(["citrusy"]);
@@ -95,12 +110,95 @@ public sealed class RecommendationCandidateBuilderTests
             "Tequila",
             []);
 
-        var groups = _builder.Build("Suggest me a drink with tequila", intent, profile, drinks);
+        var groups = _builder.Build(
+            "Suggest me a drink with tequila",
+            intent,
+            profile,
+            drinks,
+            RecommendationSemanticSearchResult.Empty);
 
         groups.SelectMany(group => group.Items).Select(item => item.DrinkName)
             .ShouldContain("Long Island Iced Tea");
         groups.SelectMany(group => group.Items).Select(item => item.DrinkName)
             .ShouldNotContain("Martini");
+    }
+
+    [Fact]
+    public void Build_BoostsSemanticDescriptionMatches()
+    {
+        var ginId = Guid.Parse("00000000-0000-0000-0000-000000000051");
+        var proseccoId = Guid.Parse("00000000-0000-0000-0000-000000000052");
+        var campariId = Guid.Parse("00000000-0000-0000-0000-000000000053");
+
+        var profile = new CustomerProfileDto([], [], [], []);
+        var drinks = new List<DrinkDetailDto>
+        {
+            CreateDrink("French 75", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(proseccoId, "Prosecco")], "Sparkling, bright, and lightly sweet."),
+            CreateDrink("Negroni", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(campariId, "Campari")], "Bittersweet and spirit-forward."),
+        };
+        var semanticResult = new RecommendationSemanticSearchResult(
+            new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+            {
+                [drinks[0].Id] = new(
+                    drinks[0].Id,
+                    drinks[0].Name,
+                    2.4d,
+                    0d,
+                    0d,
+                    0.92d,
+                    [RecommendationSemanticFacetKind.Description],
+                    [],
+                    ["sparkling", "sweet"],
+                    ["sparkling", "sweet"])
+            });
+
+        var groups = _builder.Build("I want a sparkly sweet drink", DefaultIntent, profile, drinks, semanticResult);
+
+        groups.SelectMany(group => group.Items).First().DrinkName.ShouldBe("French 75");
+    }
+
+    [Fact]
+    public void Build_KeepsProhibitedIngredientsExcludedEvenWhenSemanticScoreIsHighest()
+    {
+        var ginId = Guid.Parse("00000000-0000-0000-0000-000000000061");
+        var campariId = Guid.Parse("00000000-0000-0000-0000-000000000062");
+        var vermouthId = Guid.Parse("00000000-0000-0000-0000-000000000063");
+
+        var negroni = CreateDrink("Negroni", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(campariId, "Campari"), CreateRecipeEntry(vermouthId, "Sweet Vermouth")], "Bittersweet and spirit-forward.");
+        var martini = CreateDrink("Martini", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(vermouthId, "Sweet Vermouth")], "Spirit-forward and aromatic.");
+        var profile = new CustomerProfileDto([], [], [campariId], [ginId, vermouthId]);
+        var semanticResult = new RecommendationSemanticSearchResult(
+            new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+            {
+                [negroni.Id] = new(negroni.Id, negroni.Name, 9.0d, 0d, 0d, 0.95d, [RecommendationSemanticFacetKind.Description], [], ["bittersweet"], ["bittersweet"]),
+                [martini.Id] = new(martini.Id, martini.Name, 0.2d, 0d, 0d, 0.20d, [RecommendationSemanticFacetKind.Description], [], ["classic"], ["classic"]),
+            });
+
+        var groups = _builder.Build("Suggest something classic", DefaultIntent, profile, [negroni, martini], semanticResult);
+
+        groups.SelectMany(group => group.Items).Select(item => item.DrinkName).ShouldBe(["Martini"]);
+    }
+
+    [Fact]
+    public void Build_KeepsMissingIngredientCandidatesOutOfMakeNowEvenWhenSemanticScoreIsHighest()
+    {
+        var ginId = Guid.Parse("00000000-0000-0000-0000-000000000071");
+        var limeId = Guid.Parse("00000000-0000-0000-0000-000000000072");
+        var proseccoId = Guid.Parse("00000000-0000-0000-0000-000000000073");
+
+        var gimlet = CreateDrink("Gimlet", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(limeId, "Lime")], "Bright and citrusy.");
+        var french75 = CreateDrink("French 75", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(limeId, "Lime"), CreateRecipeEntry(proseccoId, "Prosecco")], "Sparkling, bright, and lightly sweet.");
+        var profile = new CustomerProfileDto([], [], [], [ginId, limeId]);
+        var semanticResult = new RecommendationSemanticSearchResult(
+            new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+            {
+                [french75.Id] = new(french75.Id, french75.Name, 6.0d, 0d, 0.60d, 0.88d, [RecommendationSemanticFacetKind.Description], ["Prosecco"], ["sparkling", "sweet"], ["sparkling", "sweet"]),
+            });
+
+        var groups = _builder.Build("I want a sparkly sweet drink", DefaultIntent, profile, [gimlet, french75], semanticResult);
+
+        groups.Single(group => group.Key == "make-now").Items.Select(item => item.DrinkName).ShouldBe(["Gimlet"]);
+        groups.Single(group => group.Key == "buy-next").Items.Select(item => item.DrinkName).ShouldBe(["French 75"]);
     }
 
     private static DrinkDetailDto CreateDrink(string name, List<RecipeEntryDto> recipeEntries, string? description = null)

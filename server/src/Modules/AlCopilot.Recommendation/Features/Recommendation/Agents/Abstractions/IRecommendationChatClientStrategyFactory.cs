@@ -2,7 +2,7 @@ using Microsoft.Extensions.AI;
 
 namespace AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 
-public interface IRecommendationChatClientStrategyFactory
+internal interface IRecommendationChatClientStrategyFactory
 {
     RecommendationChatClientStrategy Create();
 }

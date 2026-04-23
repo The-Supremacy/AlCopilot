@@ -1,4 +1,5 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
+using AlCopilot.Shared.Text;
 
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
@@ -23,7 +24,7 @@ internal static class RecommendationCatalogMatcher
             return null;
         }
 
-        var normalizedName = drinkName.Trim();
+        var normalizedName = drinkName.TrimOrEmpty();
         var exactMatch = drinks.FirstOrDefault(drink =>
             string.Equals(drink.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
         if (exactMatch is not null)
@@ -44,7 +45,7 @@ internal static class RecommendationCatalogMatcher
         string query,
         int maxResults)
     {
-        var normalizedQuery = query.Trim();
+        var normalizedQuery = query.TrimOrEmpty();
 
         return drinks
             .Where(drink => drink.Name.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
@@ -110,5 +111,91 @@ internal static class RecommendationCatalogMatcher
     {
         return ingredientName.Contains(requestedIngredientName, StringComparison.OrdinalIgnoreCase)
             || requestedIngredientName.Contains(ingredientName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static string? ExtractDrinkSearchText(string customerMessage, bool looksLikeRecipeLookup)
+    {
+        if (!looksLikeRecipeLookup)
+        {
+            return null;
+        }
+
+        var normalized = customerMessage
+            .Replace("?", string.Empty, StringComparison.Ordinal)
+            .Replace(".", string.Empty, StringComparison.Ordinal)
+            .Replace("!", string.Empty, StringComparison.Ordinal)
+            .TrimOrEmpty();
+        var lowered = normalized.ToLowerInvariant();
+        var prefixes = new[]
+        {
+            "how do i make",
+            "how to make",
+            "what's in",
+            "what is in",
+            "ingredients for",
+            "method for",
+            "instructions for",
+            "recipe for",
+        };
+
+        foreach (var prefix in prefixes)
+        {
+            if (lowered.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                var candidate = normalized[prefix.Length..].TrimOrEmpty();
+                return TrimLeadingArticle(candidate);
+            }
+        }
+
+        return TrimLeadingArticle(normalized);
+    }
+
+    internal static string? ExtractIngredientSearchText(string customerMessage)
+    {
+        var normalized = customerMessage
+            .Replace("?", string.Empty, StringComparison.Ordinal)
+            .Replace(".", string.Empty, StringComparison.Ordinal)
+            .Replace("!", string.Empty, StringComparison.Ordinal)
+            .TrimOrEmpty();
+        var lowered = normalized.ToLowerInvariant();
+        var markers = new[]
+        {
+            " with ",
+            " using ",
+            " contains ",
+            " containing ",
+            " made with ",
+        };
+
+        foreach (var marker in markers)
+        {
+            var index = lowered.IndexOf(marker, StringComparison.Ordinal);
+            if (index >= 0)
+            {
+                return TrimLeadingArticle(normalized[(index + marker.Length)..].TrimOrEmpty());
+            }
+        }
+
+        return null;
+    }
+
+    private static string? TrimLeadingArticle(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.TrimOrEmpty();
+        foreach (var prefix in new[] { "a ", "an ", "the " })
+        {
+            if (trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                trimmed = trimmed[prefix.Length..].TrimOrEmpty();
+                break;
+            }
+        }
+
+        return trimmed.NullIfWhiteSpace();
     }
 }
