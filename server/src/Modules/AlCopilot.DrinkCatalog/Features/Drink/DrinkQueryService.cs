@@ -2,6 +2,7 @@ using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
 using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.Shared.Models;
+using AlCopilot.Shared.Text;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlCopilot.DrinkCatalog.Features.Drink;
@@ -16,7 +17,7 @@ internal sealed class DrinkQueryService(DrinkCatalogDbContext dbContext) : IDrin
 
         if (!string.IsNullOrWhiteSpace(filter.SearchQuery))
         {
-            var pattern = $"%{filter.SearchQuery.Trim()}%";
+            var pattern = $"%{filter.SearchQuery.TrimOrEmpty()}%";
 
             query = query.Where(d =>
                 EF.Functions.ILike(d.Name, pattern) ||
@@ -111,6 +112,58 @@ internal sealed class DrinkQueryService(DrinkCatalogDbContext dbContext) : IDrin
         }
 
         return (await MapDrinkDetailsAsync([drink], cancellationToken)).Single();
+    }
+
+    public async Task<List<FuzzyDrinkMatchDto>> FindFuzzyDrinkMatchesAsync(
+        string searchText,
+        int limit = 5,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = searchText.NullIfWhiteSpace();
+        if (normalized is null)
+        {
+            return [];
+        }
+
+        var clampedLimit = Math.Clamp(limit, 1, 10);
+
+        return await dbContext.Drinks
+            .AsNoTracking()
+            .Select(drink => new FuzzyDrinkMatchDto(
+                drink.Id,
+                drink.Name,
+                EF.Functions.TrigramsSimilarity(drink.Name, normalized)))
+            .Where(match => match.Similarity >= 0.30d)
+            .OrderByDescending(match => match.Similarity)
+            .ThenBy(match => match.DrinkName)
+            .Take(clampedLimit)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<FuzzyIngredientMatchDto>> FindFuzzyIngredientMatchesAsync(
+        string searchText,
+        int limit = 5,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = searchText.NullIfWhiteSpace();
+        if (normalized is null)
+        {
+            return [];
+        }
+
+        var clampedLimit = Math.Clamp(limit, 1, 10);
+
+        return await dbContext.Ingredients
+            .AsNoTracking()
+            .Select(ingredient => new FuzzyIngredientMatchDto(
+                ingredient.Id,
+                ingredient.Name,
+                EF.Functions.TrigramsSimilarity(ingredient.Name, normalized)))
+            .Where(match => match.Similarity >= 0.30d)
+            .OrderByDescending(match => match.Similarity)
+            .ThenBy(match => match.IngredientName)
+            .Take(clampedLimit)
+            .ToListAsync(cancellationToken);
     }
 
     private async Task<List<DrinkDetailDto>> MapDrinkDetailsAsync(

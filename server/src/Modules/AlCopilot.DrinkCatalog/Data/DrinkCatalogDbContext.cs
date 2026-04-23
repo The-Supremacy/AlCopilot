@@ -22,6 +22,7 @@ public sealed class DrinkCatalogDbContext(DbContextOptions<DrinkCatalogDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("drink_catalog");
+        modelBuilder.HasPostgresExtension("pg_trgm");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(DrinkCatalogDbContext).Assembly);
     }
 }

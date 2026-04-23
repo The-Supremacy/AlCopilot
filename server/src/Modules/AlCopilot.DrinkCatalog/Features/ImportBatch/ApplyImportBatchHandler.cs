@@ -2,6 +2,8 @@ using AlCopilot.DrinkCatalog.Contracts.Commands;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
+using AlCopilot.DrinkCatalog.Features.Drink.Abstractions;
+using AlCopilot.Recommendation.Contracts.Commands;
 using AlCopilot.Shared.Data;
 using AlCopilot.Shared.Errors;
 using Mediator;
@@ -12,6 +14,8 @@ public sealed class ApplyImportBatchHandler(
     IImportBatchRepository importBatchRepository,
     IImportBatchProcessingService processingService,
     IImportBatchApplyService applyService,
+    IDrinkQueryService drinkQueryService,
+    IMediator mediator,
     IAuditLogWriter auditLogWriter,
     IDrinkCatalogUnitOfWork unitOfWork) : IRequestHandler<ApplyImportBatchCommand, ImportBatchApplyResultDto>
 {
@@ -40,6 +44,8 @@ public sealed class ApplyImportBatchHandler(
         }
 
         var summary = await applyService.ApplyAsync(batch, cancellationToken);
+        var indexedCatalog = await drinkQueryService.GetAllAsync(cancellationToken);
+        await mediator.Send(new ReplaceRecommendationSemanticCatalogCommand(indexedCatalog), cancellationToken);
         importBatchRepository.Update(batch);
         auditLogWriter.Write(
             "import-batch.apply",

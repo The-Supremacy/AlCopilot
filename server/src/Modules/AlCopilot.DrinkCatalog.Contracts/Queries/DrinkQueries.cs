@@ -16,3 +16,11 @@ public sealed record GetDrinksQuery(
 public sealed record GetDrinkByIdQuery(Guid DrinkId) : IRequest<DrinkDetailDto?>;
 
 public sealed record GetRecommendationCatalogQuery() : IRequest<List<DrinkDetailDto>>;
+
+public sealed record FindFuzzyDrinkMatchesQuery(
+    string SearchText,
+    int Limit = 5) : IRequest<List<FuzzyDrinkMatchDto>>;
+
+public sealed record FindFuzzyIngredientMatchesQuery(
+    string SearchText,
+    int Limit = 5) : IRequest<List<FuzzyIngredientMatchDto>>;

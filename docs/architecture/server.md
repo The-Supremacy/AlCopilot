@@ -71,6 +71,7 @@ Customer-facing recommendation behavior is planned around separate `CustomerProf
 Recommendation orchestration now uses bounded Microsoft Agent Framework workflows, while deterministic filtering and grouping remain in plain module code, as accepted in [ADR 0015](../adr/0015-recommendation-workflows-with-agent-framework.md).
 Within the Recommendation module, model-visible conversation state should flow through a stable `ChatClientAgent` plus persisted `AgentSession` state, while the module aggregate remains the durable business transcript.
 Deterministic narration snapshots such as the current profile summary and current recommendation groups should be passed as explicit run input messages rather than hidden in request-scoped provider mutation.
+Recommendation semantic retrieval now uses Qdrant as `Recommendation`-owned derived projection storage over contracts-facing catalog reads, while PostgreSQL remains the canonical catalog store, as accepted in [ADR 0016](../adr/0016-recommendation-semantic-retrieval-with-qdrant.md).
 
 ---
 
@@ -80,6 +81,7 @@ Local development uses Aspire orchestration.
 Production deployment is designed around GitHub Actions, GHCR, AKS, Flux, and PostgreSQL.
 Envoy Gateway is the external ingress layer.
 For recommendation development, the default local CPU-oriented Ollama profile is `gemma4:e4b` unless a newer documented default replaces it.
+Local semantic-retrieval development should treat Qdrant as the default vector store rather than PostgreSQL extensions or graph retrieval infrastructure.
 Recommendation workflow execution should enable Agent Framework OpenTelemetry spans by default unless a future operational decision changes that baseline.
 Operationally queryable audit records should be stored in the owning module when mutation history must be reviewed directly by operators.
 Preserved domain events are module-owned machine-readable history and may support aggregate-level audit timelines, but workflow-rich operator audit can still require explicit audit records.

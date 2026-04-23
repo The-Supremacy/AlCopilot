@@ -6,7 +6,9 @@ using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
+using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Shared.Data;
+using Mediator;
 using NSubstitute;
 using Shouldly;
 
@@ -21,6 +23,7 @@ public sealed class ApplyImportBatchHandlerTests
     private readonly IDrinkQueryService _drinkQueryService = Substitute.For<IDrinkQueryService>();
     private readonly IImportBatchProcessingService _processingService = Substitute.For<IImportBatchProcessingService>();
     private readonly IImportBatchApplyService _applyService = Substitute.For<IImportBatchApplyService>();
+    private readonly IMediator _mediator = Substitute.For<IMediator>();
     private readonly IAuditLogEntryRepository _auditRepository = Substitute.For<IAuditLogEntryRepository>();
     private readonly IDrinkCatalogUnitOfWork _unitOfWork = Substitute.For<IDrinkCatalogUnitOfWork>();
     private readonly ApplyImportBatchHandler _handler;
@@ -31,8 +34,13 @@ public sealed class ApplyImportBatchHandlerTests
             _importBatchRepository,
             _processingService,
             _applyService,
+            _drinkQueryService,
+            _mediator,
             new AuditLogWriter(_auditRepository),
             _unitOfWork);
+
+        _mediator.Send(Arg.Any<object>(), Arg.Any<CancellationToken>())
+            .Returns(new RecommendationSemanticCatalogIndexResultDto(0, 0));
     }
 
     [Fact]

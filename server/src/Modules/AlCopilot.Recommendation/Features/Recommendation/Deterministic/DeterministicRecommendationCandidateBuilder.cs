@@ -5,22 +5,23 @@ using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
-public sealed class DeterministicRecommendationCandidateBuilder : IRecommendationCandidateBuilder
+internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendationCandidateBuilder
 {
     public List<RecommendationGroupDto> Build(
         string customerRequest,
         RecommendationRequestIntent intent,
         CustomerProfileDto profile,
-        IReadOnlyCollection<DrinkDetailDto> drinks)
+        IReadOnlyCollection<DrinkDetailDto> drinks,
+        RecommendationSemanticSearchResult semanticSearchResult)
     {
         var favorites = profile.FavoriteIngredientIds.ToHashSet();
         var prohibited = profile.ProhibitedIngredientIds.ToHashSet();
         var disliked = profile.DislikedIngredientIds.ToHashSet();
         var owned = profile.OwnedIngredientIds.ToHashSet();
-        var scopedDrinks = ScopeDrinks(intent, drinks);
+        var scopedDrinks = ScopeDrinks(intent, drinks, semanticSearchResult);
         var ranked = scopedDrinks
             .Where(drink => !drink.RecipeEntries.Any(entry => prohibited.Contains(entry.Ingredient.Id)))
-            .Select(drink => Score(drink, intent, favorites, disliked, owned))
+            .Select(drink => Score(drink, intent, favorites, disliked, owned, semanticSearchResult))
             .OrderByDescending(result => result.Score)
             .ThenBy(result => result.Drink.Name, StringComparer.Ordinal)
             .Take(8)
@@ -41,7 +42,8 @@ public sealed class DeterministicRecommendationCandidateBuilder : IRecommendatio
 
     private static IReadOnlyCollection<DrinkDetailDto> ScopeDrinks(
         RecommendationRequestIntent intent,
-        IReadOnlyCollection<DrinkDetailDto> drinks)
+        IReadOnlyCollection<DrinkDetailDto> drinks,
+        RecommendationSemanticSearchResult semanticSearchResult)
     {
         if (intent.IsRecipeLookup)
         {
@@ -50,6 +52,12 @@ public sealed class DeterministicRecommendationCandidateBuilder : IRecommendatio
             if (matches.Count > 0)
             {
                 return matches;
+            }
+
+            var semanticMatches = semanticSearchResult.ByDrinkId.Keys.ToHashSet();
+            if (semanticMatches.Count > 0)
+            {
+                return drinks.Where(drink => semanticMatches.Contains(drink.Id)).Take(8).ToList();
             }
         }
 
@@ -71,7 +79,8 @@ public sealed class DeterministicRecommendationCandidateBuilder : IRecommendatio
         RecommendationRequestIntent intent,
         HashSet<Guid> favorites,
         HashSet<Guid> disliked,
-        HashSet<Guid> owned)
+        HashSet<Guid> owned,
+        RecommendationSemanticSearchResult semanticSearchResult)
     {
         var totalRecipeIngredientCount = drink.RecipeEntries
             .Select(entry => entry.Ingredient.Id)
@@ -90,7 +99,8 @@ public sealed class DeterministicRecommendationCandidateBuilder : IRecommendatio
 
         var dislikedCount = drink.RecipeEntries.Count(entry => disliked.Contains(entry.Ingredient.Id));
         var favoriteCount = drink.RecipeEntries.Count(entry => favorites.Contains(entry.Ingredient.Id));
-        var matchedSignals = FindMatchedSignals(drink, intent);
+        var semanticSignal = semanticSearchResult.Find(drink.Id);
+        var matchedSignals = FindMatchedSignals(drink, intent, semanticSignal);
 
         var score = missingIngredientNames.Count == 0 ? 100 : 70 - missingIngredientNames.Count * 5;
         score += Math.Min(favoriteCount, 2) * 6;
@@ -114,14 +124,23 @@ public sealed class DeterministicRecommendationCandidateBuilder : IRecommendatio
             score += 40;
         }
 
+        if (semanticSignal is not null)
+        {
+            score += (int)Math.Round(semanticSignal.WeightedScore * 10d, MidpointRounding.AwayFromZero);
+        }
+
         return new CandidateScore(
             drink,
             missingIngredientNames,
             matchedSignals,
-            score);
+            score,
+            semanticSignal?.SummaryHints ?? []);
     }
 
-    private static List<string> FindMatchedSignals(DrinkDetailDto drink, RecommendationRequestIntent intent)
+    private static List<string> FindMatchedSignals(
+        DrinkDetailDto drink,
+        RecommendationRequestIntent intent,
+        RecommendationSemanticDrinkSignal? semanticSignal)
     {
         var searchCorpus = string.Join(
             " | ",
@@ -153,6 +172,7 @@ public sealed class DeterministicRecommendationCandidateBuilder : IRecommendatio
         }
 
         return matchedSignals
+            .Concat(semanticSignal?.SummaryHints ?? [])
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(signal => signal, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -179,5 +199,6 @@ public sealed class DeterministicRecommendationCandidateBuilder : IRecommendatio
         DrinkDetailDto Drink,
         List<string> MissingIngredientNames,
         List<string> MatchedSignals,
-        int Score);
+        int Score,
+        IReadOnlyCollection<string> SemanticHints);
 }

@@ -12,7 +12,7 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
     private readonly IRecommendationChatClientStrategyFactory strategyFactory;
     private readonly ILoggerFactory loggerFactory;
     private readonly IOptions<RecommendationObservabilityOptions> observabilityOptions;
-    private readonly IRecommendationRunContextFactory runContextFactory;
+    private readonly IRecommendationRunContextService runContextService;
     private readonly IRecommendationCurrentRunContextAccessor currentRunContextAccessor;
     private readonly IServiceProvider serviceProvider;
     private readonly RecommendationDrinkSearchTool drinkSearchTool;
@@ -23,7 +23,7 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
         IRecommendationChatClientStrategyFactory strategyFactory,
         ILoggerFactory loggerFactory,
         IOptions<RecommendationObservabilityOptions> observabilityOptions,
-        IRecommendationRunContextFactory runContextFactory,
+        IRecommendationRunContextService runContextService,
         IRecommendationCurrentRunContextAccessor currentRunContextAccessor,
         IServiceProvider serviceProvider,
         RecommendationDrinkSearchTool drinkSearchTool,
@@ -33,7 +33,7 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
         this.strategyFactory = strategyFactory;
         this.loggerFactory = loggerFactory;
         this.observabilityOptions = observabilityOptions;
-        this.runContextFactory = runContextFactory;
+        this.runContextService = runContextService;
         this.currentRunContextAccessor = currentRunContextAccessor;
         this.serviceProvider = serviceProvider;
         this.drinkSearchTool = drinkSearchTool;
@@ -44,7 +44,7 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
     public AIAgent Create()
     {
         var strategy = strategyFactory.Create();
-        var contextProvider = new RecommendationRunContextProvider(currentRunContextAccessor, runContextFactory);
+        var contextProvider = new RecommendationRunContextProvider(currentRunContextAccessor, runContextService);
         var instrumentedChatClient = new ChatClientBuilder(strategy.ChatClient)
             .UseOpenTelemetry(
                 loggerFactory,

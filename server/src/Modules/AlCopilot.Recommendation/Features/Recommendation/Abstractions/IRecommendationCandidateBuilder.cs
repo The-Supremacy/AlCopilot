@@ -4,11 +4,12 @@ using AlCopilot.Recommendation.Contracts.DTOs;
 
 namespace AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
-public interface IRecommendationCandidateBuilder
+internal interface IRecommendationCandidateBuilder
 {
     List<RecommendationGroupDto> Build(
         string customerRequest,
         RecommendationRequestIntent intent,
         CustomerProfileDto profile,
-        IReadOnlyCollection<DrinkDetailDto> drinks);
+        IReadOnlyCollection<DrinkDetailDto> drinks,
+        RecommendationSemanticSearchResult semanticSearchResult);
 }

@@ -8,9 +8,9 @@ namespace AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 
 internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceStrategy
 {
-    private const string EmbeddedSnapshotResourceName = "AlCopilot.DrinkCatalog.Features.ImportBatch.SeedData.iba-cocktails-web.snapshot.json";
-    private const string SnapshotSourceReference = "seed/rasmusab/iba-cocktails/iba-web/iba-cocktails-web.snapshot.json";
-    private const string SnapshotDisplayName = "iba-cocktails-web.snapshot.json";
+    private const string EmbeddedSnapshotResourceName = "AlCopilot.DrinkCatalog.Features.ImportBatch.SeedData.iba-cocktails-web.extended.snapshot.json";
+    private const string SnapshotSourceReference = "seed/alcopilot/iba-cocktails/iba-web/iba-cocktails-web.extended.snapshot.json";
+    private const string SnapshotDisplayName = "iba-cocktails-web.extended.snapshot.json";
     private const string SnapshotUpstreamRepository = "https://github.com/rasmusab/iba-cocktails";
     private const string SnapshotUpstreamPath = "iba-web/iba-cocktails-web.json";
     private const string SnapshotCommit = "9148d3302f582b06695684f3bb446631ab99d160";
@@ -59,11 +59,14 @@ internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceSt
         {
             ["format"] = "json",
             ["seedDataset"] = "rasmusab/iba-cocktails",
-            ["seedDatasetSchema"] = "iba-cocktails-web.json",
+            ["seedDatasetSchema"] = "iba-cocktails-web.extended.json",
             ["seedDatasetCommit"] = SnapshotCommit,
             ["seedDatasetCapturedOn"] = SnapshotCapturedOn,
             ["seedDatasetUpstreamRepository"] = SnapshotUpstreamRepository,
             ["seedDatasetUpstreamPath"] = SnapshotUpstreamPath,
+            ["seedDatasetVariant"] = "alcopilot-extended",
+            ["seedDatasetCuratedFields"] = "description",
+            ["seedDatasetDerivativeDisplayName"] = SnapshotDisplayName,
             ["drinkCount"] = drinkCount.ToString(CultureInfo.InvariantCulture),
             ["ingredientCount"] = ingredientCount.ToString(CultureInfo.InvariantCulture),
         };
@@ -86,6 +89,7 @@ internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceSt
         {
             var drinkName = NormalizeRequired(cocktail.Name, nameof(cocktail.Name));
             var drinkCategory = NormalizeOptional(cocktail.Category);
+            var description = NormalizeOptional(cocktail.Description);
             var method = NormalizeOptional(cocktail.Method);
             var garnish = NormalizeOptional(cocktail.Garnish);
 
@@ -108,7 +112,7 @@ internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceSt
             drinks.Add(new NormalizedDrinkImport(
                 drinkName,
                 drinkCategory,
-                null,
+                description,
                 method,
                 garnish,
                 null,
@@ -175,6 +179,7 @@ internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceSt
     private sealed record IbaCocktailPayload(
         string? Category,
         string? Name,
+        string? Description,
         string? Method,
         string? Garnish,
         List<IbaIngredientPayload>? Ingredients);

@@ -22,6 +22,7 @@ namespace AlCopilot.DrinkCatalog.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
 
             modelBuilder.Entity("AlCopilot.DrinkCatalog.Features.Audit.AuditLogEntry", b =>
                 {

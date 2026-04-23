@@ -36,6 +36,7 @@ It complements the portal design guide and the OpenSpec change artifacts with en
 - The preferred upstream file is `iba-web/iba-cocktails-web.json`.
 - `iba-web/iba-cocktails-ingredients-web.csv` is a supporting inspection source when ingredient-row detail needs review during normalization.
 - The portal and backend do not fetch this repository at runtime; the management portal uses a preserved snapshot for `iba-cocktails-snapshot`.
+- The default preserved preset source may be an AlCopilot-owned extended derivative of that snapshot when project curation adds fields such as drink descriptions that do not exist in the raw upstream file.
 
 ### Current Snapshot Strategy Shape
 
@@ -62,8 +63,8 @@ The preserved snapshot follows the upstream list-of-cocktails shape rather than 
 ]
 ```
 
-When no payload is provided for `iba-cocktails-snapshot`, the preserved embedded snapshot is used.
-The strategy normalizes that upstream shape into AlCopilot-owned drink, ingredient, recipe, method, garnish, and category fields before validation and apply.
+When no payload is provided for `iba-cocktails-snapshot`, the preserved embedded extended snapshot is used.
+The strategy normalizes that upstream-compatible shape into AlCopilot-owned drink, description, ingredient, recipe, method, garnish, and category fields before validation and apply.
 
 ---
 

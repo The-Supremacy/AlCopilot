@@ -26,3 +26,13 @@ public sealed record DrinkDetailDto(
     string? ImageUrl,
     List<TagDto> Tags,
     List<RecipeEntryDto> RecipeEntries);
+
+public sealed record FuzzyDrinkMatchDto(
+    Guid DrinkId,
+    string DrinkName,
+    double Similarity);
+
+public sealed record FuzzyIngredientMatchDto(
+    Guid IngredientId,
+    string IngredientName,
+    double Similarity);

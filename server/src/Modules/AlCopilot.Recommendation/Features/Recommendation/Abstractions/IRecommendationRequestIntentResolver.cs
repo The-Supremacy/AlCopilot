@@ -2,7 +2,9 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 
 internal interface IRecommendationRequestIntentResolver
 {
-    RecommendationRequestIntent Resolve(
+    Task<RecommendationRequestIntent> ResolveAsync(
         string customerMessage,
-        RecommendationRunInputs inputs);
+        RecommendationRunInputs inputs,
+        RecommendationSemanticSearchResult semanticSearchResult,
+        CancellationToken cancellationToken = default);
 }
