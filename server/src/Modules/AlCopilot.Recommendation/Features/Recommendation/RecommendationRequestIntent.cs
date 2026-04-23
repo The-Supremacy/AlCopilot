@@ -3,25 +3,26 @@ namespace AlCopilot.Recommendation.Features.Recommendation;
 public enum RecommendationRequestIntentKind
 {
     Recommendation = 0,
-    DrinkDetails = 1,
+    IngredientDiscovery = 1,
+    RecipeLookup = 2,
+    Hybrid = 3,
 }
 
 public sealed record RecommendationRequestIntent(
     RecommendationRequestIntentKind Kind,
     string? RequestedDrinkName,
-    IReadOnlyCollection<string> RequestedIngredientNames,
-    IReadOnlyCollection<string> RequestDescriptors,
-    bool LooksLikeDrinkDetails = false)
+    string? RequestedIngredientName,
+    IReadOnlyCollection<string> PreferenceSignals,
+    bool LooksLikeRecipeLookup = false)
 {
-    public bool IsDrinkDetailsRequest =>
-        LooksLikeDrinkDetails || Kind is RecommendationRequestIntentKind.DrinkDetails;
+    public bool IsRecipeLookupRequest =>
+        LooksLikeRecipeLookup || Kind is RecommendationRequestIntentKind.RecipeLookup or RecommendationRequestIntentKind.Hybrid;
 
-    public bool HasRequestedIngredients =>
-        RequestedIngredientNames.Count > 0;
+    public bool IsIngredientLed =>
+        Kind is RecommendationRequestIntentKind.IngredientDiscovery or RecommendationRequestIntentKind.Hybrid
+        && !string.IsNullOrWhiteSpace(RequestedIngredientName);
 
-    public bool HasRequestedDrink =>
-        !string.IsNullOrWhiteSpace(RequestedDrinkName);
-
-    public string? RequestedIngredientName =>
-        RequestedIngredientNames.FirstOrDefault();
+    public bool IsRecipeLookup =>
+        Kind is RecommendationRequestIntentKind.RecipeLookup or RecommendationRequestIntentKind.Hybrid
+        && !string.IsNullOrWhiteSpace(RequestedDrinkName);
 }

@@ -5,7 +5,7 @@ using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using Microsoft.Extensions.Options;
 using Shouldly;
 
-namespace AlCopilot.Recommendation.UnitTests.Handlers;
+namespace AlCopilot.Recommendation.Tests.Handlers;
 
 public sealed class RecommendationRequestIntentResolverTests
 {
@@ -14,7 +14,7 @@ public sealed class RecommendationRequestIntentResolverTests
         Options.Create(new RecommendationSemanticOptions()));
 
     [Fact]
-    public async Task Resolve_ReturnsRecommendation_WhenMessageMentionsKnownIngredient()
+    public async Task Resolve_ReturnsIngredientDiscovery_WhenMessageMentionsKnownIngredient()
     {
         var intent = await resolver.ResolveAsync(
             "Suggest me a drink with tequila",
@@ -23,13 +23,12 @@ public sealed class RecommendationRequestIntentResolverTests
                 [CreateDrink("Long Island Iced Tea", "Tequila", "Vodka")]),
             RecommendationSemanticSearchResult.Empty);
 
-        intent.Kind.ShouldBe(RecommendationRequestIntentKind.Recommendation);
+        intent.Kind.ShouldBe(RecommendationRequestIntentKind.IngredientDiscovery);
         intent.RequestedIngredientName.ShouldBe("Tequila");
-        intent.RequestedIngredientNames.ShouldBe(["Tequila"]);
     }
 
     [Fact]
-    public async Task Resolve_ReturnsDrinkDetails_WhenMessageMentionsKnownDrink()
+    public async Task Resolve_ReturnsRecipeLookup_WhenMessageMentionsKnownDrink()
     {
         var intent = await resolver.ResolveAsync(
             "How do I make a Negroni?",
@@ -38,12 +37,12 @@ public sealed class RecommendationRequestIntentResolverTests
                 [CreateDrink("Negroni", "Gin", "Campari")]),
             RecommendationSemanticSearchResult.Empty);
 
-        intent.Kind.ShouldBe(RecommendationRequestIntentKind.DrinkDetails);
+        intent.Kind.ShouldBe(RecommendationRequestIntentKind.RecipeLookup);
         intent.RequestedDrinkName.ShouldBe("Negroni");
     }
 
     [Fact]
-    public async Task Resolve_CollectsRequestDescriptors_WhenMessageUsesKnownDescriptors()
+    public async Task Resolve_CollectsPreferenceSignals_WhenMessageUsesKnownDescriptors()
     {
         var intent = await resolver.ResolveAsync(
             "I want something sweet and sparkling",
@@ -53,7 +52,7 @@ public sealed class RecommendationRequestIntentResolverTests
             RecommendationSemanticSearchResult.Empty);
 
         intent.Kind.ShouldBe(RecommendationRequestIntentKind.Recommendation);
-        intent.RequestDescriptors.ShouldBe(["sparkling", "sweet"]);
+        intent.PreferenceSignals.ShouldBe(["sparkling", "sweet"]);
     }
 
     [Fact]
@@ -79,12 +78,12 @@ public sealed class RecommendationRequestIntentResolverTests
                         [drink.Name])
                 }));
 
-        intent.Kind.ShouldBe(RecommendationRequestIntentKind.DrinkDetails);
+        intent.Kind.ShouldBe(RecommendationRequestIntentKind.RecipeLookup);
         intent.RequestedDrinkName.ShouldBe("Negroni");
     }
 
     [Fact]
-    public async Task Resolve_DoesNotPromoteDescriptivePromptToDrinkDetails_FromSemanticDrinkSignal()
+    public async Task Resolve_DoesNotPromoteDescriptivePromptToRecipeLookup_FromSemanticDrinkSignal()
     {
         var drink = CreateDrink("French 75", "Gin", "Prosecco");
         var intent = await resolver.ResolveAsync(
@@ -108,11 +107,11 @@ public sealed class RecommendationRequestIntentResolverTests
 
         intent.Kind.ShouldBe(RecommendationRequestIntentKind.Recommendation);
         intent.RequestedDrinkName.ShouldBeNull();
-        intent.RequestDescriptors.ShouldBe(["sweet"]);
+        intent.PreferenceSignals.ShouldBe(["sweet"]);
     }
 
     [Fact]
-    public async Task Resolve_DoesNotExtractRequestDescriptorsFromSemanticDescriptors()
+    public async Task Resolve_DoesNotExtractPreferenceSignalsFromSemanticDescriptors()
     {
         var drink = CreateDrink("French 75", "Gin", "Prosecco");
         var intent = await resolver.ResolveAsync(
@@ -134,21 +133,7 @@ public sealed class RecommendationRequestIntentResolverTests
                         ["Sparkling, bright, and lightly sweet."])
                 }));
 
-        intent.RequestDescriptors.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public async Task Resolve_CollectsMultipleIngredientConstraints_FromMessageSuffix()
-    {
-        var intent = await resolver.ResolveAsync(
-            "What can I make with gin and lime?",
-            new RecommendationRunInputs(
-                new CustomerProfileDto([], [], [], []),
-                [CreateDrink("Gimlet", "Gin", "Lime"), CreateDrink("Daiquiri", "Rum", "Lime")]),
-            RecommendationSemanticSearchResult.Empty);
-
-        intent.Kind.ShouldBe(RecommendationRequestIntentKind.Recommendation);
-        intent.RequestedIngredientNames.ShouldBe(["Gin", "Lime"]);
+        intent.PreferenceSignals.ShouldBeEmpty();
     }
 
     [Fact]
@@ -175,7 +160,7 @@ public sealed class RecommendationRequestIntentResolverTests
                 }));
 
         intent.RequestedDrinkName.ShouldBeNull();
-        intent.Kind.ShouldBe(RecommendationRequestIntentKind.DrinkDetails);
+        intent.Kind.ShouldBe(RecommendationRequestIntentKind.RecipeLookup);
     }
 
     private sealed class StubCatalogFuzzyLookupService : IRecommendationCatalogFuzzyLookupService

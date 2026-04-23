@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
 
-namespace AlCopilot.Recommendation.UnitTests.Regression;
+namespace AlCopilot.Recommendation.Tests.Evaluations;
 
 public sealed class RecommendationEvaluationCorpusTests
 {
@@ -51,7 +51,7 @@ public sealed class RecommendationEvaluationCorpusTests
             [],
             ["French 75"],
             ["Negroni"],
-            ["requested ingredients: Prosecco", "request descriptors: light, sparkling", "French 75", "missing Prosecco"])
+            ["requested ingredient: Prosecco", "preference signals: light, sparkling", "French 75", "missing Prosecco"])
     ];
 
     [Theory]
@@ -65,16 +65,17 @@ public sealed class RecommendationEvaluationCorpusTests
             .Returns(evaluationCase.Drinks.ToList());
 
         var runInputsQueryService = new RecommendationRunInputsQueryService(mediator);
-        var harness = new RecommendationRunContextEvaluationHarness(
-            await runInputsQueryService.GetRunInputsAsync(CancellationToken.None),
+        var service = new RecommendationRunContextService(
+            runInputsQueryService,
             new StubSemanticSearchService(),
             new RecommendationRequestIntentResolver(
                 new StubCatalogFuzzyLookupService(),
                 Options.Create(new RecommendationSemanticOptions())),
             new DeterministicRecommendationCandidateBuilder(),
-            new RecommendationRunContextBuilder());
+            new RecommendationRunContextBuilder(),
+            new RecommendationExecutionTraceRecorder());
 
-        var runContext = await harness.CreateAsync(evaluationCase.Prompt, CancellationToken.None);
+        var runContext = await service.CreateAsync(evaluationCase.Prompt, CancellationToken.None);
         var prompt = RecommendationRunContextMessageBuilder.Build(runContext);
 
         runContext.RecommendationGroups.Single(group => group.Key == "make-now").Items.Select(item => item.DrinkName)

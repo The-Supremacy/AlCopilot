@@ -15,8 +15,7 @@ internal sealed class RecommendationDrinkSearchTool(
     [Description("Search the drink catalog by drink name when you need to resolve an exact drink before looking up its recipe.")]
     public async Task<RecommendationDrinkSearchResult> SearchDrinksAsync(
         [Description("Drink name or partial drink name to search for.")] string query,
-        [Description("Maximum number of matches to return. Keep this small and use 5 unless the user explicitly asks for more.")] int maxResults = 5,
-        CancellationToken cancellationToken = default)
+        [Description("Maximum number of matches to return. Keep this small and use 5 unless the user explicitly asks for more.")] int maxResults = 5)
     {
         if (string.IsNullOrWhiteSpace(query))
         {
@@ -29,8 +28,8 @@ internal sealed class RecommendationDrinkSearchTool(
         }
 
         var normalizedQuery = query.Trim();
-        var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), cancellationToken);
-        var matchingDrinks = await SearchAsync(drinks, normalizedQuery, maxResults, cancellationToken);
+        var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), CancellationToken.None);
+        var matchingDrinks = await SearchAsync(drinks, normalizedQuery, maxResults);
         var matches = matchingDrinks
             .Select(RecommendationDrinkSearchItem.FromDrink)
             .ToList();
@@ -60,10 +59,9 @@ internal sealed class RecommendationDrinkSearchTool(
     private async Task<IReadOnlyCollection<AlCopilot.DrinkCatalog.Contracts.DTOs.DrinkDetailDto>> SearchAsync(
         IReadOnlyCollection<AlCopilot.DrinkCatalog.Contracts.DTOs.DrinkDetailDto> drinks,
         string normalizedQuery,
-        int maxResults,
-        CancellationToken cancellationToken)
+        int maxResults)
     {
-        var fuzzyMatches = await fuzzyLookupService.FindDrinkMatchesAsync(normalizedQuery, cancellationToken);
+        var fuzzyMatches = await fuzzyLookupService.FindDrinkMatchesAsync(normalizedQuery, CancellationToken.None);
         var fuzzyScores = fuzzyMatches.ToDictionary(match => match.Id, match => match.Similarity);
 
         if (fuzzyScores.Count > 0)
