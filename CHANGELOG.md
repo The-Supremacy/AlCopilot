@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.4...v0.1.5) (2026-04-23)
+
+
+### Features
+
+* embedding ([34ce830](https://github.com/The-Supremacy/AlCopilot/commit/34ce8304467a09576c277eefb2184ec42bcf18be))
+
 ## [0.1.4](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.3...v0.1.4) (2026-04-15)
 
 
