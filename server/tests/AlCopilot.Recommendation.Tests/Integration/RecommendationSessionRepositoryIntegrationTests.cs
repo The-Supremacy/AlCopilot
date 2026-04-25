@@ -43,7 +43,8 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
                     "Generated recommendation response.",
                     DateTimeOffset.UtcNow,
                     new Dictionary<string, string?> { ["finishReason"] = "stop" },
-                    [])
+                    [],
+                    "Compared the top available citrus drinks before answering.")
             ]);
 
         repository.Add(session);
@@ -54,6 +55,8 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
         loaded!.Turns.Count.ShouldBe(2);
         loaded.Turns.Last().Role.ShouldBe("assistant");
         loaded.Turns.Last().GetExecutionTraceSteps().Single().StepName.ShouldBe("agent.run");
+        loaded.Turns.Last().GetExecutionTraceSteps().Single().Reasoning.ShouldBe(
+            "Compared the top available citrus drinks before answering.");
         var domainEvents = await _db.DomainEventRecords
             .OrderBy(record => record.Id)
             .ToListAsync();

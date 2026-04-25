@@ -66,9 +66,9 @@ public sealed class RecommendationNarrationServiceTests
         var message = RecommendationRunContextMessageBuilder.Build(
             new RecommendationRunContext(
                 new RecommendationRequestIntent(
-                    RecommendationRequestIntentKind.IngredientDiscovery,
+                    RecommendationRequestIntentKind.Recommendation,
                     null,
-                    "Gin",
+                    ["Gin"],
                     ["citrusy"]),
                 new CustomerProfileDto([ginId], [], [campariId], [ginId]),
                 [new RecommendationGroupDto("buy-next", "Consider for Restock", [new RecommendationItemDto(Guid.NewGuid(), "Negroni", null, ["Campari"], [], 70)])],
@@ -104,7 +104,7 @@ public sealed class RecommendationNarrationServiceTests
         message.ShouldContain("search_drinks");
         message.ShouldContain("lookup_drinks_by_ingredient");
         message.ShouldContain("lookup_drink_recipe");
-        message.ShouldContain("kind: IngredientDiscovery");
+        message.ShouldContain("kind: Recommendation");
         message.ShouldContain("Negroni");
         message.ShouldContain("owned Gin");
         message.ShouldContain("missing Campari");

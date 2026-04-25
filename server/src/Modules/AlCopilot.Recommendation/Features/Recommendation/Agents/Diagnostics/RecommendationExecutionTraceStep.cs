@@ -6,4 +6,5 @@ public sealed record RecommendationExecutionTraceStep(
     string? Summary,
     DateTimeOffset RecordedAtUtc,
     IReadOnlyDictionary<string, string?> Attributes,
-    IReadOnlyCollection<string> Details);
+    IReadOnlyCollection<string> Details,
+    string? Reasoning = null);

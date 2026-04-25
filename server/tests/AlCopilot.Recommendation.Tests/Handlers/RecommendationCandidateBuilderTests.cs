@@ -9,7 +9,7 @@ public sealed class RecommendationCandidateBuilderTests
 {
     private readonly DeterministicRecommendationCandidateBuilder _builder = new();
     private static readonly RecommendationRequestIntent DefaultIntent =
-        new(RecommendationRequestIntentKind.Recommendation, null, null, []);
+        new(RecommendationRequestIntentKind.Recommendation, null, [], []);
 
     [Fact]
     public void Build_ExcludesProhibitedAndSplitsMakeNowVsBuyNext()
@@ -78,7 +78,7 @@ public sealed class RecommendationCandidateBuilderTests
         var intent = new RecommendationRequestIntent(
             RecommendationRequestIntentKind.Recommendation,
             null,
-            null,
+            [],
             ["citrusy"]);
 
         var groups = _builder.Build(
@@ -93,7 +93,7 @@ public sealed class RecommendationCandidateBuilderTests
     }
 
     [Fact]
-    public void Build_PrioritizesIngredientLedMatches()
+    public void Build_PrioritizesRequestedIngredientMatches()
     {
         var tequilaId = Guid.Parse("00000000-0000-0000-0000-000000000041");
         var vodkaId = Guid.Parse("00000000-0000-0000-0000-000000000042");
@@ -105,9 +105,9 @@ public sealed class RecommendationCandidateBuilderTests
             CreateDrink("Martini", [CreateRecipeEntry(vodkaId, "Vodka")]),
         };
         var intent = new RecommendationRequestIntent(
-            RecommendationRequestIntentKind.IngredientDiscovery,
+            RecommendationRequestIntentKind.Recommendation,
             null,
-            "Tequila",
+            ["Tequila"],
             []);
 
         var groups = _builder.Build(
@@ -121,6 +121,70 @@ public sealed class RecommendationCandidateBuilderTests
             .ShouldContain("Long Island Iced Tea");
         groups.SelectMany(group => group.Items).Select(item => item.DrinkName)
             .ShouldNotContain("Martini");
+    }
+
+    [Fact]
+    public void Build_KeepsDrinkDetailsCandidateEvenWhenDrinkContainsProhibitedIngredient()
+    {
+        var ginId = Guid.Parse("00000000-0000-0000-0000-000000000045");
+        var campariId = Guid.Parse("00000000-0000-0000-0000-000000000046");
+        var profile = new CustomerProfileDto([], [], [campariId], [ginId]);
+        var drinks = new List<DrinkDetailDto>
+        {
+            CreateDrink("Negroni", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(campariId, "Campari")]),
+            CreateDrink("Martini", [CreateRecipeEntry(ginId, "Gin")]),
+        };
+        var intent = new RecommendationRequestIntent(
+            RecommendationRequestIntentKind.DrinkDetails,
+            "Negroni",
+            [],
+            [],
+            true);
+
+        var groups = _builder.Build(
+            "How do I make a Negroni?",
+            intent,
+            profile,
+            drinks,
+            RecommendationSemanticSearchResult.Empty);
+
+        groups.Single().Key.ShouldBe("drink-details");
+        groups.Single().Label.ShouldBe("Drink Details");
+        groups.SelectMany(group => group.Items).Select(item => item.DrinkName)
+            .ShouldContain("Negroni");
+    }
+
+    [Fact]
+    public void Build_RequiresAllRequestedIngredientsWhenExactMatchesExist()
+    {
+        var ginId = Guid.Parse("00000000-0000-0000-0000-000000000047");
+        var limeId = Guid.Parse("00000000-0000-0000-0000-000000000048");
+        var rumId = Guid.Parse("00000000-0000-0000-0000-000000000049");
+
+        var profile = new CustomerProfileDto([], [], [], []);
+        var drinks = new List<DrinkDetailDto>
+        {
+            CreateDrink("Gimlet", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(limeId, "Lime")]),
+            CreateDrink("Daiquiri", [CreateRecipeEntry(rumId, "Rum"), CreateRecipeEntry(limeId, "Lime")]),
+            CreateDrink("Gin Rickey", [CreateRecipeEntry(ginId, "Gin")]),
+        };
+        var intent = new RecommendationRequestIntent(
+            RecommendationRequestIntentKind.Recommendation,
+            null,
+            ["Gin", "Lime"],
+            []);
+
+        var groups = _builder.Build(
+            "What can I make with gin and lime?",
+            intent,
+            profile,
+            drinks,
+            RecommendationSemanticSearchResult.Empty);
+
+        groups.SelectMany(group => group.Items).Select(item => item.DrinkName)
+            .ShouldContain("Gimlet");
+        groups.SelectMany(group => group.Items).Select(item => item.DrinkName)
+            .ShouldNotContain("Gin Rickey");
     }
 
     [Fact]

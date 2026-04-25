@@ -62,6 +62,20 @@ public sealed class ChatSession : AggregateRoot<Guid>
         Raise(new RecommendationAssistantMessageRecordedEvent(Id, turn.Id));
     }
 
+    public void UpdateLatestAssistantTurnArtifacts(
+        IReadOnlyCollection<RecommendationGroupDto> recommendationGroups,
+        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations,
+        IReadOnlyCollection<RecommendationExecutionTraceStep>? executionTraceSteps = null)
+    {
+        var turn = Turns
+            .OrderByDescending(candidate => candidate.Sequence)
+            .FirstOrDefault(candidate => string.Equals(candidate.Role, "assistant", StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("No assistant turn exists to update recommendation artifacts.");
+
+        turn.UpdateArtifacts(recommendationGroups, toolInvocations, executionTraceSteps);
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
     public void UpdateAgentSessionState(string serializedState)
     {
         if (string.IsNullOrWhiteSpace(serializedState))
@@ -191,5 +205,15 @@ public sealed class ChatTurn
         FeedbackRating = normalizedRating;
         FeedbackComment = normalizedComment;
         FeedbackCreatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    internal void UpdateArtifacts(
+        IReadOnlyCollection<RecommendationGroupDto> recommendationGroups,
+        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations,
+        IReadOnlyCollection<RecommendationExecutionTraceStep>? executionTraceSteps)
+    {
+        RecommendationGroupsJson = JsonSerializer.Serialize(recommendationGroups);
+        ToolInvocationsJson = JsonSerializer.Serialize(toolInvocations);
+        ExecutionTraceJson = executionTraceSteps is null ? null : JsonSerializer.Serialize(executionTraceSteps);
     }
 }

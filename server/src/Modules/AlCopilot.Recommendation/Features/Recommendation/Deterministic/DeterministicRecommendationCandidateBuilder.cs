@@ -20,12 +20,23 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
         var owned = profile.OwnedIngredientIds.ToHashSet();
         var scopedDrinks = ScopeDrinks(intent, drinks, semanticSearchResult);
         var ranked = scopedDrinks
-            .Where(drink => !drink.RecipeEntries.Any(entry => prohibited.Contains(entry.Ingredient.Id)))
+            .Where(drink => intent.IsDrinkDetailsRequest || !drink.RecipeEntries.Any(entry => prohibited.Contains(entry.Ingredient.Id)))
             .Select(drink => Score(drink, intent, favorites, disliked, owned, semanticSearchResult))
             .OrderByDescending(result => result.Score)
             .ThenBy(result => result.Drink.Name, StringComparer.Ordinal)
             .Take(8)
             .ToList();
+
+        if (intent.IsDrinkDetailsRequest)
+        {
+            return
+            [
+                new RecommendationGroupDto(
+                    "drink-details",
+                    "Drink Details",
+                    ranked.Take(3).Select(item => ToDto(item, owned)).ToList()),
+            ];
+        }
 
         return
         [
@@ -45,7 +56,7 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
         IReadOnlyCollection<DrinkDetailDto> drinks,
         RecommendationSemanticSearchResult semanticSearchResult)
     {
-        if (intent.IsRecipeLookup)
+        if (intent.IsDrinkDetailsRequest && intent.HasRequestedDrink)
         {
             var requestedDrinkName = intent.RequestedDrinkName!;
             var matches = RecommendationCatalogMatcher.SearchDrinksByName(drinks, requestedDrinkName, 8);
@@ -61,10 +72,9 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
             }
         }
 
-        if (intent.IsIngredientLed)
+        if (intent.HasRequestedIngredients)
         {
-            var requestedIngredientName = intent.RequestedIngredientName!;
-            var matches = RecommendationCatalogMatcher.FindDrinksByIngredient(drinks, requestedIngredientName, 8);
+            var matches = RecommendationCatalogMatcher.FindDrinksByIngredients(drinks, intent.RequestedIngredientNames, 8);
             if (matches.Count > 0)
             {
                 return matches;
@@ -100,12 +110,13 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
         var dislikedCount = drink.RecipeEntries.Count(entry => disliked.Contains(entry.Ingredient.Id));
         var favoriteCount = drink.RecipeEntries.Count(entry => favorites.Contains(entry.Ingredient.Id));
         var semanticSignal = semanticSearchResult.Find(drink.Id);
-        var matchedSignals = FindMatchedSignals(drink, intent, semanticSignal);
+        var matchedLexicalSignals = FindMatchedLexicalSignals(drink, intent);
+        var matchedSignals = BuildMatchedSignals(matchedLexicalSignals, semanticSignal);
 
         var score = missingIngredientNames.Count == 0 ? 100 : 70 - missingIngredientNames.Count * 5;
         score += Math.Min(favoriteCount, 2) * 6;
         score -= dislikedCount * 8;
-        score += matchedSignals.Count * 8;
+        score += matchedLexicalSignals.Count * 8;
         score += ownedIngredientCount * 3;
 
         if (totalRecipeIngredientCount > 0)
@@ -114,12 +125,14 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
             score += (int)Math.Round(coverageRatio * 12, MidpointRounding.AwayFromZero);
         }
 
-        if (intent.IsIngredientLed && RecommendationCatalogMatcher.DrinkContainsIngredient(drink, intent.RequestedIngredientName!))
+        if (intent.HasRequestedIngredients)
         {
-            score += 24;
+            var matchedRequestedIngredientCount = intent.RequestedIngredientNames.Count(requestedIngredientName =>
+                RecommendationCatalogMatcher.DrinkContainsIngredient(drink, requestedIngredientName));
+            score += matchedRequestedIngredientCount * 24;
         }
 
-        if (intent.IsRecipeLookup && drink.Name.Contains(intent.RequestedDrinkName!, StringComparison.OrdinalIgnoreCase))
+        if (intent.IsDrinkDetailsRequest && intent.HasRequestedDrink && drink.Name.Contains(intent.RequestedDrinkName!, StringComparison.OrdinalIgnoreCase))
         {
             score += 40;
         }
@@ -137,10 +150,9 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
             semanticSignal?.SummaryHints ?? []);
     }
 
-    private static List<string> FindMatchedSignals(
+    private static List<string> FindMatchedLexicalSignals(
         DrinkDetailDto drink,
-        RecommendationRequestIntent intent,
-        RecommendationSemanticDrinkSignal? semanticSignal)
+        RecommendationRequestIntent intent)
     {
         var searchCorpus = string.Join(
             " | ",
@@ -155,23 +167,30 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
                 string.Join(", ", drink.RecipeEntries.Select(entry => entry.Ingredient.Name)),
             }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
-        var matchedSignals = intent.PreferenceSignals
+        var matchedSignals = intent.RequestDescriptors
             .Where(signal => searchCorpus.Contains(signal, StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(signal => signal, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        if (intent.IsIngredientLed)
+        if (intent.HasRequestedIngredients)
         {
-            matchedSignals.Add(intent.RequestedIngredientName!);
+            matchedSignals.AddRange(RecommendationCatalogMatcher.GetMatchedIngredientNames(drink, intent.RequestedIngredientNames));
         }
 
-        if (intent.IsRecipeLookup)
+        if (intent.IsDrinkDetailsRequest && intent.HasRequestedDrink)
         {
             matchedSignals.Add(intent.RequestedDrinkName!);
         }
 
-        return matchedSignals
+        return matchedSignals;
+    }
+
+    private static List<string> BuildMatchedSignals(
+        IReadOnlyCollection<string> matchedLexicalSignals,
+        RecommendationSemanticDrinkSignal? semanticSignal)
+    {
+        return matchedLexicalSignals
             .Concat(semanticSignal?.SummaryHints ?? [])
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(signal => signal, StringComparer.OrdinalIgnoreCase)

@@ -6,7 +6,5 @@ public sealed class RecommendationObservabilityOptions
 
     public bool EnableSensitiveData { get; init; }
 
-    public bool LogReasoningInDevelopment { get; init; }
-
     public bool PersistExecutionTraceInDevelopment { get; init; }
 }

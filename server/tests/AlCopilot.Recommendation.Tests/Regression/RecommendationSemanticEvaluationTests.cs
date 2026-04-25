@@ -6,7 +6,7 @@ using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using Microsoft.Extensions.Options;
 using Shouldly;
 
-namespace AlCopilot.Recommendation.Tests.Evaluations;
+namespace AlCopilot.Recommendation.Tests.Regression;
 
 public sealed class RecommendationSemanticEvaluationTests
 {
@@ -66,7 +66,7 @@ public sealed class RecommendationSemanticEvaluationTests
     }
 
     [Fact]
-    public async Task CreateAsync_UsesSemanticNameSignalsForMisspelledRecipeLookup()
+    public async Task CreateAsync_UsesSemanticNameSignalsForMisspelledDrinkDetails()
     {
         var ginId = Guid.Parse("00000000-0000-0000-0000-000000000421");
         var campariId = Guid.Parse("00000000-0000-0000-0000-000000000422");
@@ -106,25 +106,79 @@ public sealed class RecommendationSemanticEvaluationTests
 
         var runContext = await factory.CreateAsync("How do I make a Negrnoi?", CancellationToken.None);
 
-        runContext.Intent.Kind.ShouldBe(RecommendationRequestIntentKind.RecipeLookup);
+        runContext.Intent.Kind.ShouldBe(RecommendationRequestIntentKind.DrinkDetails);
         runContext.Intent.RequestedDrinkName.ShouldBe("Negroni");
+        runContext.RecommendationGroups.Single().Key.ShouldBe("drink-details");
         runContext.RecommendationGroups.SelectMany(group => group.Items).Select(item => item.DrinkName).ShouldContain("Negroni");
     }
 
-    private static RecommendationRunContextService CreateFactory(
+    [Fact]
+    public async Task CreateAsync_SkipsSemanticSearch_ForExactDrinkDetailsRequest()
+    {
+        var negroni = CreateDrink(
+            Guid.Parse("00000000-0000-0000-0000-000000000440"),
+            "Negroni",
+            "Bittersweet and spirit-forward.",
+            [CreateRecipeEntry(Guid.NewGuid(), "Gin"), CreateRecipeEntry(Guid.NewGuid(), "Campari")]);
+        var semanticSearchService = new CountingSemanticSearchService(_ => RecommendationSemanticSearchResult.Empty);
+        var factory = CreateFactory(
+            new CustomerProfileDto([], [], [], []),
+            [negroni],
+            semanticSearchService);
+
+        var runContext = await factory.CreateAsync("How do I make a Negroni?", CancellationToken.None);
+
+        semanticSearchService.CallCount.ShouldBe(0);
+        runContext.Intent.Kind.ShouldBe(RecommendationRequestIntentKind.DrinkDetails);
+        runContext.Intent.RequestedDrinkName.ShouldBe("Negroni");
+        runContext.RecommendationGroups.Single().Key.ShouldBe("drink-details");
+    }
+
+    [Fact]
+    public async Task CreateAsync_SkipsSemanticSearch_ForIngredientOnlyRecommendation()
+    {
+        var gimlet = CreateDrink(
+            Guid.Parse("00000000-0000-0000-0000-000000000450"),
+            "Gimlet",
+            "Bright and citrusy.",
+            [CreateRecipeEntry(Guid.NewGuid(), "Gin"), CreateRecipeEntry(Guid.NewGuid(), "Lime")]);
+        var semanticSearchService = new CountingSemanticSearchService(_ => RecommendationSemanticSearchResult.Empty);
+        var factory = CreateFactory(
+            new CustomerProfileDto([], [], [], []),
+            [gimlet],
+            semanticSearchService);
+
+        var runContext = await factory.CreateAsync("What can I make with gin and lime?", CancellationToken.None);
+
+        semanticSearchService.CallCount.ShouldBe(0);
+        runContext.Intent.Kind.ShouldBe(RecommendationRequestIntentKind.Recommendation);
+        runContext.Intent.RequestedIngredientNames.ShouldBe(["Gin", "Lime"]);
+    }
+
+    private static RecommendationRunContextEvaluationHarness CreateFactory(
         CustomerProfileDto profile,
         IReadOnlyCollection<DrinkDetailDto> drinks,
         Func<string, RecommendationSemanticSearchResult> semanticResultFactory)
     {
-        return new RecommendationRunContextService(
-            new StubRunInputsQueryService(new RecommendationRunInputs(profile, drinks)),
-            new StubSemanticSearchService(semanticResultFactory),
+        return CreateFactory(
+            profile,
+            drinks,
+            new CountingSemanticSearchService(semanticResultFactory));
+    }
+
+    private static RecommendationRunContextEvaluationHarness CreateFactory(
+        CustomerProfileDto profile,
+        IReadOnlyCollection<DrinkDetailDto> drinks,
+        IRecommendationSemanticSearchService semanticSearchService)
+    {
+        return new RecommendationRunContextEvaluationHarness(
+            new RecommendationRunInputs(profile, drinks),
+            semanticSearchService,
             new RecommendationRequestIntentResolver(
                 new StubCatalogFuzzyLookupService(),
                 Options.Create(new RecommendationSemanticOptions())),
             new DeterministicRecommendationCandidateBuilder(),
-            new RecommendationRunContextBuilder(),
-            new RecommendationExecutionTraceRecorder());
+            new RecommendationRunContextBuilder());
     }
 
     private static DrinkDetailDto CreateDrink(Guid id, string name, string description, List<RecipeEntryDto> recipeEntries)
@@ -137,12 +191,6 @@ public sealed class RecommendationSemanticEvaluationTests
         return new RecipeEntryDto(new IngredientDto(ingredientId, ingredientName, []), "1 oz", null);
     }
 
-    private sealed class StubRunInputsQueryService(RecommendationRunInputs inputs) : IRecommendationRunInputsQueryService
-    {
-        public Task<RecommendationRunInputs> GetRunInputsAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(inputs);
-    }
-
     private sealed class StubSemanticSearchService(
         Func<string, RecommendationSemanticSearchResult> semanticResultFactory)
         : IRecommendationSemanticSearchService
@@ -151,6 +199,21 @@ public sealed class RecommendationSemanticEvaluationTests
             string customerMessage,
             CancellationToken cancellationToken = default)
         {
+            return Task.FromResult(semanticResultFactory(customerMessage));
+        }
+    }
+
+    private sealed class CountingSemanticSearchService(
+        Func<string, RecommendationSemanticSearchResult> semanticResultFactory)
+        : IRecommendationSemanticSearchService
+    {
+        internal int CallCount { get; private set; }
+
+        public Task<RecommendationSemanticSearchResult> SearchAsync(
+            string customerMessage,
+            CancellationToken cancellationToken = default)
+        {
+            CallCount++;
             return Task.FromResult(semanticResultFactory(customerMessage));
         }
     }

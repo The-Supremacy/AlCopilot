@@ -5,6 +5,8 @@ namespace AlCopilot.Recommendation.Features.Recommendation;
 
 internal static class RecommendationCatalogMatcher
 {
+    // Keep this matcher cheap and lexical. Typo recovery happens in fuzzy lookup, and broader
+    // relevance recovery happens in semantic search.
     internal static DrinkDetailDto? FindDrink(
         IReadOnlyCollection<DrinkDetailDto> drinks,
         string? drinkId,
@@ -68,6 +70,44 @@ internal static class RecommendationCatalogMatcher
             .ToList();
     }
 
+    internal static IReadOnlyCollection<DrinkDetailDto> FindDrinksByIngredients(
+        IReadOnlyCollection<DrinkDetailDto> drinks,
+        IReadOnlyCollection<string> ingredientNames,
+        int maxResults)
+    {
+        if (ingredientNames.Count == 0)
+        {
+            return [];
+        }
+
+        var normalizedIngredientNames = ingredientNames
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (normalizedIngredientNames.Count == 0)
+        {
+            return [];
+        }
+
+        var cappedMaxResults = Math.Clamp(maxResults, 1, 10);
+        var allMatches = drinks
+            .Where(drink => normalizedIngredientNames.All(requestedIngredientName => DrinkContainsIngredient(drink, requestedIngredientName)))
+            .OrderBy(drink => drink.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(cappedMaxResults)
+            .ToList();
+        if (allMatches.Count > 0)
+        {
+            return allMatches;
+        }
+
+        return drinks
+            .Where(drink => normalizedIngredientNames.Any(requestedIngredientName => DrinkContainsIngredient(drink, requestedIngredientName)))
+            .OrderByDescending(drink => normalizedIngredientNames.Count(requestedIngredientName => DrinkContainsIngredient(drink, requestedIngredientName)))
+            .ThenBy(drink => drink.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(cappedMaxResults)
+            .ToList();
+    }
+
     internal static bool DrinkContainsIngredient(DrinkDetailDto drink, string ingredientName)
     {
         return drink.RecipeEntries.Any(entry => IngredientMatches(entry.Ingredient.Name, ingredientName));
@@ -85,6 +125,17 @@ internal static class RecommendationCatalogMatcher
             .ToList();
     }
 
+    internal static IReadOnlyCollection<string> GetMatchedIngredientNames(
+        DrinkDetailDto drink,
+        IReadOnlyCollection<string> ingredientNames)
+    {
+        return ingredientNames
+            .SelectMany(ingredientName => GetMatchedIngredientNames(drink, ingredientName))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     internal static string? FindMentionedDrinkName(
         IReadOnlyCollection<DrinkDetailDto> drinks,
         string customerMessage)
@@ -95,7 +146,7 @@ internal static class RecommendationCatalogMatcher
             .FirstOrDefault(name => customerMessage.Contains(name, StringComparison.OrdinalIgnoreCase));
     }
 
-    internal static string? FindMentionedIngredientName(
+    internal static IReadOnlyCollection<string> FindMentionedIngredientNames(
         IReadOnlyCollection<DrinkDetailDto> drinks,
         string customerMessage)
     {
@@ -104,7 +155,9 @@ internal static class RecommendationCatalogMatcher
             .Select(entry => entry.Ingredient.Name)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(name => name.Length)
-            .FirstOrDefault(name => customerMessage.Contains(name, StringComparison.OrdinalIgnoreCase));
+            .Where(name => customerMessage.Contains(name, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     internal static bool IngredientMatches(string ingredientName, string requestedIngredientName)
@@ -150,7 +203,7 @@ internal static class RecommendationCatalogMatcher
         return TrimLeadingArticle(normalized);
     }
 
-    internal static string? ExtractIngredientSearchText(string customerMessage)
+    internal static IReadOnlyCollection<string> ExtractIngredientSearchTexts(string customerMessage)
     {
         var normalized = customerMessage
             .Replace("?", string.Empty, StringComparison.Ordinal)
@@ -172,11 +225,11 @@ internal static class RecommendationCatalogMatcher
             var index = lowered.IndexOf(marker, StringComparison.Ordinal);
             if (index >= 0)
             {
-                return TrimLeadingArticle(normalized[(index + marker.Length)..].TrimOrEmpty());
+                return SplitIngredientCandidates(normalized[(index + marker.Length)..].TrimOrEmpty());
             }
         }
 
-        return null;
+        return [];
     }
 
     private static string? TrimLeadingArticle(string? value)
@@ -197,5 +250,23 @@ internal static class RecommendationCatalogMatcher
         }
 
         return trimmed.NullIfWhiteSpace();
+    }
+
+    private static IReadOnlyCollection<string> SplitIngredientCandidates(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return [];
+        }
+
+        return value
+            .Replace(" and ", ",", StringComparison.OrdinalIgnoreCase)
+            .Replace("&", ",", StringComparison.Ordinal)
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(TrimLeadingArticle)
+            .Where(candidate => !string.IsNullOrWhiteSpace(candidate))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Cast<string>()
+            .ToList();
     }
 }

@@ -12,8 +12,12 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
     private readonly IRecommendationChatClientStrategyFactory strategyFactory;
     private readonly ILoggerFactory loggerFactory;
     private readonly IOptions<RecommendationObservabilityOptions> observabilityOptions;
-    private readonly IRecommendationRunContextService runContextService;
-    private readonly IRecommendationCurrentRunContextAccessor currentRunContextAccessor;
+    private readonly IRecommendationRunInputsQueryService runInputsQueryService;
+    private readonly IRecommendationSemanticSearchService semanticSearchService;
+    private readonly IRecommendationRequestIntentResolver requestIntentResolver;
+    private readonly IRecommendationCandidateBuilder candidateBuilder;
+    private readonly IRecommendationRunContextBuilder runContextBuilder;
+    private readonly IRecommendationExecutionTraceRecorder executionTraceRecorder;
     private readonly IServiceProvider serviceProvider;
     private readonly RecommendationDrinkSearchTool drinkSearchTool;
     private readonly RecommendationRecipeLookupTool recipeLookupTool;
@@ -23,8 +27,12 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
         IRecommendationChatClientStrategyFactory strategyFactory,
         ILoggerFactory loggerFactory,
         IOptions<RecommendationObservabilityOptions> observabilityOptions,
-        IRecommendationRunContextService runContextService,
-        IRecommendationCurrentRunContextAccessor currentRunContextAccessor,
+        IRecommendationRunInputsQueryService runInputsQueryService,
+        IRecommendationSemanticSearchService semanticSearchService,
+        IRecommendationRequestIntentResolver requestIntentResolver,
+        IRecommendationCandidateBuilder candidateBuilder,
+        IRecommendationRunContextBuilder runContextBuilder,
+        IRecommendationExecutionTraceRecorder executionTraceRecorder,
         IServiceProvider serviceProvider,
         RecommendationDrinkSearchTool drinkSearchTool,
         RecommendationRecipeLookupTool recipeLookupTool,
@@ -33,18 +41,21 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
         this.strategyFactory = strategyFactory;
         this.loggerFactory = loggerFactory;
         this.observabilityOptions = observabilityOptions;
-        this.runContextService = runContextService;
-        this.currentRunContextAccessor = currentRunContextAccessor;
+        this.runInputsQueryService = runInputsQueryService;
+        this.semanticSearchService = semanticSearchService;
+        this.requestIntentResolver = requestIntentResolver;
+        this.candidateBuilder = candidateBuilder;
+        this.runContextBuilder = runContextBuilder;
+        this.executionTraceRecorder = executionTraceRecorder;
         this.serviceProvider = serviceProvider;
         this.drinkSearchTool = drinkSearchTool;
         this.recipeLookupTool = recipeLookupTool;
         this.ingredientLookupTool = ingredientLookupTool;
     }
 
-    public AIAgent Create()
+    public AIAgent Create(ChatSession session)
     {
         var strategy = strategyFactory.Create();
-        var contextProvider = new RecommendationRunContextProvider(currentRunContextAccessor, runContextService);
         var instrumentedChatClient = new ChatClientBuilder(strategy.ChatClient)
             .UseOpenTelemetry(
                 loggerFactory,
@@ -98,19 +109,28 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
                 Name = "recommendation-narrator",
                 Description = "Turns deterministic recommendation candidates into a concise bartender-style response.",
                 ChatOptions = chatOptions,
-                ChatHistoryProvider = new NoOpChatHistoryProvider(),
+                ChatHistoryProvider = new RecommendationChatHistoryProvider(session),
                 AIContextProviders =
                 [
-                    contextProvider,
+                    new RecommendationInvocationContextProvider(session.Id),
+                    new RecommendationCatalogInputsProvider(runInputsQueryService),
+                    new RecommendationSemanticSearchProvider(semanticSearchService),
+                    new RecommendationIntentResolutionProvider(requestIntentResolver),
+                    new RecommendationNarrationContextProvider(
+                        candidateBuilder,
+                        runContextBuilder,
+                        executionTraceRecorder),
                 ],
             },
             loggerFactory,
             serviceProvider);
 
-        return agent.AsBuilder()
+        var builtAgent = agent.AsBuilder()
             .UseOpenTelemetry(
                 RecommendationTelemetry.SourceName,
                 configure: telemetry => telemetry.EnableSensitiveData = observabilityOptions.Value.EnableSensitiveData)
             .Build(serviceProvider);
+
+        return builtAgent;
     }
 }

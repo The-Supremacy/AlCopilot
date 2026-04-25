@@ -101,7 +101,15 @@ function RecommendationTurnCard({
               {turn.recommendationGroups.map((group) => (
                 <section key={group.key} aria-label={group.label} className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Badge variant={group.key === 'make-now' ? 'success' : 'warning'}>
+                    <Badge
+                      variant={
+                        group.key === 'make-now'
+                          ? 'success'
+                          : group.key === 'buy-next'
+                            ? 'warning'
+                            : 'neutral'
+                      }
+                    >
                       {group.label}
                     </Badge>
                     <span className="text-xs text-muted-foreground">

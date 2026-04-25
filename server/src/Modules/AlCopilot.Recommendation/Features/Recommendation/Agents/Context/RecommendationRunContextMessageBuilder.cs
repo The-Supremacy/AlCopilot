@@ -9,14 +9,14 @@ internal static class RecommendationRunContextMessageBuilder
         builder.AppendLine("Follow the resolved request intent below before choosing tools or writing the answer.");
         builder.AppendLine("Prefer drinks from the deterministic groups when they satisfy the request.");
         builder.AppendLine("If you need to resolve a drink name, call the search_drinks tool first.");
-        builder.AppendLine("If the request is ingredient-led or the deterministic groups are not enough, call the lookup_drinks_by_ingredient tool.");
+        builder.AppendLine("If the request includes ingredient constraints or the deterministic groups are not enough, call the lookup_drinks_by_ingredient tool.");
         builder.AppendLine("If exact measurements, method, garnish, or brand details are needed for a specific drink, call the lookup_drink_recipe tool.");
         builder.AppendLine();
         builder.AppendLine("Resolved request intent:");
         builder.AppendLine($"- kind: {runContext.Intent.Kind}");
         builder.AppendLine($"- requested drink: {runContext.Intent.RequestedDrinkName ?? "none"}");
-        builder.AppendLine($"- requested ingredient: {runContext.Intent.RequestedIngredientName ?? "none"}");
-        builder.AppendLine($"- preference signals: {FormatTextList(runContext.Intent.PreferenceSignals)}");
+        builder.AppendLine($"- requested ingredients: {FormatTextList(runContext.Intent.RequestedIngredientNames)}");
+        builder.AppendLine($"- request descriptors: {FormatTextList(runContext.Intent.RequestDescriptors)}");
         builder.AppendLine($"- semantic hints: {FormatTextList(runContext.SemanticSummaryHints)}");
         builder.AppendLine();
         builder.AppendLine("Customer profile:");
