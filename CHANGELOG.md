@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.5...v0.1.6) (2026-04-25)
+
+
+### Features
+
+* rag ([#22](https://github.com/The-Supremacy/AlCopilot/issues/22)) ([9234019](https://github.com/The-Supremacy/AlCopilot/commit/923401953bb8de2aef06438c86cd39990fbe68c2))
+
 ## [0.1.5](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.4...v0.1.5) (2026-04-23)
 
 
