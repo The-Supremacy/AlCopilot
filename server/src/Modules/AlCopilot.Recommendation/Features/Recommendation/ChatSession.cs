@@ -62,6 +62,20 @@ public sealed class ChatSession : AggregateRoot<Guid>
         Raise(new RecommendationAssistantMessageRecordedEvent(Id, turn.Id));
     }
 
+    public void UpdateLatestAssistantTurnArtifacts(
+        IReadOnlyCollection<RecommendationGroupDto> recommendationGroups,
+        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations,
+        IReadOnlyCollection<RecommendationExecutionTraceStep>? executionTraceSteps = null)
+    {
+        var turn = Turns
+            .OrderByDescending(candidate => candidate.Sequence)
+            .FirstOrDefault(candidate => string.Equals(candidate.Role, "assistant", StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("No assistant turn exists to update recommendation artifacts.");
+
+        turn.UpdateArtifacts(recommendationGroups, toolInvocations, executionTraceSteps);
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
     public void UpdateAgentSessionState(string serializedState)
     {
         if (string.IsNullOrWhiteSpace(serializedState))
@@ -71,6 +85,21 @@ public sealed class ChatSession : AggregateRoot<Guid>
 
         AgentSessionStateJson = serializedState;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void RecordTurnFeedback(Guid turnId, string rating, string? comment)
+    {
+        var turn = Turns.FirstOrDefault(candidate => candidate.Id == turnId)
+            ?? throw new AlCopilot.Shared.Errors.NotFoundException($"Recommendation turn '{turnId}' not found.");
+
+        if (!string.Equals(turn.Role, "assistant", StringComparison.Ordinal))
+        {
+            throw new AlCopilot.Shared.Errors.ValidationException("Feedback can only be recorded for assistant turns.");
+        }
+
+        turn.RecordFeedback(rating, comment);
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+        Raise(new RecommendationTurnFeedbackRecordedEvent(Id, turn.Id, turn.FeedbackRating!));
     }
 
     private static string BuildTitle(string message)
@@ -97,6 +126,9 @@ public sealed class ChatTurn
     public string RecommendationGroupsJson { get; private set; } = "[]";
     public string ToolInvocationsJson { get; private set; } = "[]";
     public string? ExecutionTraceJson { get; private set; }
+    public string? FeedbackRating { get; private set; }
+    public string? FeedbackComment { get; private set; }
+    public DateTimeOffset? FeedbackCreatedAtUtc { get; private set; }
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     private ChatTurn()
@@ -148,4 +180,40 @@ public sealed class ChatTurn
         string.IsNullOrWhiteSpace(ExecutionTraceJson)
             ? []
             : JsonSerializer.Deserialize<List<RecommendationExecutionTraceStep>>(ExecutionTraceJson, SerializerOptions) ?? [];
+
+    public RecommendationTurnFeedbackDto? GetFeedback() =>
+        string.IsNullOrWhiteSpace(FeedbackRating) || FeedbackCreatedAtUtc is null
+            ? null
+            : new RecommendationTurnFeedbackDto(FeedbackRating, FeedbackComment, FeedbackCreatedAtUtc.Value);
+
+    internal void RecordFeedback(string rating, string? comment)
+    {
+        var normalizedRating = rating.Trim().ToLowerInvariant();
+        if (normalizedRating is not "positive" and not "negative")
+        {
+            throw new AlCopilot.Shared.Errors.ValidationException(
+                "Recommendation feedback rating must be 'positive' or 'negative'.");
+        }
+
+        var normalizedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+        if (normalizedComment?.Length > 1000)
+        {
+            throw new AlCopilot.Shared.Errors.ValidationException(
+                "Recommendation feedback comment must be 1000 characters or fewer.");
+        }
+
+        FeedbackRating = normalizedRating;
+        FeedbackComment = normalizedComment;
+        FeedbackCreatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    internal void UpdateArtifacts(
+        IReadOnlyCollection<RecommendationGroupDto> recommendationGroups,
+        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations,
+        IReadOnlyCollection<RecommendationExecutionTraceStep>? executionTraceSteps)
+    {
+        RecommendationGroupsJson = JsonSerializer.Serialize(recommendationGroups);
+        ToolInvocationsJson = JsonSerializer.Serialize(toolInvocations);
+        ExecutionTraceJson = executionTraceSteps is null ? null : JsonSerializer.Serialize(executionTraceSteps);
+    }
 }

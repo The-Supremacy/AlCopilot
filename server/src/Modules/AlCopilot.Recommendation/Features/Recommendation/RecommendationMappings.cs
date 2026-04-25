@@ -27,6 +27,7 @@ internal static class RecommendationMappings
             turn.Content,
             turn.GetRecommendationGroups(),
             turn.GetToolInvocations(),
+            turn.GetFeedback(),
             turn.CreatedAtUtc);
     }
 

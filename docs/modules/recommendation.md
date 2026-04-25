@@ -16,7 +16,7 @@ It provides the durable business record of what the customer asked, how the assi
 
 - **Recommendation Session** — A persisted customer conversation about what to drink or how to make something.
 - **Recommendation Turn** — A single user or assistant message within a recommendation session.
-- **Customer Request Intent** — The interpreted shape of the customer's request, such as general recommendation, ingredient-led discovery, or recipe lookup.
+- **Customer Request Intent** — The interpreted shape of the customer's request, currently centered on recommendation requests versus drink-details requests, with ingredients and descriptive cues carried as request attributes.
 - **Recommendation Candidate** — A drink that remains eligible after deterministic recommendation preparation.
 - **Recommendation Group** — A customer-facing grouping of recommendation outcomes, currently centered on drinks available now versus drinks better framed for restock.
 - **Recommendation Outcome** — The combined result of grouped machine-readable suggestions plus conversational assistant explanation.
@@ -35,7 +35,7 @@ It provides the durable business record of what the customer asked, how the assi
 
 ## Actors And Uses
 
-- **Customers** ask for drink suggestions, ingredient-led ideas, or recipe help through recommendation chat.
+- **Customers** ask for drink suggestions, ingredient-constrained recommendations, or drink details through recommendation chat.
 - **The recommendation assistant** returns grouped suggestions and practical conversational guidance.
 - **Customer portal experiences** use persisted recommendation sessions so past conversations can be reopened and understood in order.
 - **Developers and operators** may inspect recommendation-session and tool-usage history when troubleshooting recommendation behavior in development workflows.

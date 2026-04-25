@@ -1,5 +1,5 @@
 {
   "appHost": {
-    "path": "server/src/AlCopilot.AppHost/AlCopilot.AppHost.csproj"
+    "path": "server/src/AlCopilot.Orchestration/AlCopilot.Orchestration.csproj"
   }
 }

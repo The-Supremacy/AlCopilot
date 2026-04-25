@@ -70,7 +70,7 @@ Module endpoints are registered into the Host, but module behavior remains modul
 Customer-facing recommendation behavior is planned around separate `CustomerProfile` and `Recommendation` modules that collaborate through contracts rather than Host-owned product logic, as accepted in [ADR 0012](../adr/0012-customer-profile-and-recommendation-modules-with-deterministic-candidate-building.md).
 Recommendation orchestration now uses bounded Microsoft Agent Framework workflows, while deterministic filtering and grouping remain in plain module code, as accepted in [ADR 0015](../adr/0015-recommendation-workflows-with-agent-framework.md).
 Within the Recommendation module, model-visible conversation state should flow through a stable `ChatClientAgent` plus persisted `AgentSession` state, while the module aggregate remains the durable business transcript.
-Deterministic narration snapshots such as the current profile summary and current recommendation groups should be passed as explicit run input messages rather than hidden in request-scoped provider mutation.
+Deterministic narration snapshots should be assembled per run through `AIContextProvider` stages that own their session-backed provider state, while the final narrator still receives explicit model-visible context messages derived from that state.
 Recommendation semantic retrieval now uses Qdrant as `Recommendation`-owned derived projection storage over contracts-facing catalog reads, while PostgreSQL remains the canonical catalog store, as accepted in [ADR 0016](../adr/0016-recommendation-semantic-retrieval-with-qdrant.md).
 
 ---

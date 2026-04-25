@@ -14,9 +14,10 @@ internal sealed class RecommendationRecipeLookupTool(
     [Description("Look up the full recipe details for a specific known drink from the catalog.")]
     public async Task<RecommendationRecipeLookupResult> LookupDrinkRecipeAsync(
         [Description("Optional drink id from the recommendation run context. Prefer this when available.")] string? drinkId = null,
-        [Description("Optional drink name when the drink id is unavailable. Use the exact drink name if possible.")] string? drinkName = null)
+        [Description("Optional drink name when the drink id is unavailable. Use the exact drink name if possible.")] string? drinkName = null,
+        CancellationToken cancellationToken = default)
     {
-        var drink = await ResolveDrinkAsync(drinkId, drinkName);
+        var drink = await ResolveDrinkAsync(drinkId, drinkName, cancellationToken);
         if (drink is null)
         {
             executionTraceRecorder.Record(
@@ -60,11 +61,14 @@ internal sealed class RecommendationRecipeLookupTool(
             RecommendationRecipeLookupDrink.FromDrink(drink));
     }
 
-    private async Task<DrinkDetailDto?> ResolveDrinkAsync(string? drinkId, string? drinkName)
+    private async Task<DrinkDetailDto?> ResolveDrinkAsync(
+        string? drinkId,
+        string? drinkName,
+        CancellationToken cancellationToken)
     {
         if (Guid.TryParse(drinkId, out var parsedDrinkId))
         {
-            var drinkById = await mediator.Send(new GetDrinkByIdQuery(parsedDrinkId), CancellationToken.None);
+            var drinkById = await mediator.Send(new GetDrinkByIdQuery(parsedDrinkId), cancellationToken);
             if (drinkById is not null)
             {
                 return drinkById;
@@ -76,7 +80,7 @@ internal sealed class RecommendationRecipeLookupTool(
             return null;
         }
 
-        var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), CancellationToken.None);
+        var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), cancellationToken);
         return RecommendationCatalogMatcher.FindDrink(drinks, drinkId, drinkName);
     }
 }

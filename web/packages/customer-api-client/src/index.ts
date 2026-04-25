@@ -47,6 +47,12 @@ export type RecommendationToolInvocationDto = {
   purpose: string;
 };
 
+export type RecommendationTurnFeedbackDto = {
+  rating: 'positive' | 'negative' | string;
+  comment: string | null;
+  createdAtUtc: string;
+};
+
 export type RecommendationTurnDto = {
   turnId: string;
   sequence: number;
@@ -54,6 +60,7 @@ export type RecommendationTurnDto = {
   content: string;
   recommendationGroups: RecommendationGroupDto[];
   toolInvocations: RecommendationToolInvocationDto[];
+  feedback: RecommendationTurnFeedbackDto | null;
   createdAtUtc: string;
 };
 
@@ -76,6 +83,13 @@ export type RecommendationSessionSummaryDto = {
 export type SubmitRecommendationRequestInput = {
   sessionId: string | null;
   message: string;
+};
+
+export type SubmitRecommendationTurnFeedbackInput = {
+  sessionId: string;
+  turnId: string;
+  rating: 'positive' | 'negative';
+  comment?: string | null;
 };
 
 const baseUrl = '';
@@ -188,4 +202,17 @@ export function submitRecommendationRequest(input: SubmitRecommendationRequestIn
     method: 'POST',
     body: JSON.stringify(input),
   });
+}
+
+export function submitRecommendationTurnFeedback(input: SubmitRecommendationTurnFeedbackInput) {
+  return request<RecommendationSessionDto>(
+    `/api/customer/recommendations/sessions/${input.sessionId}/turns/${input.turnId}/feedback`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        rating: input.rating,
+        comment: input.comment ?? null,
+      }),
+    },
+  );
 }

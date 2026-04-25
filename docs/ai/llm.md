@@ -13,6 +13,7 @@ It explains what the main LLM-side settings mean and why the current defaults ar
 - `gemma4:e4b` remains the default local CPU-oriented recommendation model unless a newer documented default replaces it.
 - PostgreSQL remains the canonical source of truth for catalog and recommendation business data.
 - Qdrant is the accepted vector store for recommendation semantic retrieval, but it is documented separately in [embedding.md](embedding.md).
+- The end-to-end recommendation RAG pipeline is documented separately in [recommendation.md](recommendation.md).
 
 ---
 
@@ -172,6 +173,7 @@ Those concerns are intentionally documented separately so tuning one does not bl
 ## Related Guidance
 
 - [AI Embedding Guide](embedding.md)
+- [Recommendation RAG Pipeline](recommendation.md)
 - [Architecture Index](../architecture.md)
 - [Server Architecture](../architecture/server.md)
 - [ADR 0015](../adr/0015-recommendation-workflows-with-agent-framework.md)

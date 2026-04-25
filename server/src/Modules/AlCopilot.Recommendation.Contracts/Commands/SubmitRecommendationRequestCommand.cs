@@ -8,5 +8,11 @@ public sealed record SubmitRecommendationRequestCommand(
     Guid? SessionId,
     string Message) : IRequest<RecommendationSessionDto>;
 
+public sealed record SubmitRecommendationTurnFeedbackCommand(
+    Guid SessionId,
+    Guid TurnId,
+    string Rating,
+    string? Comment) : IRequest<RecommendationSessionDto>;
+
 public sealed record ReplaceRecommendationSemanticCatalogCommand(
     IReadOnlyCollection<DrinkDetailDto> Drinks) : IRequest<RecommendationSemanticCatalogIndexResultDto>;

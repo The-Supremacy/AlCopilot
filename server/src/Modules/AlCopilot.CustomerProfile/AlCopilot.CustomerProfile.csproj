@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AlCopilot.CustomerProfile.Tests" />
+    <InternalsVisibleTo Include="AlCopilot.CustomerProfile.UnitTests" />
+    <InternalsVisibleTo Include="AlCopilot.CustomerProfile.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -42,11 +42,9 @@ public static class RecommendationModule
         services.AddScoped<IRecommendationSemanticSearchService, RecommendationSemanticSearchService>();
         services.AddScoped<IRecommendationRequestIntentResolver, RecommendationRequestIntentResolver>();
         services.AddScoped<IRecommendationRunContextBuilder, RecommendationRunContextBuilder>();
-        services.AddScoped<IRecommendationRunContextService, RecommendationRunContextService>();
         services.AddSingleton<IRecommendationChatClientStrategyFactory, RecommendationChatClientStrategyFactory>();
         services.AddScoped<IRecommendationNarratorAgentFactory, RecommendationNarratorAgentFactory>();
         services.AddSingleton<IRecommendationAgentSessionStore, RecommendationAgentSessionStore>();
-        services.AddScoped<IRecommendationCurrentRunContextAccessor, RecommendationCurrentRunContextAccessor>();
         services.AddScoped<IRecommendationExecutionTraceRecorder, RecommendationExecutionTraceRecorder>();
         services.AddScoped<IRecommendationToolInvocationRecorder, RecommendationToolInvocationRecorder>();
         services.AddScoped<RecommendationDrinkSearchTool>();
