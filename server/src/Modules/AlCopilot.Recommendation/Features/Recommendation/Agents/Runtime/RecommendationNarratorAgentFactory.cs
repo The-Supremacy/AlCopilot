@@ -115,7 +115,7 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
                 Name = "recommendation-narrator",
                 Description = "Turns deterministic recommendation candidates into a concise bartender-style response.",
                 ChatOptions = chatOptions,
-                ChatHistoryProvider = new RecommendationChatHistoryProvider(session, turnState),
+                ChatHistoryProvider = new RecommendationChatHistoryProvider(session, strategy.MaxHistoryMessages, turnState),
                 AIContextProviders =
                 [
                     new RecommendationInvocationContextProvider(session.Id, turnState),

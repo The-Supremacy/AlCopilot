@@ -5,6 +5,7 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationChatHistoryProvider(
     ChatSession session,
+    int maxHistoryMessages,
     RecommendationAgentTurnState turnState) : ChatHistoryProvider
 {
     protected override ValueTask<IEnumerable<ChatMessage>> ProvideChatHistoryAsync(
@@ -13,14 +14,26 @@ internal sealed class RecommendationChatHistoryProvider(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var messages = session.Turns
+        var messages = BuildChatMessages(session.Turns, maxHistoryMessages);
+
+        return ValueTask.FromResult<IEnumerable<ChatMessage>>(messages);
+    }
+
+    internal static List<ChatMessage> BuildChatMessages(
+        IEnumerable<ChatTurn> turns,
+        int maxHistoryMessages)
+    {
+        var orderedTurns = turns
             .OrderBy(turn => turn.Sequence)
+            .ToList();
+        var includedTurns = maxHistoryMessages > 0
+            ? orderedTurns.TakeLast(maxHistoryMessages)
+            : orderedTurns;
+        return includedTurns
             .Select(turn => new ChatMessage(
                 string.Equals(turn.Role, "assistant", StringComparison.Ordinal) ? ChatRole.Assistant : ChatRole.User,
                 turn.Content))
             .ToList();
-
-        return ValueTask.FromResult<IEnumerable<ChatMessage>>(messages);
     }
 
     protected override ValueTask StoreChatHistoryAsync(

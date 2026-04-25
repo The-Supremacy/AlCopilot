@@ -20,6 +20,28 @@ namespace AlCopilot.Recommendation.UnitTests.Handlers;
 public sealed class RecommendationConversationServiceTests
 {
     [Fact]
+    public void BuildChatMessages_UsesConfiguredHistoryWindow()
+    {
+        var session = ChatSession.Create("customer-1", "First request");
+        session.AppendUserTurn("First request");
+        session.AppendAssistantTurn("First answer", [], []);
+        session.AppendUserTurn("Second request");
+        session.AppendAssistantTurn("Second answer", [], []);
+        session.AppendUserTurn("Third request");
+        session.AppendAssistantTurn("Third answer", [], []);
+
+        var messages = RecommendationChatHistoryProvider.BuildChatMessages(session.Turns, maxHistoryMessages: 4);
+
+        messages.Select(message => (message.Role, message.Text)).ShouldBe(
+        [
+            (ChatRole.User, "Second request"),
+            (ChatRole.Assistant, "Second answer"),
+            (ChatRole.User, "Third request"),
+            (ChatRole.Assistant, "Third answer"),
+        ]);
+    }
+
+    [Fact]
     public async Task SendMessageAsync_CreatesSession_AndPersistsResult()
     {
         var repository = Substitute.For<IChatSessionRepository>();
