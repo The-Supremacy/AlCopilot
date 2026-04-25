@@ -6,7 +6,7 @@ using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using Microsoft.Extensions.Options;
 using Shouldly;
 
-namespace AlCopilot.Recommendation.Tests.Regression;
+namespace AlCopilot.Recommendation.UnitTests.Regression;
 
 public sealed class RecommendationSemanticEvaluationTests
 {

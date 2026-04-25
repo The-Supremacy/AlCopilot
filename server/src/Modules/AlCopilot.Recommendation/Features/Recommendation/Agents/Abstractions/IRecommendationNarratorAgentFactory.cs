@@ -4,5 +4,5 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 
 internal interface IRecommendationNarratorAgentFactory
 {
-    AIAgent Create(ChatSession session);
+    AIAgent Create(ChatSession session, RecommendationAgentTurnState turnState);
 }

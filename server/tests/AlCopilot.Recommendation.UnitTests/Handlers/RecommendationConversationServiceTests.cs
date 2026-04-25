@@ -15,7 +15,7 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
 
-namespace AlCopilot.Recommendation.Tests.Handlers;
+namespace AlCopilot.Recommendation.UnitTests.Handlers;
 
 public sealed class RecommendationConversationServiceTests
 {
@@ -32,7 +32,11 @@ public sealed class RecommendationConversationServiceTests
         var agent = new FakeAgent("Try the Gimlet.", BuildRunContext());
         var agentSession = new TestAgentSession();
 
-        agentFactory.Create(Arg.Any<ChatSession>()).Returns(agent);
+        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        {
+            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
+            return agent;
+        });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
@@ -71,6 +75,55 @@ public sealed class RecommendationConversationServiceTests
     }
 
     [Fact]
+    public async Task SendMessageAsync_UsesScopedTurnState_ForRecommendationArtifacts()
+    {
+        var repository = Substitute.For<IChatSessionRepository>();
+        var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
+        var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
+        var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
+        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
+        var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
+        var hostEnvironment = Substitute.For<IHostEnvironment>();
+        RecommendationAgentTurnState? capturedTurnState = null;
+        var agent = new FakeAgent("Try the Gimlet.", BuildRunContext());
+        var agentSession = new TestAgentSession();
+
+        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        {
+            capturedTurnState = (RecommendationAgentTurnState)call[1]!;
+            agent.Attach((ChatSession)call[0]!, capturedTurnState);
+            return agent;
+        });
+        sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
+            .Returns(agentSession);
+        sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
+            .Returns("""{"stateBag":{"session":"saved"}}""");
+        toolInvocationRecorder.Drain().Returns([]);
+
+        var service = new RecommendationConversationService(
+            repository,
+            agentFactory,
+            sessionStore,
+            executionTraceRecorder,
+            toolInvocationRecorder,
+            unitOfWork,
+            hostEnvironment,
+            Options.Create(new RecommendationObservabilityOptions()),
+            NullLogger<RecommendationConversationService>.Instance);
+
+        var result = await service.SendMessageAsync(
+            "customer-1",
+            null,
+            "Give me something citrusy",
+            CancellationToken.None);
+
+        result.Turns.Last().RecommendationGroups.Count.ShouldBe(1);
+        capturedTurnState.ShouldNotBeNull();
+        capturedTurnState.RunContext.ShouldNotBeNull();
+        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task SendMessageAsync_ReusesExistingSession_AndPersistsRecordedToolInvocations()
     {
         var repository = Substitute.For<IChatSessionRepository>();
@@ -88,7 +141,11 @@ public sealed class RecommendationConversationServiceTests
 
         repository.GetByCustomerSessionIdAsync("customer-1", existingSession.Id, Arg.Any<CancellationToken>())
             .Returns(existingSession);
-        agentFactory.Create(existingSession).Returns(agent);
+        agentFactory.Create(existingSession, Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        {
+            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
+            return agent;
+        });
         sessionStore.RestoreAsync(existingSession.AgentSessionStateJson, agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
@@ -164,7 +221,11 @@ public sealed class RecommendationConversationServiceTests
         var agent = new FakeAgent("Try the Gimlet.", BuildEmptyRunContext());
         var agentSession = new TestAgentSession();
 
-        agentFactory.Create(Arg.Any<ChatSession>()).Returns(agent);
+        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        {
+            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
+            return agent;
+        });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
@@ -204,7 +265,11 @@ public sealed class RecommendationConversationServiceTests
         var agentSession = new TestAgentSession();
 
         hostEnvironment.EnvironmentName.Returns(Environments.Development);
-        agentFactory.Create(Arg.Any<ChatSession>()).Returns(agent);
+        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        {
+            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
+            return agent;
+        });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
@@ -261,7 +326,11 @@ public sealed class RecommendationConversationServiceTests
         var agentSession = new TestAgentSession();
 
         hostEnvironment.EnvironmentName.Returns(Environments.Development);
-        agentFactory.Create(Arg.Any<ChatSession>()).Returns(agent);
+        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        {
+            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
+            return agent;
+        });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
@@ -352,26 +421,32 @@ public sealed class RecommendationConversationServiceTests
     {
         private readonly AgentResponse response;
         private readonly RecommendationRunContext? runContext;
-        private readonly bool historyStoredByProvider;
+        private ChatSession? chatSession;
+        private RecommendationAgentTurnState? turnState;
 
         public FakeAgent(string assistantText)
             : this(new AgentResponse([new ChatMessage(ChatRole.Assistant, assistantText)]))
         {
         }
 
-        public FakeAgent(string assistantText, RecommendationRunContext? runContext, bool historyStoredByProvider = false)
-            : this(new AgentResponse([new ChatMessage(ChatRole.Assistant, assistantText)]), runContext, historyStoredByProvider)
+        public FakeAgent(string assistantText, RecommendationRunContext? runContext)
+            : this(new AgentResponse([new ChatMessage(ChatRole.Assistant, assistantText)]), runContext)
         {
         }
 
-        public FakeAgent(AgentResponse response, RecommendationRunContext? runContext = null, bool historyStoredByProvider = false)
+        public FakeAgent(AgentResponse response, RecommendationRunContext? runContext = null)
         {
             this.response = response;
             this.runContext = runContext;
-            this.historyStoredByProvider = historyStoredByProvider;
         }
 
         public List<ChatMessage> SeenMessages { get; } = [];
+
+        public void Attach(ChatSession session, RecommendationAgentTurnState state)
+        {
+            chatSession = session;
+            turnState = state;
+        }
 
         protected override ValueTask<AgentSession> CreateSessionCoreAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
@@ -396,15 +471,26 @@ public sealed class RecommendationConversationServiceTests
         {
             SeenMessages.Clear();
             SeenMessages.AddRange(messages);
-            if (session is not null)
+            if (chatSession is not null)
             {
-                var narrationContextState = RecommendationNarrationContextProvider.SessionState.GetOrInitializeState(session);
-                narrationContextState.RunContext = runContext;
-                RecommendationNarrationContextProvider.SessionState.SaveState(session, narrationContextState);
+                var userMessage = messages
+                    .Where(message => message.Role == ChatRole.User)
+                    .Select(message => message.Text)
+                    .LastOrDefault(text => !string.IsNullOrWhiteSpace(text));
+                var assistantMessage = response.Messages
+                    .Where(message => message.Role == ChatRole.Assistant)
+                    .Select(message => message.Text)
+                    .LastOrDefault(text => !string.IsNullOrWhiteSpace(text));
+                if (!string.IsNullOrWhiteSpace(userMessage) && !string.IsNullOrWhiteSpace(assistantMessage))
+                {
+                    chatSession.AppendUserTurn(userMessage);
+                    chatSession.AppendAssistantTurn(assistantMessage, [], []);
+                }
+            }
 
-                var historyState = RecommendationChatHistoryProvider.SessionState.GetOrInitializeState(session);
-                historyState.HistoryStoredByProvider = historyStoredByProvider;
-                RecommendationChatHistoryProvider.SessionState.SaveState(session, historyState);
+            if (turnState is not null)
+            {
+                turnState.RunContext = runContext;
             }
 
             return Task.FromResult(response);

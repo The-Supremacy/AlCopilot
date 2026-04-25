@@ -16,7 +16,8 @@ internal sealed class RecommendationIngredientLookupTool(
     [Description("Find catalog drinks that contain a requested ingredient.")]
     public async Task<RecommendationIngredientLookupResult> LookupDrinksByIngredientAsync(
         [Description("The ingredient name to search for, such as Tequila or Lime Juice.")] string ingredientName,
-        [Description("Maximum number of drinks to return. Keep this small and use 5 unless the user explicitly asks for more.")] int maxResults = 5)
+        [Description("Maximum number of drinks to return. Keep this small and use 5 unless the user explicitly asks for more.")] int maxResults = 5,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(ingredientName))
         {
@@ -29,8 +30,8 @@ internal sealed class RecommendationIngredientLookupTool(
         }
 
         var normalizedIngredientName = ingredientName.Trim();
-        var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), CancellationToken.None);
-        var resolvedIngredientName = await ResolveIngredientNameAsync(normalizedIngredientName);
+        var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), cancellationToken);
+        var resolvedIngredientName = await ResolveIngredientNameAsync(normalizedIngredientName, cancellationToken);
         var matches = RecommendationCatalogMatcher.FindDrinksByIngredient(
                 drinks,
                 resolvedIngredientName,
@@ -62,11 +63,13 @@ internal sealed class RecommendationIngredientLookupTool(
             matches);
     }
 
-    private async Task<string> ResolveIngredientNameAsync(string normalizedIngredientName)
+    private async Task<string> ResolveIngredientNameAsync(
+        string normalizedIngredientName,
+        CancellationToken cancellationToken)
     {
         var fuzzyMatches = await fuzzyLookupService.FindIngredientMatchesAsync(
             normalizedIngredientName,
-            CancellationToken.None);
+            cancellationToken);
 
         return fuzzyMatches
             .OrderByDescending(match => match.Similarity)

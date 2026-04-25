@@ -5,7 +5,7 @@ using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using Microsoft.Extensions.Options;
 using Shouldly;
 
-namespace AlCopilot.Recommendation.Tests.Handlers;
+namespace AlCopilot.Recommendation.UnitTests.Handlers;
 
 public sealed class RecommendationRequestIntentResolverTests
 {

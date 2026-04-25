@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
 
-namespace AlCopilot.Recommendation.Tests.Regression;
+namespace AlCopilot.Recommendation.UnitTests.Regression;
 
 public sealed class RecommendationEvaluationCorpusTests
 {
