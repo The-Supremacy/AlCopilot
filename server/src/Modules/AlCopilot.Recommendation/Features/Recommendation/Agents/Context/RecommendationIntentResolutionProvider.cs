@@ -4,27 +4,47 @@ using Microsoft.Agents.AI;
 namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationIntentResolutionProvider(
-    IRecommendationRequestIntentResolver requestIntentResolver,
-    RecommendationAgentTurnState turnState) : AIContextProvider
+    IRecommendationRequestIntentResolver requestIntentResolver) : AIContextProvider
 {
+    internal static readonly ProviderSessionState<RecommendationIntentResolutionProviderState> SessionState = new(
+        _ => new RecommendationIntentResolutionProviderState(),
+        "recommendation.intent-resolution");
+
+    public override IReadOnlyList<string> StateKeys =>
+    [
+        SessionState.StateKey,
+    ];
+
     protected override async ValueTask<AIContext> ProvideAIContextAsync(
         InvokingContext context,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (turnState.Inputs is null || string.IsNullOrWhiteSpace(turnState.CustomerMessage))
+        var invocationState = RecommendationInvocationContextProvider.SessionState.GetOrInitializeState(context.Session);
+        var inputsState = RecommendationCatalogInputsProvider.SessionState.GetOrInitializeState(context.Session);
+        var semanticState = RecommendationSemanticSearchProvider.SessionState.GetOrInitializeState(context.Session);
+        var intentState = SessionState.GetOrInitializeState(context.Session);
+
+        if (inputsState.Inputs is null || string.IsNullOrWhiteSpace(invocationState.CustomerMessage))
         {
-            turnState.Intent = null;
+            intentState.Intent = null;
+            SessionState.SaveState(context.Session, intentState);
             return new AIContext();
         }
 
-        turnState.Intent = await requestIntentResolver.ResolveAsync(
-            turnState.CustomerMessage,
-            turnState.Inputs,
-            turnState.SemanticSearchResult,
+        intentState.Intent = await requestIntentResolver.ResolveAsync(
+            invocationState.CustomerMessage,
+            inputsState.Inputs,
+            semanticState.SemanticSearchResult,
             cancellationToken);
+        SessionState.SaveState(context.Session, intentState);
 
         return new AIContext();
     }
+}
+
+internal sealed class RecommendationIntentResolutionProviderState
+{
+    public RecommendationRequestIntent? Intent { get; set; }
 }

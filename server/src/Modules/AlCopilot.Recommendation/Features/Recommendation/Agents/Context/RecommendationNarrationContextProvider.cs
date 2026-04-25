@@ -8,49 +8,64 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 internal sealed class RecommendationNarrationContextProvider(
     IRecommendationCandidateBuilder candidateBuilder,
     IRecommendationRunContextBuilder runContextBuilder,
-    IRecommendationExecutionTraceRecorder executionTraceRecorder,
-    RecommendationAgentTurnState turnState) : AIContextProvider
+    IRecommendationExecutionTraceRecorder executionTraceRecorder) : AIContextProvider
 {
+    internal static readonly ProviderSessionState<RecommendationNarrationContextProviderState> SessionState = new(
+        _ => new RecommendationNarrationContextProviderState(),
+        "recommendation.narration-context");
+
+    public override IReadOnlyList<string> StateKeys =>
+    [
+        SessionState.StateKey,
+    ];
+
     protected override ValueTask<AIContext> ProvideAIContextAsync(
         InvokingContext context,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (turnState.Inputs is null
-            || turnState.Intent is null
-            || string.IsNullOrWhiteSpace(turnState.CustomerMessage))
+        var invocationState = RecommendationInvocationContextProvider.SessionState.GetOrInitializeState(context.Session);
+        var inputsState = RecommendationCatalogInputsProvider.SessionState.GetOrInitializeState(context.Session);
+        var semanticState = RecommendationSemanticSearchProvider.SessionState.GetOrInitializeState(context.Session);
+        var intentState = RecommendationIntentResolutionProvider.SessionState.GetOrInitializeState(context.Session);
+        var narrationContextState = SessionState.GetOrInitializeState(context.Session);
+
+        if (inputsState.Inputs is null
+            || intentState.Intent is null
+            || string.IsNullOrWhiteSpace(invocationState.CustomerMessage))
         {
             return ValueTask.FromResult(new AIContext());
         }
 
         var groups = candidateBuilder.Build(
-            turnState.CustomerMessage,
-            turnState.Intent,
-            turnState.Inputs.Profile,
-            turnState.Inputs.Drinks,
-            turnState.SemanticSearchResult);
-        turnState.RunContext = runContextBuilder.Build(
-            turnState.Intent,
-            turnState.Inputs.Profile,
-            turnState.Inputs.Drinks,
+            invocationState.CustomerMessage,
+            intentState.Intent,
+            inputsState.Inputs.Profile,
+            inputsState.Inputs.Drinks,
+            semanticState.SemanticSearchResult);
+        narrationContextState.RunContext = runContextBuilder.Build(
+            intentState.Intent,
+            inputsState.Inputs.Profile,
+            inputsState.Inputs.Drinks,
             groups,
-            turnState.SemanticSearchResult);
+            semanticState.SemanticSearchResult);
+        SessionState.SaveState(context.Session, narrationContextState);
 
-        var runContext = turnState.RunContext;
+        var runContext = narrationContextState.RunContext;
         executionTraceRecorder.Record(
             new RecommendationExecutionTraceStep(
                 "run_context.build",
                 "ok",
-                $"Built {runContext.Groups.Count} recommendation group(s) for {turnState.Intent.Kind}.",
+                $"Built {runContext.Groups.Count} recommendation group(s) for {intentState.Intent.Kind}.",
                 DateTimeOffset.UtcNow,
                 new Dictionary<string, string?>
                 {
-                    ["intentKind"] = turnState.Intent.Kind.ToString(),
-                    ["requestedDrinkName"] = turnState.Intent.RequestedDrinkName,
-                    ["requestedIngredientNames"] = string.Join(", ", turnState.Intent.RequestedIngredientNames),
-                    ["matchedRequestDescriptors"] = string.Join(", ", turnState.Intent.RequestDescriptors),
-                    ["semanticDrinkSignals"] = turnState.SemanticSearchResult.ByDrinkId.Count.ToString(),
+                    ["intentKind"] = intentState.Intent.Kind.ToString(),
+                    ["requestedDrinkName"] = intentState.Intent.RequestedDrinkName,
+                    ["requestedIngredientNames"] = string.Join(", ", intentState.Intent.RequestedIngredientNames),
+                    ["matchedRequestDescriptors"] = string.Join(", ", intentState.Intent.RequestDescriptors),
+                    ["semanticDrinkSignals"] = semanticState.SemanticSearchResult.ByDrinkId.Count.ToString(),
                     ["groupCount"] = runContext.Groups.Count.ToString(),
                     ["itemCount"] = runContext.Groups.Sum(group => group.Items.Count).ToString(),
                 },
@@ -66,4 +81,9 @@ internal sealed class RecommendationNarrationContextProvider(
             ],
         });
     }
+}
+
+internal sealed class RecommendationNarrationContextProviderState
+{
+    public RecommendationRunContext? RunContext { get; set; }
 }

@@ -49,8 +49,7 @@ internal sealed class RecommendationConversationService(
         CancellationToken cancellationToken)
     {
         var session = await LoadOrCreateSessionAsync(request, cancellationToken);
-        var turnState = new RecommendationAgentTurnState();
-        var agent = agentFactory.Create(session, turnState);
+        var agent = agentFactory.Create(session);
         var agentSession = await sessionStore.RestoreAsync(
             session.AgentSessionStateJson,
             agent,
@@ -71,20 +70,39 @@ internal sealed class RecommendationConversationService(
             throw new InvalidOperationException("Recommendation LLM returned an empty assistant message.");
         }
 
-        var toolInvocations = toolInvocationRecorder.Drain();
-        var executionTrace = ShouldPersistExecutionTrace()
-            ? executionTraceRecorder.Drain()
-            : null;
         var serializedSession = await sessionStore.SerializeAsync(
             agentSession,
             agent,
             cancellationToken);
 
         session.UpdateAgentSessionState(serializedSession);
-        session.UpdateLatestAssistantTurnArtifacts(
-            turnState.RunContext?.RecommendationGroups ?? [],
-            toolInvocations,
-            executionTrace);
+        var toolInvocations = toolInvocationRecorder.Drain();
+        var executionTrace = ShouldPersistExecutionTrace()
+            ? executionTraceRecorder.Drain()
+            : null;
+        var runContext = RecommendationNarrationContextProvider.SessionState
+            .GetOrInitializeState(agentSession)
+            .RunContext;
+        var historyStoredByProvider = RecommendationChatHistoryProvider.SessionState
+            .GetOrInitializeState(agentSession)
+            .HistoryStoredByProvider;
+
+        if (historyStoredByProvider)
+        {
+            session.UpdateLatestAssistantTurnArtifacts(
+                runContext?.RecommendationGroups ?? [],
+                toolInvocations,
+                executionTrace);
+        }
+        else
+        {
+            session.AppendUserTurn(request.Message);
+            session.AppendAssistantTurn(
+                content.Trim(),
+                runContext?.RecommendationGroups ?? [],
+                toolInvocations,
+                executionTrace);
+        }
 
         await SaveSessionChangesAsync(session, cancellationToken);
 

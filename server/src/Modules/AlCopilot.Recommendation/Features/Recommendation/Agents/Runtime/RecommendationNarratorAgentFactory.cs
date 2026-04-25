@@ -53,7 +53,7 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
         this.ingredientLookupTool = ingredientLookupTool;
     }
 
-    public AIAgent Create(ChatSession session, RecommendationAgentTurnState turnState)
+    public AIAgent Create(ChatSession session)
     {
         var strategy = strategyFactory.Create();
         var instrumentedChatClient = new ChatClientBuilder(strategy.ChatClient)
@@ -68,16 +68,10 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
             """
             You are an experienced bartender.
             Base your answer on the provided customer context, deterministic recommendation candidates, and tool results.
-            Use chat history to resolve follow-up references like "that", "it", or "the first one".
             Follow the resolved request intent from the run context.
             Prefer deterministic recommendation candidates when they satisfy the request.
-            If the user asks for a prohibited ingredient, explain the conflict and do not recommend drinks containing it.
-            Prefer drinks without disliked ingredients when a suitable option exists.
-            If you mention a drink with a disliked ingredient, make the tradeoff explicit instead of presenting it as an equal recommendation.
             If you need to resolve a drink name before looking up its recipe, call the drink search tool.
             If the request is ingredient-led, or the deterministic candidates do not cover the request well enough, call the ingredient lookup tool before answering.
-            If deterministic recommendation candidates already include enough ingredients and method detail, do not call the recipe lookup tool just to summarize a recommendation.
-            For drink-details requests about how to make a specific drink, call the recipe lookup tool before answering.
             If exact measurements, method, garnish, or brand details are needed for a specific known drink, call the recipe lookup tool after you know which drink to inspect.
             Prefer concise, practical guidance.
             Do not invent unavailable drinks or ignore prohibited ingredients.
@@ -115,18 +109,17 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
                 Name = "recommendation-narrator",
                 Description = "Turns deterministic recommendation candidates into a concise bartender-style response.",
                 ChatOptions = chatOptions,
-                ChatHistoryProvider = new RecommendationChatHistoryProvider(session, turnState),
+                ChatHistoryProvider = new RecommendationChatHistoryProvider(session),
                 AIContextProviders =
                 [
-                    new RecommendationInvocationContextProvider(session.Id, turnState),
-                    new RecommendationCatalogInputsProvider(runInputsQueryService, turnState),
-                    new RecommendationSemanticSearchProvider(semanticSearchService, turnState),
-                    new RecommendationIntentResolutionProvider(requestIntentResolver, turnState),
+                    new RecommendationInvocationContextProvider(session.Id),
+                    new RecommendationCatalogInputsProvider(runInputsQueryService),
+                    new RecommendationSemanticSearchProvider(semanticSearchService),
+                    new RecommendationIntentResolutionProvider(requestIntentResolver),
                     new RecommendationNarrationContextProvider(
                         candidateBuilder,
                         runContextBuilder,
-                        executionTraceRecorder,
-                        turnState),
+                        executionTraceRecorder),
                 ],
             },
             loggerFactory,

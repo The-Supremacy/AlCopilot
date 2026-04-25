@@ -3,7 +3,7 @@ using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 
-namespace AlCopilot.Recommendation.UnitTests.Regression;
+namespace AlCopilot.Recommendation.Tests.Regression;
 
 internal sealed class RecommendationRunContextEvaluationHarness(
     RecommendationRunInputs inputs,

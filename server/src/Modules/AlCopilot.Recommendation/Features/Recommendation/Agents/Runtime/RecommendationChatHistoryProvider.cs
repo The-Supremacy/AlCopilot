@@ -4,9 +4,17 @@ using Microsoft.Extensions.AI;
 namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationChatHistoryProvider(
-    ChatSession session,
-    RecommendationAgentTurnState turnState) : ChatHistoryProvider
+    ChatSession session) : ChatHistoryProvider
 {
+    internal static readonly ProviderSessionState<RecommendationHistoryProviderState> SessionState = new(
+        _ => new RecommendationHistoryProviderState(),
+        "recommendation.history");
+
+    public override IReadOnlyList<string> StateKeys =>
+    [
+        SessionState.StateKey,
+    ];
+
     protected override ValueTask<IEnumerable<ChatMessage>> ProvideChatHistoryAsync(
         InvokingContext context,
         CancellationToken cancellationToken = default)
@@ -44,10 +52,17 @@ internal sealed class RecommendationChatHistoryProvider(
             return ValueTask.CompletedTask;
         }
 
-        turnState.CustomerMessage ??= userMessage;
         session.AppendUserTurn(userMessage);
         session.AppendAssistantTurn(assistantMessage, [], []);
+        var historyState = SessionState.GetOrInitializeState(context.Session);
+        historyState.HistoryStoredByProvider = true;
+        SessionState.SaveState(context.Session, historyState);
 
         return ValueTask.CompletedTask;
     }
+}
+
+internal sealed class RecommendationHistoryProviderState
+{
+    public bool HistoryStoredByProvider { get; set; }
 }
