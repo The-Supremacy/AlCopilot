@@ -17,11 +17,15 @@
   </Folder>
   <Project Path="src/AlCopilot.Host/AlCopilot.Host.csproj" />
   <Folder Name="/Tests/">
-    <Project Path="tests/AlCopilot.Host.Tests/AlCopilot.Host.Tests.csproj" />
     <Project Path="tests/AlCopilot.Architecture.Tests/AlCopilot.Architecture.Tests.csproj" />
-    <Project Path="tests/AlCopilot.CustomerProfile.Tests/AlCopilot.CustomerProfile.Tests.csproj" />
-    <Project Path="tests/AlCopilot.DrinkCatalog.Tests/AlCopilot.DrinkCatalog.Tests.csproj" />
-    <Project Path="tests/AlCopilot.Recommendation.Tests/AlCopilot.Recommendation.Tests.csproj" />
+    <Project Path="tests/AlCopilot.CustomerProfile.IntegrationTests/AlCopilot.CustomerProfile.IntegrationTests.csproj" />
+    <Project Path="tests/AlCopilot.CustomerProfile.UnitTests/AlCopilot.CustomerProfile.UnitTests.csproj" />
+    <Project Path="tests/AlCopilot.DrinkCatalog.IntegrationTests/AlCopilot.DrinkCatalog.IntegrationTests.csproj" />
+    <Project Path="tests/AlCopilot.DrinkCatalog.UnitTests/AlCopilot.DrinkCatalog.UnitTests.csproj" />
+    <Project Path="tests/AlCopilot.Host.IntegrationTests/AlCopilot.Host.IntegrationTests.csproj" />
+    <Project Path="tests/AlCopilot.Recommendation.EvalTests/AlCopilot.Recommendation.EvalTests.csproj" />
+    <Project Path="tests/AlCopilot.Recommendation.IntegrationTests/AlCopilot.Recommendation.IntegrationTests.csproj" />
+    <Project Path="tests/AlCopilot.Recommendation.UnitTests/AlCopilot.Recommendation.UnitTests.csproj" />
     <Project Path="tests/AlCopilot.Testing.Shared/AlCopilot.Testing.Shared.csproj" />
   </Folder>
 </Solution>

@@ -43,8 +43,17 @@ jobs:
       - name: Test
         id: test
         run: |
-          if find tests -name '*.csproj' 2>/dev/null | grep -q .; then
-            dotnet test AlCopilot.slnx --no-build -c Release --logger trx --collect:"XPlat Code Coverage"
+          test_projects="$(
+            {
+              find tests -name '*.Tests.csproj' 2>/dev/null
+              find tests -name '*.UnitTests.csproj' 2>/dev/null
+              find tests -name '*.IntegrationTests.csproj' 2>/dev/null
+            } | awk '!/\.(EvalTests|SystemTests)\.csproj$/' | sort -u
+          )"
+          if [ -n "$test_projects" ]; then
+            while IFS= read -r test_project; do
+              dotnet test "$test_project" --no-build -c Release --logger trx --collect:"XPlat Code Coverage"
+            done <<< "$test_projects"
           else
             echo "No test projects found, skipping."
           fi

@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AlCopilot.Recommendation.Tests" />
+    <InternalsVisibleTo Include="AlCopilot.Recommendation.EvalTests" />
+    <InternalsVisibleTo Include="AlCopilot.Recommendation.UnitTests" />
+    <InternalsVisibleTo Include="AlCopilot.Recommendation.IntegrationTests" />
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 

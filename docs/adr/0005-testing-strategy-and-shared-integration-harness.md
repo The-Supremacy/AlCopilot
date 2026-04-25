@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded
 
 ## Date
 
@@ -51,7 +51,7 @@ Rejected because those options do not give trustworthy PostgreSQL behavior for p
 
 ## Supersedes
 
-None.
+[ADR 0017: Semantic Backend Test Project Split](0017-semantic-backend-test-project-split.md)
 
 ## Superseded by
 

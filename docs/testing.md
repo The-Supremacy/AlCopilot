@@ -18,10 +18,11 @@ It summarizes the testing philosophy and links to detailed backend and frontend 
 
 ## Detailed Testing Guides
 
-| Area                      | Detailed guide                         |
-| ------------------------- | -------------------------------------- |
-| Backend testing strategy  | [testing/server.md](testing/server.md) |
-| Frontend testing strategy | [testing/web.md](testing/web.md)       |
+| Area                      | Detailed guide                                 |
+| ------------------------- | ---------------------------------------------- |
+| Backend testing strategy  | [testing/server.md](testing/server.md)         |
+| Frontend testing strategy | [testing/web.md](testing/web.md)               |
+| Agent Eval approach       | [testing/agent-eval.md](testing/agent-eval.md) |
 
 ---
 
