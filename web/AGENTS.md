@@ -59,7 +59,8 @@ Stable cross-portal shadcn-derived primitives may be shared from a workspace pac
 
 ## API Communication
 
-- API proxy configured in `vite.config.ts` — `/api` routes to backend during dev
+- Local integrated development starts from `AlCopilot.Orchestration`; Aspire launches the portal Vite apps and supplies their Host API proxy targets
+- API proxy configured in `vite.config.ts` — `/api` routes to the backend Host during dev
 - Use TanStack Query hooks for all API calls — no raw `fetch` in components
 - API types should be shared or generated, not manually duplicated
 

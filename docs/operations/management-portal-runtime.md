@@ -11,7 +11,8 @@ It complements the portal design guide and the OpenSpec change artifacts with en
 
 - The management portal is a standalone frontend app in `web/apps/management-portal`.
 - Management authentication is owned by `AlCopilot.Host` through OpenID Connect plus a secure HTTP-only cookie session.
-- Local development runs through Vite on the management host with `/api` auth and management routes proxied to the Host at `http://localhost:5243` by default.
+- Local development starts through `AlCopilot.Orchestration`; Aspire composes the management portal Vite app, backend Host, Keycloak, PostgreSQL, Qdrant, and migrator.
+- The portal still uses its Vite `/api` proxy internally, but the proxy target is supplied by Aspire from the composed Host endpoint rather than being the primary developer startup path.
 - Production direction is a dedicated service fronted by Envoy Gateway on `management.alcopilot.com`.
 - The backend Host remains the API boundary for all portal requests.
 - Local auth parity depends on the browser using the management host shape so login callbacks and cookie behavior stay aligned with production expectations.
@@ -81,4 +82,4 @@ The strategy normalizes that upstream-compatible shape into AlCopilot-owned drin
 
 - `web/apps/management-portal/DESIGN.md`
 - `deploy/flux/management-portal/`
-- `openspec/changes/add-management-portal-authentication/`
+- `docs/adr/0009-management-portal-authentication-with-keycloak-and-host-cookies.md`

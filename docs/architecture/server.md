@@ -77,7 +77,7 @@ Recommendation semantic retrieval now uses Qdrant as `Recommendation`-owned deri
 
 ## Infrastructure Direction
 
-Local development uses Aspire orchestration.
+Local development uses Aspire orchestration through `AlCopilot.Orchestration`.
 Production deployment is designed around GitHub Actions, GHCR, AKS, Flux, and PostgreSQL.
 Envoy Gateway is the external ingress layer.
 For recommendation development, the default local CPU-oriented Ollama profile is `gemma4:e4b` unless a newer documented default replaces it.

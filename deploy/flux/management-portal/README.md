@@ -9,10 +9,10 @@ These manifests define the AKS ingress and service wiring for the management por
 - `SecurityPolicy` attaching Basic Auth to the management route
 - `Deployment` and `Service` for the portal runtime
 
-## Temporary access restriction
+## Access posture
 
-Application-level access control is intentionally deferred in the current change.
-Until that work lands, access is restricted operationally with Envoy Gateway Basic Auth.
+The management portal has application-level access control through the backend Host's Keycloak-backed cookie session.
+These manifests still include Envoy Gateway Basic Auth as an additional operational gate for the current management route.
 
 Create a real secret from an htpasswd file before applying:
 
