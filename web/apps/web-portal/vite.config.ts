@@ -12,7 +12,7 @@ export default defineConfig({
   },
   server: {
     host: process.env.WEB_PORTAL_HOST ?? 'localhost',
-    port: 4174,
+    port: Number.parseInt(process.env.PORT ?? '', 10) || 4174,
     proxy: {
       '/api': {
         target: process.env.WEB_PORTAL_API_PROXY_TARGET ?? 'http://localhost:5243',

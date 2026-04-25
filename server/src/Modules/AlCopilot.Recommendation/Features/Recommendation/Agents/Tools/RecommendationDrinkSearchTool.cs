@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
+using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using Mediator;
 
@@ -7,13 +8,15 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationDrinkSearchTool(
     IMediator mediator,
+    IRecommendationCatalogFuzzyLookupService fuzzyLookupService,
     IRecommendationToolInvocationRecorder toolInvocationRecorder,
     IRecommendationExecutionTraceRecorder executionTraceRecorder)
 {
     [Description("Search the drink catalog by drink name when you need to resolve an exact drink before looking up its recipe.")]
     public async Task<RecommendationDrinkSearchResult> SearchDrinksAsync(
         [Description("Drink name or partial drink name to search for.")] string query,
-        [Description("Maximum number of matches to return. Keep this small and use 5 unless the user explicitly asks for more.")] int maxResults = 5)
+        [Description("Maximum number of matches to return. Keep this small and use 5 unless the user explicitly asks for more.")] int maxResults = 5,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(query))
         {
@@ -26,8 +29,9 @@ internal sealed class RecommendationDrinkSearchTool(
         }
 
         var normalizedQuery = query.Trim();
-        var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), CancellationToken.None);
-        var matches = RecommendationCatalogMatcher.SearchDrinksByName(drinks, normalizedQuery, maxResults)
+        var drinks = await mediator.Send(new GetRecommendationCatalogQuery(), cancellationToken);
+        var matchingDrinks = await SearchAsync(drinks, normalizedQuery, maxResults, cancellationToken);
+        var matches = matchingDrinks
             .Select(RecommendationDrinkSearchItem.FromDrink)
             .ToList();
 
@@ -51,6 +55,28 @@ internal sealed class RecommendationDrinkSearchTool(
             "ok",
             $"Found {matches.Count} drink(s) matching '{normalizedQuery}'.",
             matches);
+    }
+
+    private async Task<IReadOnlyCollection<AlCopilot.DrinkCatalog.Contracts.DTOs.DrinkDetailDto>> SearchAsync(
+        IReadOnlyCollection<AlCopilot.DrinkCatalog.Contracts.DTOs.DrinkDetailDto> drinks,
+        string normalizedQuery,
+        int maxResults,
+        CancellationToken cancellationToken)
+    {
+        var fuzzyMatches = await fuzzyLookupService.FindDrinkMatchesAsync(normalizedQuery, cancellationToken);
+        var fuzzyScores = fuzzyMatches.ToDictionary(match => match.Id, match => match.Similarity);
+
+        if (fuzzyScores.Count > 0)
+        {
+            return drinks
+                .Where(drink => fuzzyScores.ContainsKey(drink.Id))
+                .OrderByDescending(drink => fuzzyScores[drink.Id])
+                .ThenBy(drink => drink.Name, StringComparer.OrdinalIgnoreCase)
+                .Take(Math.Clamp(maxResults, 1, 10))
+                .ToList();
+        }
+
+        return RecommendationCatalogMatcher.SearchDrinksByName(drinks, normalizedQuery, maxResults);
     }
 
     private static RecommendationExecutionTraceStep BuildTraceStep(

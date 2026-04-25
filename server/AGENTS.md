@@ -158,9 +158,10 @@ server/src/AlCopilot.Shared/
 - **TestContainers** (Postgres) for integration tests — NOT in-memory EF providers
 - **NetArchTest.eNhanced** for architecture tests
 - Architecture tests live in `AlCopilot.Architecture.Tests` only
-- Module tests in `AlCopilot.{Module}.Tests` cover unit, application, infrastructure integration, and module-owned HTTP integration tests
+- Module unit and application tests live in `AlCopilot.{Module}.UnitTests`
+- Module infrastructure integration and module-owned HTTP integration tests live in `AlCopilot.{Module}.IntegrationTests`
 - Module tests mock or substitute other module boundaries by default
-- Host-level auth, cross-module orchestration, and composition tests live in `AlCopilot.Host.Tests`
+- Host-level auth, cross-module orchestration, and composition tests live in `AlCopilot.Host.IntegrationTests`
 - Shared backend HTTP integration infrastructure lives in `server/tests/AlCopilot.Testing.Shared`
 - Integration tests that use real infrastructure are marked with `[Trait("Category", "Integration")]`
 - Prefer one file per handler or behavior entry point under test

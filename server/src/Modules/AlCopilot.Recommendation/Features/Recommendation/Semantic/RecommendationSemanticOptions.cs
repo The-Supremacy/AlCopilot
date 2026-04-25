@@ -8,6 +8,8 @@ public sealed class RecommendationSemanticOptions
 
     public string QdrantEndpoint { get; init; } = "http://localhost:6334";
 
+    public string? QdrantApiKey { get; init; }
+
     public string CollectionName { get; init; } = "recommendation-semantic-catalog";
 
     public int SearchLimit { get; init; } = 18;

@@ -25,6 +25,11 @@ public sealed record RecommendationToolInvocationDto(
     string ToolName,
     string Purpose);
 
+public sealed record RecommendationTurnFeedbackDto(
+    string Rating,
+    string? Comment,
+    DateTimeOffset CreatedAtUtc);
+
 public sealed record RecommendationTurnDto(
     Guid TurnId,
     int Sequence,
@@ -32,6 +37,7 @@ public sealed record RecommendationTurnDto(
     string Content,
     List<RecommendationGroupDto> RecommendationGroups,
     List<RecommendationToolInvocationDto> ToolInvocations,
+    RecommendationTurnFeedbackDto? Feedback,
     DateTimeOffset CreatedAtUtc);
 
 public sealed record RecommendationSessionDto(

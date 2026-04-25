@@ -36,7 +36,7 @@ The system SHALL support semantic retrieval over recommendation-owned drink proj
 - **WHEN** an authenticated customer asks for a known drink with a slight typo
 - **THEN** the recommendation flow SHALL be able to use semantic retrieval over drink-name projection text to resolve the intended drink candidate
 
-#### Scenario: Slight ingredient-name typo still contributes to ingredient-led discovery
+#### Scenario: Slight ingredient-name typo still contributes to ingredient-constrained recommendation
 
 - **WHEN** an authenticated customer asks for drinks with an ingredient using a slight typo or close wording
-- **THEN** the recommendation flow SHALL be able to use semantic retrieval over ingredient projection text to contribute to ingredient-led discovery
+- **THEN** the recommendation flow SHALL be able to use semantic retrieval over ingredient projection text to contribute to ingredient-constrained recommendation

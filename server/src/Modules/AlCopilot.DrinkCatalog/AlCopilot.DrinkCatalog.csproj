@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AlCopilot.DrinkCatalog.Tests" />
+    <InternalsVisibleTo Include="AlCopilot.DrinkCatalog.UnitTests" />
+    <InternalsVisibleTo Include="AlCopilot.DrinkCatalog.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>

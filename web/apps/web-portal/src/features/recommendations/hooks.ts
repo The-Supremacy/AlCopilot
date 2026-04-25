@@ -2,7 +2,9 @@ import {
   getRecommendationSession,
   listRecommendationSessions,
   submitRecommendationRequest,
+  submitRecommendationTurnFeedback,
   type SubmitRecommendationRequestInput,
+  type SubmitRecommendationTurnFeedbackInput,
 } from '@alcopilot/customer-api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { portalKeys } from '@/state/queryKeys';
@@ -27,6 +29,21 @@ export function useSubmitRecommendationRequestMutation() {
 
   return useMutation({
     mutationFn: (input: SubmitRecommendationRequestInput) => submitRecommendationRequest(input),
+    onSuccess: async (session) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: portalKeys.recommendationSessions }),
+        queryClient.setQueryData(portalKeys.recommendationSession(session.sessionId), session),
+      ]);
+    },
+  });
+}
+
+export function useSubmitRecommendationTurnFeedbackMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: SubmitRecommendationTurnFeedbackInput) =>
+      submitRecommendationTurnFeedback(input),
     onSuccess: async (session) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: portalKeys.recommendationSessions }),

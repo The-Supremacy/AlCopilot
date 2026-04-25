@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "catalogFixture": "recommendation-agent-eval-v1",
+  "cases": [
+    {
+      "name": "descriptor-led strong sweet",
+      "prompt": "I'd like to have a fun night. Something strong but sweet will do.",
+      "profile": {
+        "ownedIngredientNames": ["White Rum", "Lime Juice", "Simple Syrup"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "expectedResponseFragments": ["Daiquiri"],
+      "forbiddenResponseFragments": ["Negroni"],
+      "expectedToolNames": [],
+      "forbiddenToolNames": [],
+      "maxToolCallCount": 2,
+      "repetitionCount": 1
+    },
+    {
+      "name": "drink details exact dark n stormy",
+      "prompt": "How do I make a Dark n Stormy?",
+      "profile": {
+        "ownedIngredientNames": ["Dark Rum", "Ginger Beer", "Lime Juice"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "expectedResponseFragments": ["Dark", "Stormy", "Ginger Beer"],
+      "forbiddenResponseFragments": ["Campari"],
+      "expectedToolNames": ["lookup_drink_recipe"],
+      "forbiddenToolNames": ["lookup_drinks_by_ingredient"],
+      "maxToolCallCount": 2,
+      "repetitionCount": 1
+    },
+    {
+      "name": "drink details typo dark n stormi",
+      "prompt": "How do I make a Dark 'n Stormi?",
+      "profile": {
+        "ownedIngredientNames": ["Dark Rum", "Ginger Beer", "Lime Juice"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "expectedResponseFragments": ["Dark", "Stormy", "Ginger Beer"],
+      "forbiddenResponseFragments": ["Campari"],
+      "expectedToolNames": ["lookup_drink_recipe"],
+      "forbiddenToolNames": ["lookup_drinks_by_ingredient"],
+      "maxToolCallCount": 3,
+      "repetitionCount": 1
+    },
+    {
+      "name": "ingredient constrained rum ginger beer",
+      "prompt": "I have rum and ginger beer. What can I make?",
+      "profile": {
+        "ownedIngredientNames": ["Dark Rum", "Ginger Beer", "Lime Juice"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "expectedResponseFragments": ["Dark", "Stormy"],
+      "forbiddenResponseFragments": ["Negroni"],
+      "expectedToolNames": [],
+      "forbiddenToolNames": ["lookup_drink_recipe"],
+      "maxToolCallCount": 2,
+      "repetitionCount": 1
+    },
+    {
+      "name": "prohibited campari conflict",
+      "prompt": "I want something sweet with Campari.",
+      "profile": {
+        "ownedIngredientNames": ["Gin", "Sweet Vermouth", "Simple Syrup"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": ["Campari"]
+      },
+      "expectedResponseFragments": ["Campari"],
+      "forbiddenResponseFragments": ["Negroni", "Americano"],
+      "expectedToolNames": [],
+      "forbiddenToolNames": ["lookup_drink_recipe"],
+      "maxToolCallCount": 2,
+      "repetitionCount": 1
+    },
+    {
+      "name": "hybrid light celebratory prosecco",
+      "prompt": "I have gin, lime, and prosecco. What feels light and celebratory?",
+      "profile": {
+        "ownedIngredientNames": ["Gin", "Lime Juice", "Prosecco", "Simple Syrup"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "expectedResponseFragments": ["French 75"],
+      "forbiddenResponseFragments": ["Negroni", "Old Fashioned"],
+      "expectedToolNames": [],
+      "forbiddenToolNames": ["lookup_drink_recipe"],
+      "maxToolCallCount": 2,
+      "repetitionCount": 1
+    },
+    {
+      "name": "descriptor classy bitter",
+      "prompt": "I want something classy and bitter.",
+      "profile": {
+        "ownedIngredientNames": ["Gin", "Campari", "Sweet Vermouth"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "expectedResponseFragments": ["Negroni"],
+      "forbiddenResponseFragments": ["Daiquiri", "Dark 'n Stormy"],
+      "expectedToolNames": [],
+      "forbiddenToolNames": ["lookup_drink_recipe"],
+      "maxToolCallCount": 2,
+      "repetitionCount": 1
+    },
+    {
+      "name": "disliked campari prefers old fashioned",
+      "prompt": "I want something classy, strong, and aromatic.",
+      "profile": {
+        "ownedIngredientNames": [
+          "Gin",
+          "Campari",
+          "Sweet Vermouth",
+          "Bourbon",
+          "Angostura Bitters",
+          "Sugar Cube"
+        ],
+        "dislikedIngredientNames": ["Campari"],
+        "prohibitedIngredientNames": []
+      },
+      "expectedResponseFragments": ["Old Fashioned"],
+      "forbiddenResponseFragments": [],
+      "expectedRecommendedDrinkNames": ["Old Fashioned"],
+      "forbiddenRecommendedDrinkNames": ["Negroni", "Americano"],
+      "expectedToolNames": [],
+      "forbiddenToolNames": ["lookup_drink_recipe"],
+      "maxToolCallCount": 2,
+      "repetitionCount": 1
+    },
+    {
+      "name": "descriptor bold sweet rum",
+      "prompt": "Recommend something bold and sweet with rum.",
+      "profile": {
+        "ownedIngredientNames": ["White Rum", "Lime Juice", "Simple Syrup"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "expectedResponseFragments": ["Daiquiri"],
+      "forbiddenResponseFragments": ["Negroni", "Old Fashioned"],
+      "expectedToolNames": [],
+      "forbiddenToolNames": ["lookup_drink_recipe"],
+      "maxToolCallCount": 2,
+      "repetitionCount": 1
+    },
+    {
+      "name": "unsupported drink is not invented",
+      "prompt": "How do I make a Paper Plane?",
+      "profile": {
+        "ownedIngredientNames": ["Bourbon", "Lime Juice"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "expectedResponseFragments": ["Paper Plane"],
+      "forbiddenResponseFragments": ["Aperol", "Amaro", "Nonino"],
+      "expectedToolNames": [],
+      "forbiddenToolNames": ["lookup_drink_recipe"],
+      "maxToolCallCount": 2,
+      "repetitionCount": 1
+    }
+  ],
+  "sessionCases": [
+    {
+      "name": "follow-up recipe resolves prior recommendation",
+      "profile": {
+        "ownedIngredientNames": ["White Rum", "Lime Juice", "Simple Syrup"],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "turns": [
+        {
+          "prompt": "I'd like to have a fun night. Something strong but sweet will do.",
+          "expectedResponseFragments": ["Daiquiri"],
+          "forbiddenResponseFragments": ["Negroni"],
+          "expectedToolNames": [],
+          "forbiddenToolNames": ["lookup_drink_recipe"],
+          "maxToolCallCount": 2
+        },
+        {
+          "prompt": "How do I make that?",
+          "expectedResponseFragments": ["Daiquiri", "White Rum", "Lime Juice"],
+          "forbiddenResponseFragments": ["Negroni", "Campari"],
+          "expectedToolNames": ["lookup_drink_recipe"],
+          "forbiddenToolNames": ["lookup_drinks_by_ingredient"],
+          "maxToolCallCount": 2
+        }
+      ]
+    },
+    {
+      "name": "follow-up what else finds another light option",
+      "profile": {
+        "ownedIngredientNames": [
+          "Gin",
+          "Lime Juice",
+          "Prosecco",
+          "Simple Syrup",
+          "Campari",
+          "Sweet Vermouth",
+          "Soda Water"
+        ],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "turns": [
+        {
+          "prompt": "I have gin, lime, and prosecco. What feels light and celebratory?",
+          "expectedResponseFragments": ["French 75"],
+          "forbiddenResponseFragments": ["Negroni", "Old Fashioned"],
+          "expectedToolNames": [],
+          "forbiddenToolNames": ["lookup_drink_recipe"],
+          "maxToolCallCount": 2
+        },
+        {
+          "prompt": "What else could work if I want another light option?",
+          "expectedResponseFragments": ["Americano"],
+          "forbiddenResponseFragments": [],
+          "expectedRecommendedDrinkNames": ["Americano"],
+          "forbiddenRecommendedDrinkNames": ["Old Fashioned"],
+          "expectedToolNames": [],
+          "forbiddenToolNames": ["lookup_drink_recipe"],
+          "maxToolCallCount": 2
+        }
+      ]
+    },
+    {
+      "name": "follow-up new no campari constraint overrides prior recommendation",
+      "profile": {
+        "ownedIngredientNames": [
+          "Gin",
+          "Campari",
+          "Sweet Vermouth",
+          "Bourbon",
+          "Angostura Bitters",
+          "Sugar Cube"
+        ],
+        "dislikedIngredientNames": [],
+        "prohibitedIngredientNames": []
+      },
+      "turns": [
+        {
+          "prompt": "I want something classy and bitter.",
+          "expectedResponseFragments": ["Negroni"],
+          "forbiddenResponseFragments": ["Daiquiri", "Dark 'n Stormy"],
+          "expectedToolNames": [],
+          "forbiddenToolNames": ["lookup_drink_recipe"],
+          "maxToolCallCount": 2
+        },
+        {
+          "prompt": "Actually, no Campari.",
+          "expectedResponseFragments": ["Campari", "Old Fashioned"],
+          "forbiddenResponseFragments": [],
+          "expectedRecommendedDrinkNames": ["Old Fashioned"],
+          "forbiddenRecommendedDrinkNames": ["Negroni", "Americano"],
+          "expectedToolNames": [],
+          "forbiddenToolNames": ["lookup_drink_recipe"],
+          "maxToolCallCount": 2
+        }
+      ]
+    }
+  ]
+}

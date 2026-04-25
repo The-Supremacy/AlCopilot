@@ -6,17 +6,23 @@ internal static class RecommendationRunContextMessageBuilder
     {
         var builder = new System.Text.StringBuilder();
         builder.AppendLine("Use this recommendation run context as authoritative product context for this response only.");
+        builder.AppendLine("Use chat history to resolve follow-up references like that, it, or the first one.");
         builder.AppendLine("Follow the resolved request intent below before choosing tools or writing the answer.");
         builder.AppendLine("Prefer drinks from the deterministic groups when they satisfy the request.");
+        builder.AppendLine("If the request asks for a prohibited ingredient, explain the conflict and do not recommend drinks containing it.");
+        builder.AppendLine("Prefer drinks without disliked ingredients when a suitable option exists.");
+        builder.AppendLine("If mentioning a drink with a disliked ingredient, make the tradeoff explicit instead of presenting it as an equal recommendation.");
         builder.AppendLine("If you need to resolve a drink name, call the search_drinks tool first.");
-        builder.AppendLine("If the request is ingredient-led or the deterministic groups are not enough, call the lookup_drinks_by_ingredient tool.");
+        builder.AppendLine("If the request includes ingredient constraints or the deterministic groups are not enough, call the lookup_drinks_by_ingredient tool.");
+        builder.AppendLine("If deterministic candidates already include enough ingredients and method detail, do not call lookup_drink_recipe just to summarize a recommendation.");
+        builder.AppendLine("For drink-details requests about how to make a specific drink, call the lookup_drink_recipe tool before answering.");
         builder.AppendLine("If exact measurements, method, garnish, or brand details are needed for a specific drink, call the lookup_drink_recipe tool.");
         builder.AppendLine();
         builder.AppendLine("Resolved request intent:");
         builder.AppendLine($"- kind: {runContext.Intent.Kind}");
         builder.AppendLine($"- requested drink: {runContext.Intent.RequestedDrinkName ?? "none"}");
-        builder.AppendLine($"- requested ingredient: {runContext.Intent.RequestedIngredientName ?? "none"}");
-        builder.AppendLine($"- preference signals: {FormatTextList(runContext.Intent.PreferenceSignals)}");
+        builder.AppendLine($"- requested ingredients: {FormatTextList(runContext.Intent.RequestedIngredientNames)}");
+        builder.AppendLine($"- request descriptors: {FormatTextList(runContext.Intent.RequestDescriptors)}");
         builder.AppendLine($"- semantic hints: {FormatTextList(runContext.SemanticSummaryHints)}");
         builder.AppendLine();
         builder.AppendLine("Customer profile:");

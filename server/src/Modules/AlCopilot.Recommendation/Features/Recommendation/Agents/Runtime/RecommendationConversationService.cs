@@ -14,10 +14,8 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationConversationService(
     IChatSessionRepository chatSessionRepository,
-    IRecommendationRunContextService runContextService,
     IRecommendationNarratorAgentFactory agentFactory,
     IRecommendationAgentSessionStore sessionStore,
-    IRecommendationCurrentRunContextAccessor currentRunContextAccessor,
     IRecommendationExecutionTraceRecorder executionTraceRecorder,
     IRecommendationToolInvocationRecorder toolInvocationRecorder,
     IRecommendationUnitOfWork unitOfWork,
@@ -51,112 +49,75 @@ internal sealed class RecommendationConversationService(
         CancellationToken cancellationToken)
     {
         var session = await LoadOrCreateSessionAsync(request, cancellationToken);
-        var runContext = await runContextService.CreateAsync(request.Message, cancellationToken);
-        currentRunContextAccessor.Current = runContext;
+        var turnState = new RecommendationAgentTurnState();
+        var agent = agentFactory.Create(session, turnState);
+        var agentSession = await sessionStore.RestoreAsync(
+            session.AgentSessionStateJson,
+            agent,
+            cancellationToken);
+        var response = await agent.RunAsync(
+            [new ChatMessage(ChatRole.User, request.Message)],
+            agentSession,
+            options: null,
+            cancellationToken);
+        executionTraceRecorder.Record(BuildAgentRunTraceStep(response));
 
-        try
+        var content = string.IsNullOrWhiteSpace(response.Text)
+            ? response.Messages.LastOrDefault(message => message.Role == ChatRole.Assistant)?.Text
+            : response.Text;
+
+        if (string.IsNullOrWhiteSpace(content))
         {
-            var agent = agentFactory.Create();
-            var agentSession = await sessionStore.RestoreAsync(
-                session.AgentSessionStateJson,
-                agent,
-                cancellationToken);
-            var response = await agent.RunAsync(
-                BuildMessages(session, request.Message),
-                agentSession,
-                options: null,
-                cancellationToken);
-            RecordAgentRunTrace(response);
-            LogReasoningDetailsIfEnabled(response);
-
-            var content = string.IsNullOrWhiteSpace(response.Text)
-                ? response.Messages.LastOrDefault(message => message.Role == ChatRole.Assistant)?.Text
-                : response.Text;
-
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                throw new InvalidOperationException("Recommendation LLM returned an empty assistant message.");
-            }
-
-            var serializedSession = await sessionStore.SerializeAsync(
-                agentSession,
-                agent,
-                cancellationToken);
-
-            session.UpdateAgentSessionState(serializedSession);
-            session.AppendUserTurn(request.Message);
-            session.AppendAssistantTurn(
-                content.Trim(),
-                runContext.RecommendationGroups,
-                toolInvocationRecorder.Drain(),
-                ShouldPersistExecutionTrace()
-                    ? executionTraceRecorder.Drain()
-                    : null);
-            await SaveSessionChangesAsync(session, cancellationToken);
-
-            return session.ToDto();
+            throw new InvalidOperationException("Recommendation LLM returned an empty assistant message.");
         }
-        finally
-        {
-            currentRunContextAccessor.Current = null;
-        }
+
+        var toolInvocations = toolInvocationRecorder.Drain();
+        var executionTrace = ShouldPersistExecutionTrace()
+            ? executionTraceRecorder.Drain()
+            : null;
+        var serializedSession = await sessionStore.SerializeAsync(
+            agentSession,
+            agent,
+            cancellationToken);
+
+        session.UpdateAgentSessionState(serializedSession);
+        session.UpdateLatestAssistantTurnArtifacts(
+            turnState.RunContext?.RecommendationGroups ?? [],
+            toolInvocations,
+            executionTrace);
+
+        await SaveSessionChangesAsync(session, cancellationToken);
+
+        return session.ToDto();
     }
 
-    private void LogReasoningDetailsIfEnabled(AgentResponse response)
+    private static RecommendationExecutionTraceStep BuildAgentRunTraceStep(AgentResponse response)
     {
-        if (!hostEnvironment.IsDevelopment() || !observabilityOptions.Value.LogReasoningInDevelopment)
-        {
-            return;
-        }
-
-        var reasoningSegments = response.Messages
-            .SelectMany(message => message.Contents)
-            .OfType<TextReasoningContent>()
-            .Select(content => content.Text)
-            .Where(text => !string.IsNullOrWhiteSpace(text))
-            .ToList();
-        var usage = response.Usage;
-
-        if (reasoningSegments.Count == 0 && usage?.ReasoningTokenCount is null)
-        {
-            return;
-        }
-
-        logger.LogDebug(
-            "Recommendation reasoning debug. FinishReason={FinishReason}; InputTokens={InputTokens}; OutputTokens={OutputTokens}; ReasoningTokens={ReasoningTokens}; Reasoning={Reasoning}",
-            response.FinishReason,
-            usage?.InputTokenCount,
-            usage?.OutputTokenCount,
-            usage?.ReasoningTokenCount,
-            reasoningSegments.Count == 0 ? null : string.Join("\n\n", reasoningSegments));
-    }
-
-    private void RecordAgentRunTrace(AgentResponse response)
-    {
-        var reasoningSegments = response.Messages
-            .SelectMany(message => message.Contents)
-            .OfType<TextReasoningContent>()
-            .Select(content => content.Text)
-            .Where(text => !string.IsNullOrWhiteSpace(text))
-            .ToList();
+        var reasoning = string.Join(
+            "\n\n",
+            response.Messages
+                .SelectMany(message => message.Contents)
+                .OfType<TextReasoningContent>()
+                .Select(content => content.Text)
+                .Where(text => !string.IsNullOrWhiteSpace(text)));
         var usage = response.Usage;
         var finishReason = response.FinishReason?.ToString();
 
-        executionTraceRecorder.Record(
-            new RecommendationExecutionTraceStep(
-                "agent.run",
-                string.IsNullOrWhiteSpace(finishReason) ? "completed" : finishReason,
-                "Recommendation narrator agent produced an assistant response.",
-                DateTimeOffset.UtcNow,
-                new Dictionary<string, string?>
-                {
-                    ["finishReason"] = finishReason,
-                    ["inputTokens"] = usage?.InputTokenCount?.ToString(),
-                    ["outputTokens"] = usage?.OutputTokenCount?.ToString(),
-                    ["reasoningTokens"] = usage?.ReasoningTokenCount?.ToString(),
-                    ["messageCount"] = response.Messages.Count.ToString(),
-                },
-                reasoningSegments));
+        return new RecommendationExecutionTraceStep(
+            "agent.run",
+            string.IsNullOrWhiteSpace(finishReason) ? "completed" : finishReason,
+            "Recommendation narrator agent produced an assistant response.",
+            DateTimeOffset.UtcNow,
+            new Dictionary<string, string?>
+            {
+                ["finishReason"] = finishReason,
+                ["inputTokens"] = usage?.InputTokenCount?.ToString(),
+                ["outputTokens"] = usage?.OutputTokenCount?.ToString(),
+                ["reasoningTokens"] = usage?.ReasoningTokenCount?.ToString(),
+                ["messageCount"] = response.Messages.Count.ToString(),
+            },
+            [],
+            string.IsNullOrWhiteSpace(reasoning) ? null : reasoning);
     }
 
     private bool ShouldPersistExecutionTrace()
@@ -203,24 +164,6 @@ internal sealed class RecommendationConversationService(
             throw new ConflictException(
                 "This recommendation session was changed while your message was being processed. Please retry.");
         }
-    }
-
-    private static List<ChatMessage> BuildMessages(ChatSession session, string customerMessage)
-    {
-        var history = session.Turns
-            .OrderBy(turn => turn.Sequence)
-            .Select(ToChatMessage)
-            .ToList();
-
-        history.Add(new ChatMessage(ChatRole.User, customerMessage));
-        return history;
-    }
-
-    private static ChatMessage ToChatMessage(ChatTurn turn)
-    {
-        return new ChatMessage(
-            string.Equals(turn.Role, "assistant", StringComparison.Ordinal) ? ChatRole.Assistant : ChatRole.User,
-            turn.Content);
     }
 
     private sealed record RecommendationConversationRequest(
