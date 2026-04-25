@@ -5,7 +5,7 @@ using Mediator;
 
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
-internal sealed class ReplaceRecommendationSemanticCatalogHandler(
+public sealed class ReplaceRecommendationSemanticCatalogHandler(
     IRecommendationSemanticIndexingService indexingService)
     : IRequestHandler<ReplaceRecommendationSemanticCatalogCommand, RecommendationSemanticCatalogIndexResultDto>
 {
