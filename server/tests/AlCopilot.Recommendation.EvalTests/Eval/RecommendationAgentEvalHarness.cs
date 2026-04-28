@@ -9,6 +9,7 @@ using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using Mediator;
+using Microsoft.Agents.AI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,6 +49,36 @@ internal sealed class RecommendationAgentEvalHarness
             evalCase.Name,
             repetitionNumber,
             cancellationToken);
+    }
+
+    public async Task<AgentEvaluationResults> EvaluateAsync(
+        RecommendationAgentEvalCase evalCase,
+        IAgentEvaluator evaluator,
+        string evalName,
+        int repetitionNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var runtime = CreateRuntime(evalCase.Profile);
+        var session = ChatSession.Create(
+            $"maf-eval-{evalCase.Name}-{repetitionNumber}",
+            evalCase.Prompt);
+        var agentRun = AgentRun.Start(session.Id);
+        runtime.DbContext.ChatSessions.Add(session);
+        runtime.DbContext.AgentRuns.Add(agentRun);
+        await runtime.DbContext.SaveChangesAsync(cancellationToken);
+
+        var agentRuntime = runtime.AgentFactory.Create(session, agentRun);
+        return await agentRuntime.Agent.EvaluateAsync(
+            [evalCase.Prompt],
+            evaluator,
+            evalName,
+            expectedOutput: [string.Join(Environment.NewLine, evalCase.ExpectedResponseFragments)],
+            expectedToolCalls:
+            [
+                RecommendationAgentLocalEvaluator.CreateExpectedToolCalls(evalCase.ExpectedToolNames),
+            ],
+            numRepetitions: 1,
+            cancellationToken: cancellationToken);
     }
 
     public async Task<IReadOnlyList<RecommendationAgentEvalResult>> RunSessionAsync(
@@ -192,7 +223,7 @@ internal sealed class RecommendationAgentEvalHarness
             dbContext,
             loggerFactory.CreateLogger<RecommendationConversationService>());
 
-        return new RecommendationAgentEvalRuntime(service, dbContext);
+        return new RecommendationAgentEvalRuntime(service, dbContext, agentFactory);
     }
 
     private static RecommendationDbContext CreateEvalDbContext()
@@ -379,7 +410,8 @@ internal sealed class RecommendationAgentEvalHarness
 
     private sealed record RecommendationAgentEvalRuntime(
         RecommendationConversationService Service,
-        RecommendationDbContext DbContext);
+        RecommendationDbContext DbContext,
+        IRecommendationNarratorAgentFactory AgentFactory);
 
     private sealed class EvalHostEnvironment : IHostEnvironment
     {

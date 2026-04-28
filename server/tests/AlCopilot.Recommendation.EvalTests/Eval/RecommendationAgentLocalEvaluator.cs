@@ -1,12 +1,11 @@
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 
 namespace AlCopilot.Recommendation.EvalTests.Eval;
 
 internal static class RecommendationAgentLocalEvaluator
 {
-    public static IAgentEvaluator Create(
-        RecommendationAgentEvalCase evalCase,
-        IReadOnlyCollection<string> toolNames)
+    public static IAgentEvaluator Create(RecommendationAgentEvalCase evalCase)
     {
         return Create(
             new RecommendationAgentEvalExpectations(
@@ -16,13 +15,10 @@ internal static class RecommendationAgentLocalEvaluator
                 evalCase.ForbiddenToolNames,
                 evalCase.MaxToolCallCount,
                 evalCase.ExpectedRecommendedDrinkNames,
-                evalCase.ForbiddenRecommendedDrinkNames),
-            toolNames);
+                evalCase.ForbiddenRecommendedDrinkNames));
     }
 
-    public static IAgentEvaluator Create(
-        RecommendationAgentEvalSessionTurn turn,
-        IReadOnlyCollection<string> toolNames)
+    public static IAgentEvaluator Create(RecommendationAgentEvalSessionTurn turn)
     {
         return Create(
             new RecommendationAgentEvalExpectations(
@@ -32,24 +28,66 @@ internal static class RecommendationAgentLocalEvaluator
                 turn.ForbiddenToolNames,
                 turn.MaxToolCallCount,
                 turn.ExpectedRecommendedDrinkNames,
-                turn.ForbiddenRecommendedDrinkNames),
-            toolNames);
+                turn.ForbiddenRecommendedDrinkNames));
     }
 
-    private static IAgentEvaluator Create(
-        RecommendationAgentEvalExpectations expectations,
-        IReadOnlyCollection<string> toolNames)
+    internal static EvalItem CreateEvalItem(
+        string prompt,
+        string response,
+        IReadOnlyCollection<string> toolNames,
+        IReadOnlyCollection<string> expectedToolNames)
+    {
+        return new EvalItem(
+            prompt,
+            response,
+            [
+                new ChatMessage(ChatRole.User, prompt),
+                new ChatMessage(
+                    ChatRole.Assistant,
+                    toolNames
+                        .Select(toolName => new FunctionCallContent(
+                            Guid.NewGuid().ToString("N"),
+                            toolName,
+                            new Dictionary<string, object?>()))
+                        .Cast<AIContent>()
+                        .Append(new TextContent(response))
+                        .ToList()),
+            ])
+        {
+            ExpectedToolCalls = CreateExpectedToolCalls(expectedToolNames),
+        };
+    }
+
+    internal static IReadOnlyList<ExpectedToolCall> CreateExpectedToolCalls(
+        IReadOnlyCollection<string> expectedToolNames)
+    {
+        return expectedToolNames
+            .Select(toolName => new ExpectedToolCall(toolName, null))
+            .ToList();
+    }
+
+    internal static IReadOnlyCollection<string> GetToolNames(EvalItem item)
+    {
+        return item.Conversation
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionCallContent>()
+            .Select(content => content.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToList();
+    }
+
+    private static IAgentEvaluator Create(RecommendationAgentEvalExpectations expectations)
     {
         return new LocalEvaluator(
             EvalChecks.NonEmpty(),
             CreateExpectedResponseFragmentsCheck(expectations),
             CreateForbiddenResponseFragmentsCheck(expectations),
-            CreateExpectedToolNamesCheck(expectations, toolNames),
-            CreateForbiddenToolNamesCheck(expectations, toolNames),
-            CreateMaxToolCallCountCheck(expectations, toolNames),
+            CreateExpectedToolNamesCheck(expectations),
+            CreateForbiddenToolNamesCheck(expectations),
+            CreateMaxToolCallCountCheck(expectations),
             CreateExpectedRecommendedDrinkNamesCheck(expectations),
             CreateForbiddenRecommendedDrinkNamesCheck(expectations),
-            CreateNoRepeatedToolCallsCheck(toolNames));
+            CreateNoRepeatedToolCallsCheck());
     }
 
     private static EvalCheck CreateExpectedResponseFragmentsCheck(RecommendationAgentEvalExpectations expectations)
@@ -91,14 +129,15 @@ internal static class RecommendationAgentLocalEvaluator
     }
 
     private static EvalCheck CreateExpectedToolNamesCheck(
-        RecommendationAgentEvalExpectations expectations,
-        IReadOnlyCollection<string> toolNames)
+        RecommendationAgentEvalExpectations expectations)
     {
         return FunctionEvaluator.Create(
             "expected_tool_names",
-            _ =>
+            item =>
             {
-                var missing = expectations.ExpectedToolNames
+                var expectedToolNames = GetExpectedToolNames(item, expectations);
+                var toolNames = GetToolNames(item);
+                var missing = expectedToolNames
                     .Where(expected => !toolNames.Any(toolName =>
                         string.Equals(toolName, expected, StringComparison.OrdinalIgnoreCase)))
                     .ToList();
@@ -113,13 +152,13 @@ internal static class RecommendationAgentLocalEvaluator
     }
 
     private static EvalCheck CreateForbiddenToolNamesCheck(
-        RecommendationAgentEvalExpectations expectations,
-        IReadOnlyCollection<string> toolNames)
+        RecommendationAgentEvalExpectations expectations)
     {
         return FunctionEvaluator.Create(
             "forbidden_tool_names",
-            _ =>
+            item =>
             {
+                var toolNames = GetToolNames(item);
                 var present = expectations.ForbiddenToolNames
                     .Where(forbidden => toolNames.Any(toolName =>
                         string.Equals(toolName, forbidden, StringComparison.OrdinalIgnoreCase)))
@@ -135,13 +174,13 @@ internal static class RecommendationAgentLocalEvaluator
     }
 
     private static EvalCheck CreateMaxToolCallCountCheck(
-        RecommendationAgentEvalExpectations expectations,
-        IReadOnlyCollection<string> toolNames)
+        RecommendationAgentEvalExpectations expectations)
     {
         return FunctionEvaluator.Create(
             "max_tool_call_count",
-            _ =>
+            item =>
             {
+                var toolNames = GetToolNames(item);
                 var toolCallCount = toolNames.Count;
                 return new EvalCheckResult(
                     toolCallCount <= expectations.MaxToolCallCount,
@@ -152,13 +191,13 @@ internal static class RecommendationAgentLocalEvaluator
             });
     }
 
-    private static EvalCheck CreateNoRepeatedToolCallsCheck(
-        IReadOnlyCollection<string> toolNames)
+    private static EvalCheck CreateNoRepeatedToolCallsCheck()
     {
         return FunctionEvaluator.Create(
             "no_repeated_tool_calls",
-            _ =>
+            item =>
             {
+                var toolNames = GetToolNames(item);
                 var repeated = toolNames
                     .GroupBy(toolName => toolName, StringComparer.OrdinalIgnoreCase)
                     .Where(group => group.Count() > 1)
@@ -172,6 +211,15 @@ internal static class RecommendationAgentLocalEvaluator
                         : $"Repeated tool calls: {string.Join(", ", repeated)}",
                     "no_repeated_tool_calls");
             });
+    }
+
+    private static IReadOnlyCollection<string> GetExpectedToolNames(
+        EvalItem item,
+        RecommendationAgentEvalExpectations expectations)
+    {
+        return item.ExpectedToolCalls is { Count: > 0 }
+            ? item.ExpectedToolCalls.Select(toolCall => toolCall.Name).ToList()
+            : expectations.ExpectedToolNames;
     }
 
     private static EvalCheck CreateExpectedRecommendedDrinkNamesCheck(RecommendationAgentEvalExpectations expectations)

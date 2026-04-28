@@ -47,16 +47,16 @@ public sealed class RecommendationAgentEvalTests(ITestOutputHelper output)
 
         for (var repetition = 1; repetition <= Math.Max(1, evalCase.RepetitionCount); repetition++)
         {
-            var result = await harness.RunAsync(evalCase, repetition, timeout.Token);
+            var evaluator = RecommendationAgentLocalEvaluator.Create(evalCase);
+            var evaluationResult = await harness.EvaluateAsync(
+                evalCase,
+                evaluator,
+                $"recommendation-agent-eval-{evalCase.Name}",
+                repetition,
+                timeout.Token);
+            var result = ToEvalResult(evalCase.Name, repetition, evaluationResult);
 
             WriteResult(result);
-
-            var evaluator = RecommendationAgentLocalEvaluator.Create(evalCase, result.ToolNames);
-            var evaluationResult = await evaluator.EvaluateAsync(
-                [new EvalItem(evalCase.Prompt, result.Response)],
-                $"recommendation-agent-eval-{evalCase.Name}",
-                timeout.Token);
-
             AssertEvaluationPassed(evalCase.Name, result, evaluationResult);
         }
     }
@@ -81,9 +81,14 @@ public sealed class RecommendationAgentEvalTests(ITestOutputHelper output)
 
             WriteResult(result);
 
-            var evaluator = RecommendationAgentLocalEvaluator.Create(turn, result.ToolNames);
+            var evaluator = RecommendationAgentLocalEvaluator.Create(turn);
+            var evalItem = RecommendationAgentLocalEvaluator.CreateEvalItem(
+                turn.Prompt,
+                result.Response,
+                result.ToolNames,
+                turn.ExpectedToolNames);
             var evaluationResult = await evaluator.EvaluateAsync(
-                [new EvalItem(turn.Prompt, result.Response)],
+                [evalItem],
                 $"recommendation-agent-eval-session-{evalCase.Name}-turn-{result.TurnNumber}",
                 timeout.Token);
 
@@ -115,5 +120,19 @@ public sealed class RecommendationAgentEvalTests(ITestOutputHelper output)
 
         evaluationResult.AllPassed.ShouldBeTrue(
             $"{caseName} turn {result.TurnNumber} failed local MAF evaluation metrics. {failureDetails} Response: {result.Response}");
+    }
+
+    private static RecommendationAgentEvalResult ToEvalResult(
+        string caseName,
+        int repetition,
+        AgentEvaluationResults evaluationResult)
+    {
+        var item = evaluationResult.InputItems.ShouldNotBeNull().Single();
+        return new RecommendationAgentEvalResult(
+            caseName,
+            repetition,
+            Guid.Empty,
+            item.Response,
+            RecommendationAgentLocalEvaluator.GetToolNames(item));
     }
 }
