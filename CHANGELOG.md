@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.9...v0.1.10) (2026-04-28)
+
+
+### Bug Fixes
+
+* simplified embedding model ([#30](https://github.com/The-Supremacy/AlCopilot/issues/30)) ([ebd9ea0](https://github.com/The-Supremacy/AlCopilot/commit/ebd9ea036ecff31674b3591d2e7d16ab0bbfc144))
+
 ## [0.1.9](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.8...v0.1.9) (2026-04-28)
 
 
