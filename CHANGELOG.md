@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.10...v0.2.0) (2026-04-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* improvements for recommendation chat view ([#32](https://github.com/The-Supremacy/AlCopilot/issues/32))
+
+### Features
+
+* improvements for recommendation chat view ([#32](https://github.com/The-Supremacy/AlCopilot/issues/32)) ([292a4be](https://github.com/The-Supremacy/AlCopilot/commit/292a4bedc995ee16addd390b724eebfac1692fd9))
+
 ## [0.1.10](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.9...v0.1.10) (2026-04-28)
 
 
