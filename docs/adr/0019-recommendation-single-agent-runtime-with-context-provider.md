@@ -17,6 +17,7 @@ The module now has clearer boundaries:
 
 - deterministic recommendation policy lives in normal module services
 - semantic retrieval and candidate building happen before narration
+- drink-details requests resolve to a single catalog drink detail artifact rather than a scored recommendation shortlist
 - model-visible durable history flows through native Agent Framework chat history
 - per-run grounded context is assembled through `AIContextProvider`
 - public transcript and recommendation outputs remain business projections
@@ -33,6 +34,7 @@ Specifically:
 - Recommendation request handling MAY remain ordinary module application-service orchestration when the flow is a single agent call plus persistence.
 - Deterministic context assembly SHALL stay in module-owned services and be injected into the agent through `AIContextProvider` rather than through ad hoc prompt mutation.
 - Semantic retrieval, intent resolution, candidate building, hard exclusions, availability grouping, feedback, and persistence SHALL remain outside model-owned execution.
+- Drink-details requests SHOULD resolve to one catalog drink detail artifact when a drink can be identified, while ordinary recommendation requests continue to use grouped candidate outcomes.
 - MAF Workflows SHOULD be introduced only when the recommendation flow needs explicit graph orchestration, branching, fan-out, human-in-the-loop steps, or multi-agent coordination.
 - Recommendation eval tests SHALL exercise the real `ChatClientAgent`, context-provider chain, tools, and configured LLM provider when model behavior is the risk under review.
 
@@ -51,6 +53,7 @@ It only defers Workflow adoption until the problem actually needs Workflow seman
 
 - ADR 0015 remains useful for the broader Agent Framework adoption direction, but its requirement to use Workflows for current recommendation orchestration is superseded.
 - Recommendation docs should describe the current request-time spine as application-service orchestration plus a single `ChatClientAgent` and `AIContextProvider`.
+- Customer-facing experiences can render drink-details turns as a resolved drink detail instead of exposing recommendation scores or a ranked shortlist.
 - Future workflow work should be justified by concrete orchestration complexity rather than by framework uniformity.
 - Eval tests remain important because prompt, tool, history, and context-provider changes can affect model behavior even without a Workflow graph.
 

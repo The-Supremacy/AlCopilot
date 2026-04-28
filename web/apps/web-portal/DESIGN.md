@@ -57,6 +57,8 @@ When global UI invariants change, update this DESIGN.md.
 
 - Global feedback pattern: inline guidance plus toast confirmation.
 - Recommendation results should combine conversational explanation with stable grouped summaries that stay easy to scan, especially through simple available-now versus restock-oriented presentation.
+- Recommendation scores are internal ranking/debug signals and should not appear as customer-facing UI.
+- Drink-details responses should present the resolved drink as a details artifact rather than as a scored recommendation list.
 - Signed-in gating uses a consistent local sign-in-required state before redirecting to the identity provider.
 - Potentially sensitive profile edits such as prohibited ingredients should use clear plain-language confirmations and summaries.
 - The portal should keep users oriented about whether a recommendation is available now or better framed as a restock candidate without relying on chat prose alone.
@@ -90,3 +92,4 @@ When global UI invariants change, update this DESIGN.md.
 - 2026-04-14: Initial customer web portal design guide created for the first signed-in recommendation-focused portal baseline.
 - 2026-04-21: Refined the chat shell toward a centered conversation workspace with a pinned composer, search-first ingredient pickers, mobile drawer utility consolidation, and simpler grouped recommendation summaries.
 - 2026-04-22: Recommendation turns render lightweight emphasis and bullet formatting from assistant prose, and grouped summaries use softer available-now versus restock language.
+- 2026-04-28: Clarified that recommendation scores stay internal and drink-details turns render as resolved details rather than scored recommendation lists.

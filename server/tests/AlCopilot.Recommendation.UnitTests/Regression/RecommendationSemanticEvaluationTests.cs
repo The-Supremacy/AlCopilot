@@ -80,7 +80,7 @@ public sealed class RecommendationSemanticEvaluationTests
         runContext.Intent.Kind.ShouldBe(RecommendationRequestIntentKind.DrinkDetails);
         runContext.Intent.RequestedDrinkName.ShouldBe("Negroni");
         runContext.RecommendationGroups.Single().Key.ShouldBe("drink-details");
-        runContext.RecommendationGroups.SelectMany(group => group.Items).Select(item => item.DrinkName).ShouldContain("Negroni");
+        runContext.RecommendationGroups.Single().Items.Select(item => item.DrinkName).ShouldBe(["Negroni"]);
     }
 
     [Fact]
@@ -128,6 +128,7 @@ public sealed class RecommendationSemanticEvaluationTests
         runContext.Intent.Kind.ShouldBe(RecommendationRequestIntentKind.DrinkDetails);
         runContext.Intent.RequestedDrinkName.ShouldBe("Negroni");
         runContext.RecommendationGroups.Single().Key.ShouldBe("drink-details");
+        runContext.RecommendationGroups.Single().Items.Select(item => item.DrinkName).ShouldBe(["Negroni"]);
     }
 
     [Fact]

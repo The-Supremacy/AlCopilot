@@ -19,6 +19,7 @@ It provides the durable business record of what the customer asked, how the assi
 - **Customer Request Intent** — The interpreted shape of the customer's request, currently centered on recommendation requests versus drink-details requests, with ingredients and descriptive cues carried as request attributes.
 - **Recommendation Candidate** — A drink that remains eligible after deterministic recommendation preparation.
 - **Recommendation Group** — A customer-facing grouping of recommendation outcomes, currently centered on drinks available now versus drinks better framed for restock.
+- **Drink Details Outcome** — A resolved catalog drink presented for inspection or recipe guidance without treating nearby catalog drinks as competing recommendations.
 - **Recommendation Outcome** — The combined result of grouped machine-readable suggestions plus conversational assistant explanation.
 
 ---
@@ -29,6 +30,7 @@ It provides the durable business record of what the customer asked, how the assi
 - Recommendation sessions use customer-profile state and drinks-catalog data, but do not own either of those reference domains.
 - Recommendation candidates are shaped by hard exclusions, soft preference signals, and owned-ingredient availability before conversational explanation.
 - Recommendation groups organize the resulting outcomes into practical choices for the customer.
+- Drink-details requests resolve around a specific catalog drink when possible instead of producing a ranked recommendation shortlist.
 - A recommendation turn may include both conversational prose and structured recommendation-group data.
 
 ---
@@ -51,6 +53,7 @@ It provides the durable business record of what the customer asked, how the assi
 - Owned ingredients help distinguish drinks the customer can make now from drinks that are better framed as restock candidates.
 - Recommendation groups are stable customer-facing outcome buckets rather than arbitrary assistant formatting.
 - Recipe lookup is part of helping the customer understand a specific drink, not a separate catalog-management workflow.
+- Recommendation scores are implementation signals for ordering and diagnostics, not product vocabulary customers need to see.
 
 ---
 

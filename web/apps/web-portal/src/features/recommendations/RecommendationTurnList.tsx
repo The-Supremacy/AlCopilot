@@ -111,13 +111,15 @@ function RecommendationTurnCard({
                     >
                       {group.label}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {group.items.length} drinks
-                    </span>
+                    <span className="text-xs text-muted-foreground">{formatGroupCount(group)}</span>
                   </div>
                   <ul className="space-y-3">
                     {group.items.map((item) => (
-                      <RecommendationGroupItemCard key={item.drinkId} item={item} />
+                      <RecommendationGroupItemCard
+                        key={item.drinkId}
+                        item={item}
+                        groupKey={group.key}
+                      />
                     ))}
                   </ul>
                 </section>
@@ -165,16 +167,18 @@ function RecommendationTurnCard({
 
 function RecommendationGroupItemCard({
   item,
+  groupKey,
 }: {
   item: RecommendationTurnDto['recommendationGroups'][number]['items'][number];
+  groupKey: string;
 }) {
   const recipeEntries = item.recipeEntries ?? [];
+  const isDrinkDetails = groupKey === 'drink-details';
 
   return (
     <li className="rounded-xl border border-border/60 bg-card/95 px-4 py-3">
       <div className="flex flex-wrap items-center gap-2">
         <h4 className="font-medium text-foreground">{item.drinkName}</h4>
-        <Badge variant="neutral">Score {item.score}</Badge>
       </div>
       {item.description ? (
         <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
@@ -196,15 +200,27 @@ function RecommendationGroupItemCard({
             ))}
           </li>
         ) : null}
-        {item.matchedSignals.length > 0 ? <li>Matches: {item.matchedSignals.join(', ')}</li> : null}
-        {item.missingIngredientNames.length > 0 ? (
-          <li>Consider for restock: {item.missingIngredientNames.join(', ')}</li>
-        ) : (
-          <li>Available now: everything is already in your bar.</li>
-        )}
+        {!isDrinkDetails && item.matchedSignals.length > 0 ? (
+          <li>Matches: {item.matchedSignals.join(', ')}</li>
+        ) : null}
+        {!isDrinkDetails ? (
+          item.missingIngredientNames.length > 0 ? (
+            <li>Consider for restock: {item.missingIngredientNames.join(', ')}</li>
+          ) : (
+            <li>Available now: everything is already in your bar.</li>
+          )
+        ) : null}
       </ul>
     </li>
   );
+}
+
+function formatGroupCount(group: RecommendationTurnDto['recommendationGroups'][number]) {
+  if (group.key === 'drink-details') {
+    return 'Resolved drink';
+  }
+
+  return group.items.length === 1 ? '1 drink' : `${group.items.length} drinks`;
 }
 
 function renderAssistantContent(content: string): ReactNode[] {
