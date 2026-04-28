@@ -2,7 +2,6 @@ using AlCopilot.CustomerProfile.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.Recommendation.Features.Recommendation;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
-using Microsoft.Extensions.Options;
 using Shouldly;
 
 namespace AlCopilot.Recommendation.UnitTests.Handlers;
@@ -10,8 +9,7 @@ namespace AlCopilot.Recommendation.UnitTests.Handlers;
 public sealed class RecommendationRequestIntentResolverTests
 {
     private readonly RecommendationRequestIntentResolver resolver = new(
-        new StubCatalogFuzzyLookupService(),
-        Options.Create(new RecommendationSemanticOptions()));
+        new StubCatalogFuzzyLookupService());
 
     [Fact]
     public async Task Resolve_ReturnsRecommendation_WhenMessageMentionsKnownIngredient()
@@ -72,27 +70,13 @@ public sealed class RecommendationRequestIntentResolverTests
     }
 
     [Fact]
-    public async Task Resolve_UsesFuzzyMatchBeforeSemanticFallback_WhenDrinkNameIsMisspelled()
+    public async Task Resolve_UsesFuzzyMatch_WhenDrinkNameIsMisspelled()
     {
         var drink = CreateDrink("Negroni", "Gin", "Campari");
         var intent = await resolver.ResolveAsync(
             "How do I make a Negrnoi?",
             new RecommendationRunInputs(new CustomerProfileDto([], [], [], []), [drink]),
-            new RecommendationSemanticSearchResult(
-                new Dictionary<Guid, RecommendationSemanticDrinkSignal>
-                {
-                    [drink.Id] = new(
-                        drink.Id,
-                        drink.Name,
-                        1.8d,
-                        0.84d,
-                        0d,
-                        0d,
-                        [RecommendationSemanticFacetKind.Name],
-                        [],
-                        [],
-                        [drink.Name])
-                }));
+            RecommendationSemanticSearchResult.Empty);
 
         intent.Kind.ShouldBe(RecommendationRequestIntentKind.DrinkDetails);
         intent.RequestedDrinkName.ShouldBe("Negroni");
@@ -106,18 +90,12 @@ public sealed class RecommendationRequestIntentResolverTests
             "I want something sparkly and sweet",
             new RecommendationRunInputs(new CustomerProfileDto([], [], [], []), [drink]),
             new RecommendationSemanticSearchResult(
-                new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+                new Dictionary<Guid, RecommendationSemanticSearchResult.DrinkMatch>
                 {
                     [drink.Id] = new(
                         drink.Id,
                         drink.Name,
                         2.4d,
-                        0.61d,
-                        0.66d,
-                        0.90d,
-                        [RecommendationSemanticFacetKind.Name, RecommendationSemanticFacetKind.Description],
-                        ["Prosecco"],
-                        ["Sparkling, bright, and lightly sweet."],
                         [drink.Name, "Sparkling, bright, and lightly sweet."])
                 }));
 
@@ -134,18 +112,12 @@ public sealed class RecommendationRequestIntentResolverTests
             "Recommend me a drink",
             new RecommendationRunInputs(new CustomerProfileDto([], [], [], []), [drink]),
             new RecommendationSemanticSearchResult(
-                new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+                new Dictionary<Guid, RecommendationSemanticSearchResult.DrinkMatch>
                 {
                     [drink.Id] = new(
                         drink.Id,
                         drink.Name,
                         1.6d,
-                        0d,
-                        0d,
-                        0.90d,
-                        [RecommendationSemanticFacetKind.Description],
-                        [],
-                        ["Sparkling, bright, and lightly sweet."],
                         ["Sparkling, bright, and lightly sweet."])
                 }));
 
@@ -167,30 +139,17 @@ public sealed class RecommendationRequestIntentResolverTests
     }
 
     [Fact]
-    public async Task Resolve_RequiresSemanticNameMatchToClearScoreThresholdAndGap()
+    public async Task Resolve_UsesFuzzyMatch_WhenIngredientNameIsMisspelled()
     {
-        var negroni = CreateDrink("Negroni", "Gin", "Campari");
-        var boulevardier = CreateDrink("Boulevardier", "Bourbon", "Campari");
-        var resolverWithStrictOptions = new RecommendationRequestIntentResolver(
-            new StubCatalogFuzzyLookupService(),
-            Options.Create(new RecommendationSemanticOptions
-            {
-                NameMatchMinScore = 0.75d,
-                FacetMatchMinScoreGap = 0.05d,
-            }));
+        var margarita = CreateDrink("Margarita", "Tequila", "Lime");
 
-        var intent = await resolverWithStrictOptions.ResolveAsync(
-            "How do I make a negrony?",
-            new RecommendationRunInputs(new CustomerProfileDto([], [], [], []), [negroni, boulevardier]),
-            new RecommendationSemanticSearchResult(
-                new Dictionary<Guid, RecommendationSemanticDrinkSignal>
-                {
-                    [negroni.Id] = new(negroni.Id, negroni.Name, 1.4d, 0.74d, 0d, 0d, [RecommendationSemanticFacetKind.Name], [], [], [negroni.Name]),
-                    [boulevardier.Id] = new(boulevardier.Id, boulevardier.Name, 1.3d, 0.71d, 0d, 0d, [RecommendationSemanticFacetKind.Name], [], [], [boulevardier.Name]),
-                }));
+        var intent = await resolver.ResolveAsync(
+            "What can I make with tequlia?",
+            new RecommendationRunInputs(new CustomerProfileDto([], [], [], []), [margarita]),
+            RecommendationSemanticSearchResult.Empty);
 
-        intent.RequestedDrinkName.ShouldBeNull();
-        intent.Kind.ShouldBe(RecommendationRequestIntentKind.DrinkDetails);
+        intent.Kind.ShouldBe(RecommendationRequestIntentKind.Recommendation);
+        intent.RequestedIngredientNames.ShouldBe(["Tequila"]);
     }
 
     private sealed class StubCatalogFuzzyLookupService : IRecommendationCatalogFuzzyLookupService
@@ -210,7 +169,14 @@ public sealed class RecommendationRequestIntentResolverTests
         public Task<IReadOnlyCollection<RecommendationFuzzyMatch>> FindIngredientMatchesAsync(
             string searchText,
             CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyCollection<RecommendationFuzzyMatch>>([]);
+        {
+            IReadOnlyCollection<RecommendationFuzzyMatch> matches =
+                string.Equals(searchText, "tequlia", StringComparison.OrdinalIgnoreCase)
+                    ? [new RecommendationFuzzyMatch(Guid.NewGuid(), "Tequila", 0.72d)]
+                    : [];
+
+            return Task.FromResult(matches);
+        }
     }
 
     private static DrinkDetailDto CreateDrink(string name, params string[] ingredientNames)

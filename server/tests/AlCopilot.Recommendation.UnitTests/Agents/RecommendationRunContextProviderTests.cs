@@ -69,18 +69,12 @@ public sealed class RecommendationRunContextProviderTests
     {
         var runInputs = CreateRunInputs();
         var semanticSearchResult = new RecommendationSemanticSearchResult(
-            new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+            new Dictionary<Guid, RecommendationSemanticSearchResult.DrinkMatch>
             {
                 [runInputs.Drinks.Single().Id] = new(
                     runInputs.Drinks.Single().Id,
                     "Gimlet",
                     6.0d,
-                    0d,
-                    0.6d,
-                    0.9d,
-                    [RecommendationSemanticFacetKind.Description],
-                    [],
-                    ["bright"],
                     ["bright"]),
             });
         var runInputsQueryService = Substitute.For<IRecommendationRunInputsQueryService>();

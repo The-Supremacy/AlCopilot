@@ -201,18 +201,12 @@ public sealed class RecommendationCandidateBuilderTests
             CreateDrink("Negroni", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(campariId, "Campari")], "Bittersweet and spirit-forward."),
         };
         var semanticResult = new RecommendationSemanticSearchResult(
-            new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+            new Dictionary<Guid, RecommendationSemanticSearchResult.DrinkMatch>
             {
                 [drinks[0].Id] = new(
                     drinks[0].Id,
                     drinks[0].Name,
                     2.4d,
-                    0d,
-                    0d,
-                    0.92d,
-                    [RecommendationSemanticFacetKind.Description],
-                    [],
-                    ["sparkling", "sweet"],
                     ["sparkling", "sweet"])
             });
 
@@ -232,10 +226,10 @@ public sealed class RecommendationCandidateBuilderTests
         var martini = CreateDrink("Martini", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(vermouthId, "Sweet Vermouth")], "Spirit-forward and aromatic.");
         var profile = new CustomerProfileDto([], [], [campariId], [ginId, vermouthId]);
         var semanticResult = new RecommendationSemanticSearchResult(
-            new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+            new Dictionary<Guid, RecommendationSemanticSearchResult.DrinkMatch>
             {
-                [negroni.Id] = new(negroni.Id, negroni.Name, 9.0d, 0d, 0d, 0.95d, [RecommendationSemanticFacetKind.Description], [], ["bittersweet"], ["bittersweet"]),
-                [martini.Id] = new(martini.Id, martini.Name, 0.2d, 0d, 0d, 0.20d, [RecommendationSemanticFacetKind.Description], [], ["classic"], ["classic"]),
+                [negroni.Id] = new(negroni.Id, negroni.Name, 9.0d, ["bittersweet"]),
+                [martini.Id] = new(martini.Id, martini.Name, 0.2d, ["classic"]),
             });
 
         var groups = _builder.Build("Suggest something classic", DefaultIntent, profile, [negroni, martini], semanticResult);
@@ -287,9 +281,9 @@ public sealed class RecommendationCandidateBuilderTests
             [],
             [ginId, campariId, vermouthId, bourbonId, bittersId, sugarId]);
         var semanticResult = new RecommendationSemanticSearchResult(
-            new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+            new Dictionary<Guid, RecommendationSemanticSearchResult.DrinkMatch>
             {
-                [negroni.Id] = new(negroni.Id, negroni.Name, 9.0d, 0d, 0d, 0.95d, [RecommendationSemanticFacetKind.Description], [], ["classy", "strong"], ["classy", "strong"]),
+                [negroni.Id] = new(negroni.Id, negroni.Name, 9.0d, ["classy", "strong"]),
             });
 
         var groups = _builder.Build("I want something classy, strong, and aromatic.", DefaultIntent, profile, [negroni, oldFashioned], semanticResult);
@@ -351,9 +345,9 @@ public sealed class RecommendationCandidateBuilderTests
         var french75 = CreateDrink("French 75", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(limeId, "Lime"), CreateRecipeEntry(proseccoId, "Prosecco")], "Sparkling, bright, and lightly sweet.");
         var profile = new CustomerProfileDto([], [], [], [ginId, limeId]);
         var semanticResult = new RecommendationSemanticSearchResult(
-            new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+            new Dictionary<Guid, RecommendationSemanticSearchResult.DrinkMatch>
             {
-                [french75.Id] = new(french75.Id, french75.Name, 6.0d, 0d, 0.60d, 0.88d, [RecommendationSemanticFacetKind.Description], ["Prosecco"], ["sparkling", "sweet"], ["sparkling", "sweet"]),
+                [french75.Id] = new(french75.Id, french75.Name, 6.0d, ["sparkling", "sweet"]),
             });
 
         var groups = _builder.Build("I want a sparkly sweet drink", DefaultIntent, profile, [gimlet, french75], semanticResult);

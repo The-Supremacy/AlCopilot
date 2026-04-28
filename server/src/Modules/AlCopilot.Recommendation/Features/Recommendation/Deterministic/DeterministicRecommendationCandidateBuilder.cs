@@ -222,7 +222,7 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
 
     private static List<string> BuildMatchedSignals(
         IReadOnlyCollection<string> matchedLexicalSignals,
-        RecommendationSemanticDrinkSignal? semanticSignal)
+        RecommendationSemanticSearchResult.DrinkMatch? semanticSignal)
     {
         return matchedLexicalSignals
             .Concat(semanticSignal?.SummaryHints ?? [])
