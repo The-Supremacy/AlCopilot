@@ -1,6 +1,6 @@
 ## Why
 
-Recommendation chat currently handles exact drink names, known ingredient mentions, and a small fixed set of preference signals, but it does not yet understand broader natural-language requests such as "I want a sparkly sweet drink" in a principled way.
+Recommendation chat currently handles exact drink names, fuzzy drink or ingredient mentions, and a small fixed set of preference signals, but it does not yet understand broader natural-language requests such as "I want a sparkly sweet drink" in a principled way.
 
 The current preserved IBA snapshot also does not contain drink descriptions, which means the catalog lacks the strongest text field for semantic retrieval.
 
@@ -10,15 +10,16 @@ This change matters now because embeddings are the last planned foundation for t
 
 - Add an AlCopilot-owned extended IBA snapshot that keeps the raw upstream snapshot intact while adding curated drink descriptions for the full current preset catalog.
 - Update the `iba-cocktails-snapshot` import preset to use the extended preserved snapshot by default when no payload is provided.
-- Add Qdrant-backed semantic retrieval in `Recommendation` over derived projection documents built from drink names, ingredient names, and drink descriptions.
-- Use semantic retrieval to enrich recommendation intent and ranking for natural-language requests and slight name or ingredient typos without replacing deterministic filtering and grouping.
+- Add Qdrant-backed semantic retrieval in `Recommendation` over derived projection documents built from curated drink descriptions.
+- Use semantic retrieval to enrich recommendation ranking for descriptive natural-language requests without replacing deterministic filtering and grouping.
+- Use catalog-backed fuzzy lookup, not semantic retrieval, for slight drink-name or ingredient-name typos.
 - Document the accepted Qdrant direction and the curated-seed relationship to the upstream dataset.
 
 ## Capabilities
 
 ### Modified Capabilities
 
-- `recommendation-chat`: recommendation chat gains semantic retrieval support for descriptive customer requests and typo-tolerant drink or ingredient matching.
+- `recommendation-chat`: recommendation chat gains semantic retrieval support for descriptive customer requests while typo-tolerant drink or ingredient matching remains catalog-backed fuzzy lookup.
 - `catalog-actualize-management`: the preserved `iba-cocktails-snapshot` preset uses an AlCopilot-owned extended snapshot that includes curated descriptions while preserving upstream provenance.
 
 ## Impact

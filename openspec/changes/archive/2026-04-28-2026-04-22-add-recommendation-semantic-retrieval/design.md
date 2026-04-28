@@ -14,7 +14,8 @@ PostgreSQL remains canonical for drinks and ingredients, while `Recommendation` 
 - Keep the raw upstream IBA snapshot intact and add a separate AlCopilot-owned extended snapshot with curated descriptions.
 - Make the default `iba-cocktails-snapshot` preset import descriptions from the extended preserved snapshot.
 - Use Qdrant as the vector store for recommendation semantic retrieval.
-- Support natural-language descriptive requests and light typo tolerance using embeddings over names, ingredients, and descriptions.
+- Support natural-language descriptive requests using embeddings over curated drink descriptions.
+- Support light drink-name and ingredient-name typo tolerance through catalog-backed fuzzy lookup rather than embeddings.
 - Keep deterministic exclusions, make-now or buy-next grouping, and persistence outside model-owned execution.
 
 **Non-Goals:**
@@ -68,32 +69,27 @@ Projection rebuild input comes from `GetRecommendationCatalogQuery`.
 Why this over placing vector storage inside `DrinkCatalog`:
 ADR 0006 and ADR 0012 already established that semantic retrieval belongs in `Recommendation` as a derived projection layered on top of canonical catalog data.
 
-### 4. The first retrieval shape uses one point per retrieval facet instead of multi-vector point schemas
+### 4. The first retrieval shape uses one point per described drink instead of multi-vector point schemas
 
-For v1, the Qdrant collection should store separate points for each drink facet:
+For v1, the Qdrant collection should store one semantic point for each drink that has a curated description:
 
-- `facet = name`
-- `facet = ingredient`
 - `facet = description`
 
 Each point will include:
 
 - a stable point ID
 - the owning `DrinkId`
-- the facet kind
-- the facet text
-- small supporting payload such as drink name, matched ingredient name, and category
+- the facet kind (`description`)
+- the curated description text
+- small supporting payload such as drink name and category
 
 The query path will embed the customer message once, search the collection, then aggregate hits back to unique drinks with simple facet weighting.
 
-Recommended initial weighting:
-
-- description hits: strongest default weight for descriptive recommendation prompts
-- ingredient hits: medium weight
-- name hits: strongest tie-breaker for recipe lookup or typo tolerance around known drink names
+Description hits are the only semantic retrieval signal and should be weighted conservatively so they improve descriptive ranking without becoming policy.
 
 Why this over Qdrant named vectors or one giant per-drink blob:
-separate facet points are easier to understand, easier to tune, and closer to the team's current learning goal.
+description points are easier to understand, easier to tune, and keep semantic retrieval focused on the text field where embeddings provide the most value.
+Drink and ingredient entity resolution remains in exact and fuzzy catalog lookup, where typo tolerance is more predictable than embedding similarity.
 
 ### 5. Semantic retrieval enriches deterministic recommendation inputs instead of replacing them
 
@@ -103,10 +99,10 @@ The recommendation request path will:
 2. create a query embedding from the customer message
 3. retrieve top semantic hits from Qdrant
 4. aggregate those hits into semantic signals per drink
-5. pass those signals into deterministic candidate preparation and request-intent enrichment
+5. pass those signals into deterministic candidate preparation for descriptive ranking hints
 6. keep hard exclusions and final grouping in normal module code
 
-This means semantic retrieval may improve ranking, flavor-style matching, ingredient intent detection, and typo tolerance, but prohibited ingredients and availability rules still win.
+This means semantic retrieval may improve ranking and flavor-style matching for descriptive prompts, while exact and fuzzy catalog lookup handles drink-name and ingredient-name entity detection. Prohibited ingredients and availability rules still win.
 
 Why this over vector-first candidate selection:
 the catalog is still small, so correctness and explicit policy are more important than reducing deterministic evaluation scope.
@@ -118,7 +114,6 @@ The run context will include a compact semantic summary when retrieval materiall
 That summary may include:
 
 - top matched descriptors from descriptions
-- top matched ingredients
 - the highest-confidence drink matches
 
 The narrator agent will consume those deterministic semantic hints through the run context rather than querying Qdrant directly as a model tool in v1.
@@ -162,8 +157,8 @@ flowchart LR
 ## Testing Strategy
 
 - Add unit tests for extended snapshot normalization, including description import and provenance metadata.
-- Add unit tests for semantic hit aggregation and weighting across name, ingredient, and description facets.
-- Add unit tests for request-intent enrichment when the prompt uses descriptive language or light typos.
+- Add unit tests for semantic hit aggregation and weighting across description hits.
+- Add unit tests for descriptive ranking and run-context hints when the prompt uses descriptive language, plus fuzzy lookup tests for light drink-name and ingredient-name typos.
 - Add recommendation application tests that prove hard exclusions still override semantic hits.
 - Add integration coverage for projection rebuild and Qdrant-backed retrieval behind a real or disposable test instance where practical.
 - Keep existing evaluation-style corpus tests and extend them with semantic prompts such as "sparkly sweet", "refreshing citrus", and typo variants.
@@ -173,15 +168,15 @@ flowchart LR
 - [Curated text quality] -> Writing all descriptions now adds upfront effort, but it avoids weak embeddings and repeated rework.
 - [Projection freshness] -> The collection must be rebuilt when catalog content changes, so the first slice should include an explicit rebuild path and import-triggered refresh.
 - [Operational complexity] -> Qdrant adds another local service, but that complexity is intentional learning value and aligns with the accepted direction.
-- [Over-weighting fuzzy matches] -> Retrieval weighting must stay conservative so semantic hints help ranking without bypassing deterministic safety.
+- [Over-weighting semantic matches] -> Retrieval weighting must stay conservative so semantic hints help ranking without bypassing deterministic safety.
 
 ## Migration Plan
 
 1. Add the preserved extended snapshot and update importer normalization plus provenance metadata.
 2. Re-import or refresh the catalog so drink descriptions are populated in PostgreSQL.
-3. Add Qdrant integration and a recommendation projection builder that emits one point per retrieval facet.
+3. Add Qdrant integration and a recommendation projection builder that emits description points for drinks with curated descriptions.
 4. Implement semantic retrieval plus deterministic aggregation into recommendation run inputs.
-5. Extend recommendation evaluation and integration tests with semantic-language and typo-tolerance cases.
+5. Extend recommendation evaluation and integration tests with semantic-language cases and fuzzy typo-tolerance cases.
 6. Update architecture, operations, and local AI guidance docs.
 
 Rollback strategy:

@@ -14,15 +14,7 @@ public sealed class RecommendationSemanticOptions
 
     public int SearchLimit { get; init; } = 18;
 
-    public double NameMatchMinScore { get; init; } = 0.72d;
-
-    public double IngredientMatchMinScore { get; init; } = 0.72d;
-
-    public double FacetMatchMinScoreGap { get; init; } = 0.05d;
-
-    public double NameWeight { get; init; } = 1.25d;
-
-    public double IngredientWeight { get; init; } = 1.0d;
+    public double DescriptionMinScore { get; init; } = 0.55d;
 
     public double DescriptionWeight { get; init; } = 1.5d;
 

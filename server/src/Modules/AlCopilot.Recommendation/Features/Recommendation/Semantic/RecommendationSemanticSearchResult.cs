@@ -1,56 +1,44 @@
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
 internal sealed record RecommendationSemanticSearchResult(
-    IReadOnlyDictionary<Guid, RecommendationSemanticDrinkSignal> ByDrinkId)
+    IReadOnlyDictionary<Guid, RecommendationSemanticSearchResult.DrinkMatch> ByDrinkId)
 {
     internal static RecommendationSemanticSearchResult Empty { get; } =
-        new RecommendationSemanticSearchResult(new Dictionary<Guid, RecommendationSemanticDrinkSignal>());
+        new RecommendationSemanticSearchResult(new Dictionary<Guid, DrinkMatch>());
 
-    internal RecommendationSemanticDrinkSignal? TopNameMatch =>
-        FindBestFacetMatch(RecommendationSemanticFacetKind.Name);
-
-    internal RecommendationSemanticDrinkSignal? TopIngredientMatch =>
-        FindBestFacetMatch(RecommendationSemanticFacetKind.Ingredient);
-
-    internal RecommendationSemanticDrinkSignal? Find(Guid drinkId)
+    internal DrinkMatch? Find(Guid drinkId)
     {
-        return ByDrinkId.TryGetValue(drinkId, out var signal) ? signal : null;
+        return ByDrinkId.TryGetValue(drinkId, out var match) ? match : null;
     }
 
-    internal RecommendationSemanticDrinkSignal? FindTopFacetMatch(
-        RecommendationSemanticFacetKind facetKind,
-        double minScore,
-        double minScoreGap)
+    internal sealed record DrinkMatch(
+        Guid DrinkId,
+        string DrinkName,
+        double WeightedScore,
+        IReadOnlyCollection<DescriptionMatch> DescriptionMatches)
     {
-        var ordered = ByDrinkId.Values
-            .Where(signal => signal.GetFacetScore(facetKind) > 0d)
-            .OrderByDescending(signal => signal.GetFacetScore(facetKind))
-            .ThenByDescending(signal => signal.WeightedScore)
-            .ToList();
-
-        if (ordered.Count == 0)
+        internal DrinkMatch(
+            Guid drinkId,
+            string drinkName,
+            double weightedScore,
+            IReadOnlyCollection<string> descriptionMatches)
+            : this(
+                drinkId,
+                drinkName,
+                weightedScore,
+                descriptionMatches.Select(text => new DescriptionMatch(text, 0d)).ToList())
         {
-            return null;
         }
 
-        var best = ordered[0];
-        if (best.GetFacetScore(facetKind) < minScore)
-        {
-            return null;
-        }
-
-        var runnerUpScore = ordered.Count > 1 ? ordered[1].GetFacetScore(facetKind) : 0d;
-        return best.GetFacetScore(facetKind) - runnerUpScore >= minScoreGap
-            ? best
-            : null;
+        internal IReadOnlyCollection<string> SummaryHints =>
+            DescriptionMatches
+                .Select(match => match.Text)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+                .ToList();
     }
 
-    private RecommendationSemanticDrinkSignal? FindBestFacetMatch(RecommendationSemanticFacetKind facetKind)
-    {
-        return ByDrinkId.Values
-            .Where(signal => signal.GetFacetScore(facetKind) > 0d)
-            .OrderByDescending(signal => signal.GetFacetScore(facetKind))
-            .ThenByDescending(signal => signal.WeightedScore)
-            .FirstOrDefault();
-    }
+    internal sealed record DescriptionMatch(
+        string Text,
+        double Score);
 }

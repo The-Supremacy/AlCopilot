@@ -16,15 +16,16 @@ The system SHALL return recommendation-chat assistant responses as structured re
 
 #### Scenario: Recommendation reply can reflect semantic drink matches
 
-- **WHEN** the system identifies strong semantic matches from drink descriptions, ingredient text, or drink names
+- **WHEN** the system identifies strong semantic matches from drink descriptions
 - **THEN** the generated response SHALL be allowed to use those semantic matches when explaining the recommendation outcome
 - **AND** the response SHALL remain grounded in the deterministic recommendation groups returned by the module
 
 ## ADDED Requirements
 
-### Requirement: Recommendation Chat Supports Semantic Retrieval
+### Requirement: Recommendation Chat Supports Description Semantic Retrieval
 
-The system SHALL support semantic retrieval over recommendation-owned drink projection text so that natural-language drink requests do not depend only on exact substring matching.
+The system SHALL support semantic retrieval over recommendation-owned drink description projection text so that descriptive natural-language drink requests do not depend only on exact substring matching.
+Drink-name and ingredient-name typo tolerance SHALL use catalog-backed fuzzy lookup rather than semantic retrieval.
 
 #### Scenario: Descriptive request matches drinks through descriptions
 
@@ -34,9 +35,11 @@ The system SHALL support semantic retrieval over recommendation-owned drink proj
 #### Scenario: Slight drink-name typo still resolves the intended drink
 
 - **WHEN** an authenticated customer asks for a known drink with a slight typo
-- **THEN** the recommendation flow SHALL be able to use semantic retrieval over drink-name projection text to resolve the intended drink candidate
+- **THEN** the recommendation flow SHALL be able to use catalog-backed fuzzy drink-name lookup to resolve the intended drink candidate
+- **AND** semantic retrieval SHALL NOT be required for drink-name typo tolerance
 
 #### Scenario: Slight ingredient-name typo still contributes to ingredient-constrained recommendation
 
 - **WHEN** an authenticated customer asks for drinks with an ingredient using a slight typo or close wording
-- **THEN** the recommendation flow SHALL be able to use semantic retrieval over ingredient projection text to contribute to ingredient-constrained recommendation
+- **THEN** the recommendation flow SHALL be able to use catalog-backed fuzzy ingredient-name lookup to contribute to ingredient-constrained recommendation
+- **AND** semantic retrieval SHALL NOT be required for ingredient-name typo tolerance

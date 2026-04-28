@@ -11,41 +11,19 @@ internal static class RecommendationSemanticProjectionBuilder
 
         foreach (var drink in drinks)
         {
+            if (string.IsNullOrWhiteSpace(drink.Description))
+            {
+                continue;
+            }
+
             points.Add(new RecommendationSemanticProjectionPoint(
-                CreatePointId(drink.Id, RecommendationSemanticFacetKind.Name, drink.Name),
+                CreatePointId(drink.Id, RecommendationSemanticFacetKind.Description, drink.Description),
                 drink.Id,
                 drink.Name,
                 drink.Category,
-                RecommendationSemanticFacetKind.Name,
-                drink.Name,
+                RecommendationSemanticFacetKind.Description,
+                drink.Description.Trim(),
                 null));
-
-            if (!string.IsNullOrWhiteSpace(drink.Description))
-            {
-                points.Add(new RecommendationSemanticProjectionPoint(
-                    CreatePointId(drink.Id, RecommendationSemanticFacetKind.Description, drink.Description),
-                    drink.Id,
-                    drink.Name,
-                    drink.Category,
-                    RecommendationSemanticFacetKind.Description,
-                    drink.Description.Trim(),
-                    null));
-            }
-
-            foreach (var ingredientName in drink.RecipeEntries
-                         .Select(entry => entry.Ingredient.Name)
-                         .Distinct(StringComparer.OrdinalIgnoreCase)
-                         .OrderBy(name => name, StringComparer.OrdinalIgnoreCase))
-            {
-                points.Add(new RecommendationSemanticProjectionPoint(
-                    CreatePointId(drink.Id, RecommendationSemanticFacetKind.Ingredient, ingredientName),
-                    drink.Id,
-                    drink.Name,
-                    drink.Category,
-                    RecommendationSemanticFacetKind.Ingredient,
-                    ingredientName,
-                    ingredientName));
-            }
         }
 
         return points;

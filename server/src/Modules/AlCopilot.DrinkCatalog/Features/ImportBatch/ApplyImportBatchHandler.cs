@@ -44,8 +44,6 @@ public sealed class ApplyImportBatchHandler(
         }
 
         var summary = await applyService.ApplyAsync(batch, cancellationToken);
-        var indexedCatalog = await drinkQueryService.GetAllAsync(cancellationToken);
-        await mediator.Send(new ReplaceRecommendationSemanticCatalogCommand(indexedCatalog), cancellationToken);
         importBatchRepository.Update(batch);
         auditLogWriter.Write(
             "import-batch.apply",
@@ -53,6 +51,9 @@ public sealed class ApplyImportBatchHandler(
             batch.Id.ToString(),
             $"Applied import batch '{batch.Id}' with {summary.CreatedCount} created, {summary.UpdatedCount} updated, {summary.RejectedCount} rejected.");
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var indexedCatalog = await drinkQueryService.GetAllAsync(cancellationToken);
+        await mediator.Send(new ReplaceRecommendationSemanticCatalogCommand(indexedCatalog), cancellationToken);
 
         return batch.ToApplyResultDto(batch.GetApplyReadiness(), true);
     }

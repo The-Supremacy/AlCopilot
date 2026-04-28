@@ -13,7 +13,7 @@ The recommendation LLM is a narrator over grounded backend context.
 It does not own catalog truth, hard exclusions, profile policy, vector retrieval, or candidate scoring.
 
 PostgreSQL remains the canonical source for drinks, recipes, ingredients, profile preferences, and chat sessions.
-Qdrant stores a derived recommendation projection for semantic retrieval.
+Qdrant stores a derived description-only recommendation projection for semantic retrieval.
 The Recommendation module combines exact catalog reads, fuzzy lookup, semantic retrieval, and deterministic scoring before the model writes.
 
 ---
@@ -24,7 +24,7 @@ The request-time spine is the recommendation conversation service plus the Agent
 
 1. Load current recommendation inputs, including catalog details and customer profile.
 2. Capture and analyze the current customer message from the model-visible invocation messages.
-3. Run semantic search over the derived Qdrant catalog projection only when lexical analysis suggests it will help.
+3. Run semantic search over the derived Qdrant description projection only when lexical analysis suggests it will help.
 4. Resolve request intent, requested entities, and request descriptors.
 5. Build deterministic candidates with profile constraints, availability, exact, fuzzy, and semantic evidence.
 6. Build a compact run context message for the narrator through the recommendation run context provider.
@@ -32,7 +32,7 @@ The request-time spine is the recommendation conversation service plus the Agent
 8. Persist the native agent messages, customer-visible turns, candidate groups, tool calls, and development execution trace when enabled.
 
 This is a hybrid RAG pipeline.
-It uses relational truth for canonical data, PostgreSQL fuzzy lookup for typo-tolerant entity recovery, vector retrieval for descriptive intent, deterministic scoring for policy, and the LLM for final conversational presentation.
+It uses relational truth for canonical data, PostgreSQL fuzzy lookup for typo-tolerant entity recovery, vector retrieval for descriptive cues, deterministic scoring for policy, and the LLM for final conversational presentation.
 
 ---
 

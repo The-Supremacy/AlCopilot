@@ -13,6 +13,7 @@ The system SHALL allow a manager to start an import for a configured import sync
 - And the system SHALL compute diagnostics, review summary, and review rows through one processing operation
 - And the system SHALL persist the current prepared review snapshot as review rows describing planned create, update, and skip outcomes
 - And the system SHALL NOT persist source-fingerprint metadata or duplicate-import override workflow state
+- And the preserved no-payload preset source SHALL come from the AlCopilot-owned extended snapshot rather than the raw upstream-derived snapshot
 
 ### Requirement: Validate Import Changes
 
@@ -33,6 +34,13 @@ Normalization SHALL preserve drink preparation method and garnish fields when pr
 - When a manager starts the import
 - Then the system SHALL keep the batch in `InProgress` status
 - And the system SHALL return diagnostics with actionable reasons that describe validation or safety findings
+
+**Scenario: Extended snapshot import preserves curated descriptions**
+
+- Given a manager starts the `iba-cocktails-snapshot` preset without providing a custom payload
+- When the system normalizes the preserved extended snapshot
+- Then the normalized drinks SHALL preserve curated `description` values alongside name, category, method, garnish, and recipe entries
+- And the import provenance SHALL remain explicit that the preserved snapshot is an AlCopilot-owned derivative of the upstream seed dataset
 
 ### Requirement: Review Import Changes
 

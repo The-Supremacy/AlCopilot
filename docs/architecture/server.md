@@ -72,6 +72,7 @@ Recommendation orchestration now uses ordinary module application-service coordi
 Within the Recommendation module, model-visible conversation state should flow through a stable `ChatClientAgent`, persisted `AgentSession` state, and native Agent Framework message history, while customer-facing recommendation turns remain a business projection under the same session parent, as accepted in [ADR 0018](../adr/0018-recommendation-native-agent-history-and-business-turns.md).
 Deterministic narration snapshots should be assembled per run through module-owned `AIContextProvider` code, while the final narrator receives explicit model-visible context messages derived from that deterministic snapshot.
 Recommendation semantic retrieval now uses Qdrant as `Recommendation`-owned derived projection storage over contracts-facing catalog reads, while PostgreSQL remains the canonical catalog store, as accepted in [ADR 0016](../adr/0016-recommendation-semantic-retrieval-with-qdrant.md).
+That semantic projection indexes drink descriptions only; drink-name and ingredient typo tolerance belong to exact catalog matching and PostgreSQL-backed fuzzy lookup, as accepted in [ADR 0020](../adr/0020-description-only-recommendation-semantic-retrieval.md).
 
 ---
 
