@@ -1,10 +1,10 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import type {
   RecommendationSessionDto,
   RecommendationTurnDto,
 } from '@alcopilot/customer-api-client';
-import { ThumbsDown, ThumbsUp } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { ChevronDown, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatRelativeDate } from '@/lib/format';
@@ -95,35 +95,7 @@ function RecommendationTurnCard({
             </p>
           )}
 
-          {turn.recommendationGroups.length > 0 ? (
-            <div className="space-y-4 rounded-2xl border border-border/70 bg-background/70 p-4">
-              {turn.recommendationGroups.map((group) => (
-                <section key={group.key} aria-label={group.label} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={
-                        group.key === 'make-now'
-                          ? 'success'
-                          : group.key === 'buy-next'
-                            ? 'warning'
-                            : 'neutral'
-                      }
-                    >
-                      {group.label}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {group.items.length} drinks
-                    </span>
-                  </div>
-                  <ul className="space-y-3">
-                    {group.items.map((item) => (
-                      <RecommendationGroupItemCard key={item.drinkId} item={item} />
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
-          ) : null}
+          <RecommendationResultDisclosure groups={turn.recommendationGroups} />
 
           {isAssistant && onFeedback ? (
             <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3">
@@ -163,48 +135,190 @@ function RecommendationTurnCard({
   );
 }
 
-function RecommendationGroupItemCard({
-  item,
-}: {
-  item: RecommendationTurnDto['recommendationGroups'][number]['items'][number];
-}) {
-  const recipeEntries = item.recipeEntries ?? [];
+type RecommendationGroup = RecommendationTurnDto['recommendationGroups'][number];
+type RecommendationGroupItem = RecommendationGroup['items'][number];
+
+function RecommendationResultDisclosure({ groups }: { groups: RecommendationGroup[] }) {
+  const visibleGroups = groups.filter((group) => group.items.length > 0);
+
+  if (visibleGroups.length === 0) {
+    return null;
+  }
+
+  const isDrinkDetailsOnly = visibleGroups.every((group) => group.key === 'drink-details');
 
   return (
-    <li className="rounded-xl border border-border/60 bg-card/95 px-4 py-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h4 className="font-medium text-foreground">{item.drinkName}</h4>
-        <Badge variant="neutral">Score {item.score}</Badge>
+    <section
+      aria-label={isDrinkDetailsOnly ? 'Drink details' : 'Recommendations'}
+      className="space-y-3 rounded-2xl border border-border/70 bg-background/70 p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-foreground">
+          {isDrinkDetailsOnly ? 'Drink details' : 'Recommendations'}
+        </h3>
+        <span className="text-xs text-muted-foreground">{formatResultCount(visibleGroups)}</span>
       </div>
-      {item.description ? (
-        <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+      <div className="space-y-2">
+        {visibleGroups.map((group) => (
+          <RecommendationGroupDisclosure key={group.key} group={group} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function RecommendationGroupDisclosure({ group }: { group: RecommendationGroup }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const label = formatGroupLabel(group);
+
+  return (
+    <section aria-label={label} className="rounded-xl border border-border/60 bg-card/90">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-expanded={isExpanded}
+        onClick={() => setIsExpanded((current) => !current)}
+      >
+        <span className="flex min-w-0 flex-wrap items-center gap-2">
+          <Badge variant={formatGroupBadgeVariant(group)}>{label}</Badge>
+          <span className="text-xs text-muted-foreground">{formatGroupCount(group)}</span>
+        </span>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+            isExpanded && 'rotate-180',
+          )}
+          aria-hidden="true"
+        />
+      </button>
+      {isExpanded ? (
+        <ul className="space-y-2 border-t border-border/60 p-3">
+          {group.items.map((item) => (
+            <RecommendationGroupItemDisclosure
+              key={item.drinkId}
+              item={item}
+              groupKey={group.key}
+            />
+          ))}
+        </ul>
       ) : null}
-      <ul className="mt-3 space-y-1 text-sm leading-6 text-foreground">
-        {recipeEntries.length > 0 ? (
-          <li>
-            <span className="text-muted-foreground">Recipe:</span>{' '}
-            {recipeEntries.map((entry, index) => (
-              <Fragment key={`${item.drinkId}-${entry.ingredientName}`}>
-                <span className={entry.isOwned ? 'font-medium text-foreground' : 'text-foreground'}>
-                  {entry.ingredientName} ({entry.quantity})
-                </span>
-                {!entry.isOwned ? (
-                  <span className="text-muted-foreground"> need to restock</span>
-                ) : null}
-                {index < recipeEntries.length - 1 ? ', ' : null}
-              </Fragment>
-            ))}
-          </li>
-        ) : null}
-        {item.matchedSignals.length > 0 ? <li>Matches: {item.matchedSignals.join(', ')}</li> : null}
-        {item.missingIngredientNames.length > 0 ? (
-          <li>Consider for restock: {item.missingIngredientNames.join(', ')}</li>
-        ) : (
-          <li>Available now: everything is already in your bar.</li>
-        )}
-      </ul>
+    </section>
+  );
+}
+
+function RecommendationGroupItemDisclosure({
+  item,
+  groupKey,
+}: {
+  item: RecommendationGroupItem;
+  groupKey: string;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const recipeEntries = item.recipeEntries ?? [];
+  const isDrinkDetails = groupKey === 'drink-details';
+  const missingSummary =
+    !isDrinkDetails && item.missingIngredientNames.length > 0
+      ? `Missing ${item.missingIngredientNames.join(', ')}`
+      : null;
+
+  return (
+    <li className="rounded-lg border border-border/60 bg-background/80">
+      <button
+        type="button"
+        className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-expanded={isExpanded}
+        onClick={() => setIsExpanded((current) => !current)}
+      >
+        <span className="min-w-0 space-y-1">
+          <span className="block font-medium text-foreground">{item.drinkName}</span>
+          {item.description ? (
+            <span className="block text-sm leading-6 text-muted-foreground">
+              {item.description}
+            </span>
+          ) : null}
+          {missingSummary ? (
+            <span className="block text-xs font-medium text-warning">{missingSummary}</span>
+          ) : null}
+        </span>
+        <ChevronDown
+          className={cn(
+            'mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+            isExpanded && 'rotate-180',
+          )}
+          aria-hidden="true"
+        />
+      </button>
+      {isExpanded ? (
+        <ul className="space-y-1 border-t border-border/60 px-4 py-3 text-sm leading-6 text-foreground">
+          {recipeEntries.length > 0 ? (
+            <li>
+              <span className="text-muted-foreground">Recipe:</span>{' '}
+              {recipeEntries.map((entry, index) => (
+                <Fragment key={`${item.drinkId}-${entry.ingredientName}`}>
+                  <span
+                    className={entry.isOwned ? 'font-medium text-foreground' : 'text-foreground'}
+                  >
+                    {entry.ingredientName} ({entry.quantity})
+                  </span>
+                  {!entry.isOwned ? (
+                    <span className="text-muted-foreground"> need to restock</span>
+                  ) : null}
+                  {index < recipeEntries.length - 1 ? ', ' : null}
+                </Fragment>
+              ))}
+            </li>
+          ) : null}
+          {!isDrinkDetails && item.matchedSignals.length > 0 ? (
+            <li>Matches: {item.matchedSignals.join(', ')}</li>
+          ) : null}
+          {!isDrinkDetails ? (
+            item.missingIngredientNames.length > 0 ? (
+              <li>Buy next: {item.missingIngredientNames.join(', ')}</li>
+            ) : (
+              <li>Available now: everything is already in your bar.</li>
+            )
+          ) : null}
+        </ul>
+      ) : null}
     </li>
   );
+}
+
+function formatResultCount(groups: RecommendationGroup[]) {
+  const itemCount = groups.reduce((total, group) => total + group.items.length, 0);
+  return itemCount === 1 ? '1 drink' : `${itemCount} drinks`;
+}
+
+function formatGroupCount(group: RecommendationGroup) {
+  if (group.key === 'drink-details') {
+    return 'Resolved drink';
+  }
+
+  return group.items.length === 1 ? '1 drink' : `${group.items.length} drinks`;
+}
+
+function formatGroupLabel(group: RecommendationGroup) {
+  if (group.key === 'make-now') {
+    return 'Available now';
+  }
+
+  if (group.key === 'buy-next') {
+    return 'Buy next';
+  }
+
+  return group.label;
+}
+
+function formatGroupBadgeVariant(group: RecommendationGroup): BadgeProps['variant'] {
+  if (group.key === 'make-now') {
+    return 'success';
+  }
+
+  if (group.key === 'buy-next') {
+    return 'warning';
+  }
+
+  return 'neutral';
 }
 
 function renderAssistantContent(content: string): ReactNode[] {

@@ -124,7 +124,7 @@ public sealed class RecommendationCandidateBuilderTests
     }
 
     [Fact]
-    public void Build_KeepsDrinkDetailsCandidateEvenWhenDrinkContainsProhibitedIngredient()
+    public void Build_ResolvesSingleDrinkDetailsCandidateEvenWhenDrinkContainsProhibitedIngredient()
     {
         var ginId = Guid.Parse("00000000-0000-0000-0000-000000000045");
         var campariId = Guid.Parse("00000000-0000-0000-0000-000000000046");
@@ -150,8 +150,8 @@ public sealed class RecommendationCandidateBuilderTests
 
         groups.Single().Key.ShouldBe("drink-details");
         groups.Single().Label.ShouldBe("Drink Details");
-        groups.SelectMany(group => group.Items).Select(item => item.DrinkName)
-            .ShouldContain("Negroni");
+        groups.Single().Items.Select(item => item.DrinkName)
+            .ShouldBe(["Negroni"]);
     }
 
     [Fact]

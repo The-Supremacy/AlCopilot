@@ -20,7 +20,7 @@ internal static class RecommendationRunContextMessageBuilder
         builder.AppendLine($"- prohibited: {FormatIngredientList(runContext.Profile.ProhibitedIngredientIds, runContext)}");
         builder.AppendLine($"- owned: {FormatIngredientList(runContext.Profile.OwnedIngredientIds, runContext)}");
         builder.AppendLine();
-        builder.AppendLine("Deterministic candidate groups:");
+        builder.AppendLine("Grounded candidate groups, ordered by deterministic fit:");
 
         foreach (var group in runContext.Groups.Where(group => group.Items.Count > 0))
         {
@@ -40,30 +40,16 @@ internal static class RecommendationRunContextMessageBuilder
                 var dislikedIngredients = item.DislikedIngredientNames.Count == 0
                     ? "disliked none"
                     : $"disliked {string.Join(", ", item.DislikedIngredientNames)}";
-                var recipeIngredients = runContext.Intent.IsDrinkDetailsRequest
-                    ? "recipe details intentionally omitted"
-                    : item.RecipeIngredientNames.Count == 0
-                        ? "recipe ingredients unavailable"
-                        : $"recipe {string.Join(", ", item.RecipeIngredientNames)}";
-                var method = runContext.Intent.IsDrinkDetailsRequest
-                    ? "method intentionally omitted"
-                    : string.IsNullOrWhiteSpace(item.Method)
-                        ? "method not specified"
-                        : $"method {item.Method}";
-                var garnish = runContext.Intent.IsDrinkDetailsRequest
-                    ? "garnish intentionally omitted"
-                    : string.IsNullOrWhiteSpace(item.Garnish)
-                        ? "garnish not specified"
-                        : $"garnish {item.Garnish}";
                 var matchedSignals = item.MatchedSignals.Count == 0
                     ? "matched signals none"
                     : $"matched signals {string.Join(", ", item.MatchedSignals)}";
                 var semanticHints = item.SemanticHints.Count == 0
                     ? "semantic hints none"
                     : $"semantic hints {string.Join(", ", item.SemanticHints)}";
+                var recipeContext = BuildRecipeContext(runContext, item);
 
                 builder.AppendLine(
-                    $"  - {item.DrinkName} [id: {item.DrinkId}] (score {item.Score}; {ownedIngredients}; {missingIngredients}; {dislikedIngredients}; {recipeIngredients}; {method}; {garnish}; {matchedSignals}; {semanticHints}; {description})");
+                    $"  - {item.DrinkName} [id: {item.DrinkId}] ({ownedIngredients}; {missingIngredients}; {dislikedIngredients}; {recipeContext}{matchedSignals}; {semanticHints}; {description})");
             }
         }
 
@@ -89,6 +75,28 @@ internal static class RecommendationRunContextMessageBuilder
     private static IReadOnlyDictionary<Guid, string> BuildIngredientNameLookup(RecommendationRunContext runContext)
     {
         return runContext.IngredientNames;
+    }
+
+    private static string BuildRecipeContext(
+        RecommendationRunContext runContext,
+        RecommendationRunContextItem item)
+    {
+        if (runContext.Intent.IsDrinkDetailsRequest)
+        {
+            return string.Empty;
+        }
+
+        var recipeIngredients = item.RecipeIngredientNames.Count == 0
+            ? "recipe ingredients unavailable"
+            : $"recipe {string.Join(", ", item.RecipeIngredientNames)}";
+        var method = string.IsNullOrWhiteSpace(item.Method)
+            ? "method not specified"
+            : $"method {item.Method}";
+        var garnish = string.IsNullOrWhiteSpace(item.Garnish)
+            ? "garnish not specified"
+            : $"garnish {item.Garnish}";
+
+        return $"{recipeIngredients}; {method}; {garnish}; ";
     }
 
     private static string FormatTextList(IReadOnlyCollection<string> values)

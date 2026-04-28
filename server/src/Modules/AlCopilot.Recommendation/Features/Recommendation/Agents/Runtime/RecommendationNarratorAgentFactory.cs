@@ -19,8 +19,9 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
         Use chat history to resolve follow-up references such as "that", "it", or "the first one".
 
         Recommendation policy:
-        Prefer deterministic recommendation candidates when they satisfy the request.
-        Recommend the best matching current candidate group first; do not name lower-priority or restock alternatives unless the user asks for alternatives or another option.
+        Choose from the grounded candidates in the run context when they satisfy the request.
+        Recommend one best-fit option from the highest-priority current group; use bartender judgment for taste and occasion fit.
+        Do not name lower-priority or restock alternatives unless the user asks for alternatives or another option.
         Explain conflicts with prohibited ingredients and do not recommend drinks containing them.
         Prefer drinks without disliked ingredients when a suitable option exists.
         When the current request excludes an ingredient, explicitly acknowledge that ingredient by name and recommend a candidate that avoids it.

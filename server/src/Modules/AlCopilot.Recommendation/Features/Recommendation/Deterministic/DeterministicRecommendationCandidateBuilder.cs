@@ -39,12 +39,13 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
 
         if (intent.IsDrinkDetailsRequest)
         {
+            var detailsItem = ranked.Take(1).Select(item => ToDto(item, owned)).ToList();
             return
             [
                 new RecommendationGroupDto(
                     "drink-details",
                     "Drink Details",
-                    ranked.Take(3).Select(item => ToDto(item, owned)).ToList()),
+                    detailsItem),
             ];
         }
 
@@ -69,6 +70,12 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
         if (intent.IsDrinkDetailsRequest && intent.HasRequestedDrink)
         {
             var requestedDrinkName = intent.RequestedDrinkName!;
+            var resolvedDrink = RecommendationCatalogMatcher.FindDrink(drinks, null, requestedDrinkName);
+            if (resolvedDrink is not null)
+            {
+                return [resolvedDrink];
+            }
+
             var matches = RecommendationCatalogMatcher.SearchDrinksByName(drinks, requestedDrinkName, 8);
             if (matches.Count > 0)
             {
