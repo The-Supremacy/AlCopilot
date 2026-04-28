@@ -32,8 +32,7 @@ public sealed class RecommendationSemanticSearchIntegrationTests
             QdrantEndpoint = $"http://{container.Hostname}:{container.GetMappedPublicPort(6334)}",
             CollectionName = $"recommendation-semantic-{Guid.NewGuid():N}",
             SearchLimit = 8,
-            NameWeight = 1.25d,
-            IngredientWeight = 1.0d,
+            DescriptionMinScore = 0.55d,
             DescriptionWeight = 1.5d,
             EmbeddingModelId = "fake-test-model",
         });
@@ -66,8 +65,7 @@ public sealed class RecommendationSemanticSearchIntegrationTests
 
         var sparklingResult = await service.SearchAsync("I want a sparkly sweet drink", CancellationToken.None);
         sparklingResult.ByDrinkId.Keys.ShouldContain(french75.Id);
-        sparklingResult.TopIngredientMatch?.DrinkName.ShouldBe("French 75");
-        sparklingResult.Find(french75.Id)?.MatchedDescriptors.ShouldContain("Sparkling, bright, and lightly sweet.");
+        sparklingResult.Find(french75.Id)?.SummaryHints.ShouldContain("Sparkling, bright, and lightly sweet.");
 
         var bittersweetResult = await service.SearchAsync("I want something bitter", CancellationToken.None);
         bittersweetResult.ByDrinkId.Keys.ShouldContain(negroni.Id);

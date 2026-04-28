@@ -6,7 +6,6 @@ using AlCopilot.Recommendation.Features.Recommendation;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using Mediator;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
 
@@ -69,8 +68,7 @@ public sealed class RecommendationEvaluationCorpusTests
             await runInputsQueryService.GetRunInputsAsync(CancellationToken.None),
             new StubSemanticSearchService(),
             new RecommendationRequestIntentResolver(
-                new StubCatalogFuzzyLookupService(),
-                Options.Create(new RecommendationSemanticOptions())),
+                new StubCatalogFuzzyLookupService()),
             new DeterministicRecommendationCandidateBuilder(),
             new RecommendationRunContextBuilder());
 

@@ -161,11 +161,7 @@ internal sealed class RecommendationAgentEvalHarness
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         var runInputsQueryService = new RecommendationRunInputsQueryService(mediator);
         var requestIntentResolver = new RecommendationRequestIntentResolver(
-            fuzzyLookupService,
-            Options.Create(new RecommendationSemanticOptions
-            {
-                Enabled = false,
-            }));
+            fuzzyLookupService);
         var strategyFactory = new RecommendationChatClientStrategyFactory(
             Options.Create(BuildLlmOptions()),
             Options.Create(BuildOllamaOptions()));

@@ -93,15 +93,11 @@ The current integration has two phases.
 
 ### Import-time indexing
 
-When the catalog is refreshed, AlCopilot projects each drink into semantic texts and replaces the semantic catalog in Qdrant.
+When the catalog is refreshed, AlCopilot projects drink descriptions into semantic texts and replaces the semantic catalog in Qdrant.
+Drinks without descriptions are skipped.
 
-Today those texts are intentionally simple:
-
-- drink name
-- ingredient names
-- drink description
-
-This keeps indexing understandable while still providing useful semantic coverage.
+Drink names and ingredient names are intentionally not embedded for recommendation retrieval.
+Exact catalog matching and PostgreSQL-backed fuzzy lookup own those entity-resolution paths.
 
 ### Request-time retrieval
 
@@ -129,7 +125,7 @@ AlCopilot uses a layered retrieval strategy:
 That division of labor is important because it keeps each tool solving the kind of problem it is actually good at.
 
 Semantic retrieval is therefore a complement, not the policy engine.
-It can enrich intent and ranking, but it does not override hard exclusions, ownership constraints, or availability grouping.
+It enriches descriptive ranking and hinting, but it does not resolve drink names or ingredients and does not override hard exclusions, ownership constraints, or availability grouping.
 
 ---
 
@@ -147,18 +143,11 @@ That trust concept shows up in two different ways:
 Drink-level weighted scores help compare retrieved candidates.
 These are useful for ranking and for adding semantic hints into the final run context.
 
-### Decision trust
+### Entity trust
 
-Intent fallback is stricter.
-For semantic drink-name or ingredient fallback, the system looks at facet-level confidence and requires the best match to clear both:
-
-- a minimum score
-- a margin over the runner-up
-
-This prevents broad descriptive prompts from being over-interpreted as exact recipe lookup or ingredient lookup.
-
-That is a core design principle in this system:
-semantic retrieval may suggest, but behavior should only trust it when confidence is strong enough for the specific decision being made.
+Drink-name and ingredient trust is lexical.
+Exact mention detection handles clear catalog text, and fuzzy lookup handles misspellings or partial entity text.
+Semantic retrieval should not turn descriptive vector similarity into recipe lookup or ingredient lookup decisions.
 
 ---
 
@@ -172,27 +161,11 @@ Most embedding-related tuning in this codebase is deterministic backend tuning r
 
 - Meaning: how many nearest vector hits to request from Qdrant for one search
 - If you increase it: recall usually improves because more potentially relevant hits are available for aggregation, but the tail is more likely to introduce weakly related noise
-- If you decrease it: retrieval becomes tighter and often cleaner, but you are more likely to miss supporting evidence for multi-facet or subtly phrased queries
+- If you decrease it: retrieval becomes tighter and often cleaner, but you are more likely to miss supporting evidence for subtly phrased descriptive queries
 - Why it exists: too few hits can miss useful supporting evidence, while too many hits add noise
-- Current default reasoning: `18` is large enough to capture several drink facets without letting the tail dominate the aggregation step
+- Current default reasoning: `18` is large enough to capture several description-led drink candidates without letting the tail dominate the aggregation step
 
-### Facet weighting
-
-`NameWeight`
-
-- Meaning: multiplier applied to name hits in aggregation
-- If you increase it: near-name matches become more influential in ranking, which helps exact-ish lookup behavior, but can over-favor shallow lexical resemblance
-- If you decrease it: ranking relies less on name similarity and more on other evidence, which can help broader taste prompts, but may weaken direct drink-name recovery
-- Why it exists: direct drink-name similarity should matter, but not drown out broader descriptive evidence
-- Current default reasoning: `1.25` gives name matches a modest boost without making every near-name hit decisive
-
-`IngredientWeight`
-
-- Meaning: multiplier applied to ingredient hits
-- If you increase it: ingredient-led requests have more impact on ranking, which can help "what can I make with X" style prompts, but broad ingredients may start matching too many drinks
-- If you decrease it: ingredient evidence becomes less decisive, which can reduce noisy broad matches, but may under-serve users who are clearly asking from an ingredient constraint
-- Why it exists: ingredient-led requests matter, but ingredient names are often broad and recurring across many drinks
-- Current default reasoning: `1.0` keeps ingredient evidence as the neutral baseline
+### Description weighting
 
 `DescriptionWeight`
 
@@ -200,33 +173,15 @@ Most embedding-related tuning in this codebase is deterministic backend tuning r
 - If you increase it: vague taste, mood, and style language influences retrieval more strongly, which usually helps semantic discovery, but can also let poetic or fuzzy wording overpower more concrete signals
 - If you decrease it: retrieval becomes less sensitive to descriptive language, which can improve precision for concrete queries, but makes the system less helpful for natural-language vibe requests
 - Why it exists: description text is the strongest semantic source for vague natural-language taste and style prompts
-- Current default reasoning: `1.5` intentionally favors descriptive meaning recovery over shallow lexical coincidence
+- Current default reasoning: `1.5` intentionally favors descriptive meaning recovery while exact and fuzzy entity matching handle concrete catalog terms
 
-### Trust thresholds
+`DescriptionMinScore`
 
-`NameMatchMinScore`
-
-- Meaning: minimum facet score required before semantic name fallback is trusted
-- If you increase it: semantic name fallback becomes stricter and safer, but more true positives will fail to trigger when phrasing is imperfect
-- If you decrease it: fallback activates more often, which may feel more helpful, but also raises the chance of turning a vague prompt into the wrong exact-drink interpretation
-- Why it exists: prevents weak near-name matches from becoming recipe lookup decisions
-- Current default reasoning: `0.72` is intentionally selective rather than permissive
-
-`IngredientMatchMinScore`
-
-- Meaning: minimum facet score required before semantic ingredient fallback is trusted
-- If you increase it: ingredient fallback only triggers on stronger evidence, which reduces false certainty, but may miss legitimate ingredient-led asks expressed casually
-- If you decrease it: the system becomes more willing to infer an ingredient match, which improves recall, but can over-read broad cocktail vocabulary as a concrete ingredient request
-- Why it exists: ingredient semantic space can be broad and noisy, especially for related cocktail vocabularies
-- Current default reasoning: `0.72` matches the drink-name threshold for now and keeps fallback conservative
-
-`FacetMatchMinScoreGap`
-
-- Meaning: minimum lead over the runner-up before the top semantic facet match is trusted
-- If you increase it: the top hit has to win more decisively before fallback is trusted, which improves caution, but rejects more ambiguous yet still useful matches
-- If you decrease it: the system accepts narrower wins, which increases responsiveness, but also makes close contests look more certain than they really are
-- Why it exists: a top hit that barely beats the next hit is often not decisive enough for intent fallback
-- Current default reasoning: `0.05` gives the best hit room to be meaningfully better without requiring an unrealistic margin
+- Meaning: minimum vector score required before a description hit can become semantic evidence
+- If you increase it: low-confidence nearest-neighbor tail hits are filtered more aggressively, which improves precision but can lose subtle matches
+- If you decrease it: recall improves, but weakly related descriptions may enter ranking and summary hints
+- Why it exists: Qdrant returns the nearest configured hits even when the tail is weak, so the application applies its own evidence threshold
+- Current default reasoning: `0.55` keeps broad descriptive recall while trimming obviously weak local test vectors
 
 ### Model and store wiring
 
@@ -259,8 +214,7 @@ These settings are configuration because they are tuning parameters, not domain 
 They represent choices about:
 
 - how broad retrieval should be
-- which facets should matter most
-- how much confidence a semantic fallback must earn
+- how strongly description similarity should influence ranking
 
 That makes them part of the retrieval harness around the embedding model rather than part of the catalog domain itself.
 
@@ -282,3 +236,4 @@ This is much closer to retrieval-augmented application behavior than to "let the
 
 - [LLM Development](llm.md)
 - [ADR 0016](../adr/0016-recommendation-semantic-retrieval-with-qdrant.md)
+- [ADR 0020](../adr/0020-description-only-recommendation-semantic-retrieval.md)

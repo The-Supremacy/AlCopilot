@@ -3,7 +3,6 @@ using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.Recommendation.Features.Recommendation;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
-using Microsoft.Extensions.Options;
 using Shouldly;
 
 namespace AlCopilot.Recommendation.UnitTests.Regression;
@@ -38,18 +37,12 @@ public sealed class RecommendationSemanticEvaluationTests
                 }
 
                 return new RecommendationSemanticSearchResult(
-                    new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+                    new Dictionary<Guid, RecommendationSemanticSearchResult.DrinkMatch>
                     {
                         [french75.Id] = new(
                             french75.Id,
                             french75.Name,
                             3.0d,
-                            0d,
-                            0.84d,
-                            0.91d,
-                            [RecommendationSemanticFacetKind.Description],
-                            ["Prosecco"],
-                            ["sparkling", "sweet"],
                             ["sparkling", "sweet"])
                     });
             });
@@ -66,7 +59,7 @@ public sealed class RecommendationSemanticEvaluationTests
     }
 
     [Fact]
-    public async Task CreateAsync_UsesSemanticNameSignalsForMisspelledDrinkDetails()
+    public async Task CreateAsync_UsesFuzzyDrinkLookupForMisspelledDrinkDetails()
     {
         var ginId = Guid.Parse("00000000-0000-0000-0000-000000000421");
         var campariId = Guid.Parse("00000000-0000-0000-0000-000000000422");
@@ -80,29 +73,7 @@ public sealed class RecommendationSemanticEvaluationTests
         var factory = CreateFactory(
             new CustomerProfileDto([], [], [], [ginId, campariId, vermouthId]),
             [negroni],
-            prompt =>
-            {
-                if (!prompt.Contains("Negrnoi", StringComparison.OrdinalIgnoreCase))
-                {
-                    return RecommendationSemanticSearchResult.Empty;
-                }
-
-                return new RecommendationSemanticSearchResult(
-                    new Dictionary<Guid, RecommendationSemanticDrinkSignal>
-                    {
-                        [negroni.Id] = new(
-                            negroni.Id,
-                            negroni.Name,
-                            2.0d,
-                            0.84d,
-                            0d,
-                            0d,
-                            [RecommendationSemanticFacetKind.Name],
-                            [],
-                            [],
-                            [negroni.Name])
-                    });
-            });
+            _ => RecommendationSemanticSearchResult.Empty);
 
         var runContext = await factory.CreateAsync("How do I make a Negrnoi?", CancellationToken.None);
 
@@ -113,7 +84,7 @@ public sealed class RecommendationSemanticEvaluationTests
     }
 
     [Fact]
-    public async Task CreateAsync_UsesSemanticIngredientSignalsForMisspelledIngredientRecommendation()
+    public async Task CreateAsync_UsesFuzzyIngredientLookupForMisspelledIngredientRecommendation()
     {
         var tequilaId = Guid.Parse("00000000-0000-0000-0000-000000000461");
         var limeId = Guid.Parse("00000000-0000-0000-0000-000000000462");
@@ -126,29 +97,7 @@ public sealed class RecommendationSemanticEvaluationTests
         var factory = CreateFactory(
             new CustomerProfileDto([], [], [], [tequilaId, limeId]),
             [margarita],
-            prompt =>
-            {
-                if (!prompt.Contains("tequlia", StringComparison.OrdinalIgnoreCase))
-                {
-                    return RecommendationSemanticSearchResult.Empty;
-                }
-
-                return new RecommendationSemanticSearchResult(
-                    new Dictionary<Guid, RecommendationSemanticDrinkSignal>
-                    {
-                        [margarita.Id] = new(
-                            margarita.Id,
-                            margarita.Name,
-                            1.8d,
-                            0d,
-                            0.86d,
-                            0d,
-                            [RecommendationSemanticFacetKind.Ingredient],
-                            ["Tequila"],
-                            [],
-                            ["Tequila"])
-                    });
-            });
+            _ => RecommendationSemanticSearchResult.Empty);
 
         var runContext = await factory.CreateAsync("What can I make with tequlia?", CancellationToken.None);
 
@@ -222,8 +171,7 @@ public sealed class RecommendationSemanticEvaluationTests
             new RecommendationRunInputs(profile, drinks),
             semanticSearchService,
             new RecommendationRequestIntentResolver(
-                new StubCatalogFuzzyLookupService(),
-                Options.Create(new RecommendationSemanticOptions())),
+                new StubCatalogFuzzyLookupService()),
             new DeterministicRecommendationCandidateBuilder(),
             new RecommendationRunContextBuilder());
     }
@@ -282,6 +230,13 @@ public sealed class RecommendationSemanticEvaluationTests
         public Task<IReadOnlyCollection<RecommendationFuzzyMatch>> FindIngredientMatchesAsync(
             string searchText,
             CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyCollection<RecommendationFuzzyMatch>>([]);
+        {
+            IReadOnlyCollection<RecommendationFuzzyMatch> matches =
+                string.Equals(searchText, "tequlia", StringComparison.OrdinalIgnoreCase)
+                    ? [new RecommendationFuzzyMatch(Guid.NewGuid(), "Tequila", 0.72d)]
+                    : [];
+
+            return Task.FromResult(matches);
+        }
     }
 }

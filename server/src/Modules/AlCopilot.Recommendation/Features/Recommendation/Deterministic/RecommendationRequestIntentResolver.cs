@@ -1,15 +1,10 @@
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
-using AlCopilot.Shared.Text;
-using Microsoft.Extensions.Options;
 
 namespace AlCopilot.Recommendation.Features.Recommendation;
 
 internal sealed class RecommendationRequestIntentResolver(
-    IRecommendationCatalogFuzzyLookupService fuzzyLookupService,
-    IOptions<RecommendationSemanticOptions> semanticOptions) : IRecommendationRequestIntentResolver
+    IRecommendationCatalogFuzzyLookupService fuzzyLookupService) : IRecommendationRequestIntentResolver
 {
-    private readonly RecommendationSemanticOptions options = semanticOptions.Value;
-
     public async Task<RecommendationRequestIntent> ResolveAsync(
         string customerMessage,
         RecommendationRunInputs inputs,
@@ -17,7 +12,7 @@ internal sealed class RecommendationRequestIntentResolver(
         CancellationToken cancellationToken = default)
     {
         var analysis = RecommendationRequestQueryAnalyzer.Analyze(customerMessage);
-        var entities = await ResolveEntitiesAsync(analysis, inputs, semanticSearchResult, cancellationToken);
+        var entities = await ResolveEntitiesAsync(analysis, inputs, cancellationToken);
         var kind = ResolveKind(
             entities.RequestedDrinkName,
             analysis.LooksLikeDrinkDetails);
@@ -34,7 +29,6 @@ internal sealed class RecommendationRequestIntentResolver(
     private async Task<RecommendationResolvedRequestEntities> ResolveEntitiesAsync(
         RecommendationRequestQueryAnalysis analysis,
         RecommendationRunInputs inputs,
-        RecommendationSemanticSearchResult semanticSearchResult,
         CancellationToken cancellationToken)
     {
         var requestedDrinkName = RecommendationCatalogMatcher.FindMentionedDrinkName(
@@ -75,16 +69,6 @@ internal sealed class RecommendationRequestIntentResolver(
                     requestedIngredientNames.Add(requestedIngredientName);
                 }
             }
-        }
-
-        if (string.IsNullOrWhiteSpace(requestedDrinkName) && analysis.LooksLikeDrinkDetails)
-        {
-            requestedDrinkName = ResolveSemanticDrinkName(semanticSearchResult, options);
-        }
-
-        if (requestedIngredientNames.Count == 0 && analysis.IngredientSearchTexts.Count > 0)
-        {
-            requestedIngredientNames.AddRange(ResolveSemanticIngredientNames(semanticSearchResult, options));
         }
 
         return new RecommendationResolvedRequestEntities(
@@ -132,36 +116,6 @@ internal sealed class RecommendationRequestIntentResolver(
         return best.Similarity >= 0.55d && best.Similarity - runnerUpSimilarity >= 0.08d
             ? best.Name
             : null;
-    }
-
-    private static string? ResolveSemanticDrinkName(
-        RecommendationSemanticSearchResult semanticSearchResult,
-        RecommendationSemanticOptions options)
-    {
-        var topNameMatch = semanticSearchResult.FindTopFacetMatch(
-            RecommendationSemanticFacetKind.Name,
-            options.NameMatchMinScore,
-            options.FacetMatchMinScoreGap);
-        if (topNameMatch is null)
-        {
-            return null;
-        }
-
-        return topNameMatch.DrinkName;
-    }
-
-    private static IReadOnlyCollection<string> ResolveSemanticIngredientNames(
-        RecommendationSemanticSearchResult semanticSearchResult,
-        RecommendationSemanticOptions options)
-    {
-        var topIngredientMatch = semanticSearchResult.FindTopFacetMatch(
-            RecommendationSemanticFacetKind.Ingredient,
-            options.IngredientMatchMinScore,
-            options.FacetMatchMinScoreGap);
-        return topIngredientMatch?.MatchedIngredients
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-            .ToList() ?? [];
     }
 
     private static RecommendationRequestIntentKind ResolveKind(

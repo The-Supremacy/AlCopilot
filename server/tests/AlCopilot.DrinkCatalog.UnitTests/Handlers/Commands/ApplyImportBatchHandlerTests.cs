@@ -1,4 +1,5 @@
 using AlCopilot.DrinkCatalog.Contracts.Commands;
+using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Data;
 using AlCopilot.DrinkCatalog.Features.Audit;
 using AlCopilot.DrinkCatalog.Features.ImportBatch;
@@ -6,6 +7,7 @@ using AlCopilot.DrinkCatalog.Features.ImportBatch.Strategies;
 using AlCopilot.DrinkCatalog.Features.Drink;
 using AlCopilot.DrinkCatalog.Features.Ingredient;
 using AlCopilot.DrinkCatalog.Features.Tag;
+using AlCopilot.Recommendation.Contracts.Commands;
 using AlCopilot.Recommendation.Contracts.DTOs;
 using AlCopilot.Shared.Data;
 using Mediator;
@@ -117,5 +119,71 @@ public sealed class ApplyImportBatchHandlerTests
         result.ApplyReadiness.ShouldBe(nameof(ImportBatchApplyReadiness.RequiresReview));
         result.Batch.ReviewSummary.ShouldNotBeNull();
         await _processingService.Received(1).ProcessAsync(batch.ImportContent, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenBatchIsApplied_SavesBeforeReadingCatalogForSemanticRebuild()
+    {
+        var calls = new List<string>();
+        var batch = ImportBatch.Create(
+            ImportStrategyKey.IbaCocktailsSnapshot,
+            ImportProvenance.Empty,
+            new NormalizedCatalogImport([], [], []));
+        batch.RecordPreparedSnapshot(new ImportBatchProcessingResult(
+            [],
+            new ImportReviewSummary(0, 0, 0),
+            [new ImportReviewRow("drink", "French 75", "create", "Create drink 'French 75'.", false, false)]));
+        var indexedCatalog = new List<DrinkDetailDto>
+        {
+            new(
+                Guid.Parse("00000000-0000-0000-0000-000000000701"),
+                "French 75",
+                null,
+                "Sparkling, bright, and lightly sweet.",
+                null,
+                null,
+                null,
+                [],
+                []),
+        };
+
+        _importBatchRepository.GetByIdAsync(batch.Id, Arg.Any<CancellationToken>()).Returns(batch);
+        _processingService.GetBatchApplyReadiness(batch).Returns(ImportBatchApplyReadiness.Ready);
+        _applyService.ApplyAsync(batch, Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                calls.Add("apply");
+                var summary = new ImportApplySummary(1, 0, 0, 0);
+                batch.MarkCompleted(summary);
+                return summary;
+            });
+        _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                calls.Add("save");
+                return 1;
+            });
+        _drinkQueryService.GetAllAsync(Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                calls.Add("read-catalog");
+                return indexedCatalog;
+            });
+        _mediator.Send(Arg.Any<ReplaceRecommendationSemanticCatalogCommand>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                calls.Add("replace-semantic");
+                return new RecommendationSemanticCatalogIndexResultDto(1, 1);
+            });
+
+        var result = await _handler.Handle(
+            new ApplyImportBatchCommand(batch.Id),
+            CancellationToken.None);
+
+        result.WasApplied.ShouldBeTrue();
+        calls.ShouldBe(["apply", "save", "read-catalog", "replace-semantic"]);
+        await _mediator.Received(1).Send(
+            Arg.Is<ReplaceRecommendationSemanticCatalogCommand>(command => command.Drinks == indexedCatalog),
+            Arg.Any<CancellationToken>());
     }
 }
