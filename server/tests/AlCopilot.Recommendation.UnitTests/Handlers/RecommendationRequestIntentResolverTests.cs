@@ -57,6 +57,21 @@ public sealed class RecommendationRequestIntentResolverTests
     }
 
     [Fact]
+    public async Task Resolve_TreatsNegatedIngredientMentionsAsCurrentExclusions()
+    {
+        var intent = await resolver.ResolveAsync(
+            "Actually, no Campari.",
+            new RecommendationRunInputs(
+                new CustomerProfileDto([], [], [], []),
+                [CreateDrink("Negroni", "Gin", "Campari")]),
+            RecommendationSemanticSearchResult.Empty);
+
+        intent.Kind.ShouldBe(RecommendationRequestIntentKind.Recommendation);
+        intent.RequestedIngredientNames.ShouldBeEmpty();
+        intent.CurrentExcludedIngredientNames.ShouldBe(["Campari"]);
+    }
+
+    [Fact]
     public async Task Resolve_UsesFuzzyMatchBeforeSemanticFallback_WhenDrinkNameIsMisspelled()
     {
         var drink = CreateDrink("Negroni", "Gin", "Campari");

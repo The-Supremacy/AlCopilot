@@ -72,7 +72,7 @@ public sealed class RecommendationNarrationServiceTests
                     null,
                     ["Gin"],
                     ["citrusy"]),
-                new CustomerProfileDto([ginId], [], [campariId], [ginId]),
+                new CustomerProfileDto([ginId], [campariId], [], [ginId]),
                 [new RecommendationGroupDto("buy-next", "Consider for Restock", [new RecommendationItemDto(Guid.NewGuid(), "Negroni", null, ["Campari"], [], 70)])],
                 new Dictionary<Guid, string>
                 {
@@ -90,6 +90,7 @@ public sealed class RecommendationNarrationServiceTests
                                 "Bittersweet and spirit-forward",
                                 ["Gin"],
                                 ["Campari"],
+                                ["Campari"],
                                 ["Campari", "Gin", "Sweet Vermouth"],
                                 "Stir",
                                 "Orange twist",
@@ -102,10 +103,12 @@ public sealed class RecommendationNarrationServiceTests
 
         message.ShouldContain("recommendation run context");
         message.ShouldContain("owned: Gin");
-        message.ShouldContain("prohibited: Campari");
+        message.ShouldContain("dislikes: Campari");
+        message.ShouldContain("prohibited: none");
         message.ShouldContain("kind: Recommendation");
         message.ShouldContain("Negroni");
         message.ShouldContain("owned Gin");
         message.ShouldContain("missing Campari");
+        message.ShouldContain("disliked Campari");
     }
 }

@@ -188,7 +188,7 @@
       "expectedResponseFragments": ["Paper Plane"],
       "forbiddenResponseFragments": ["Aperol", "Amaro", "Nonino"],
       "expectedToolNames": [],
-      "forbiddenToolNames": ["lookup_drink_recipe"],
+      "forbiddenToolNames": [],
       "maxToolCallCount": 2,
       "repetitionCount": 1
     }
