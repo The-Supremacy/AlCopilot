@@ -38,15 +38,16 @@ export function DashboardPage() {
             </p>
           </div>
           {latestBatch ? (
-            <div className="w-full rounded-2xl border border-border bg-background/90 px-4 py-3 sm:w-auto sm:min-w-72">
+            <div className="w-full min-w-0 rounded-2xl border border-border bg-background/90 px-4 py-3 sm:w-auto sm:min-w-72 sm:max-w-sm">
               <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">
                 Latest import
               </p>
-              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                <strong className="text-sm leading-5">
+              <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                <strong className="min-w-0 text-sm leading-5">
                   {latestBatch.source.displayName || latestBatch.strategyKey}
                 </strong>
                 <StatusPill
+                  className="max-w-full whitespace-normal text-center"
                   tone={
                     latestBatch.status === 'Completed'
                       ? 'success'

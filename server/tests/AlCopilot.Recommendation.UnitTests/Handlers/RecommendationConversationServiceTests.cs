@@ -116,7 +116,11 @@ public sealed class RecommendationConversationServiceTests
                 (AgentRun)call[1]!,
                 value => capturedRunContext = value,
                 dbContext);
-            return new RecommendationNarratorAgentRuntime(agent, () => capturedRunContext);
+            return new RecommendationNarratorAgentRuntime(
+                agent,
+                () => capturedRunContext,
+                "ollama",
+                "test-model");
         });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
@@ -148,6 +152,8 @@ public sealed class RecommendationConversationServiceTests
             .Select(message => message.Role)
             .ShouldBe(["user", "assistant"]);
         dbContext.RecommendationTurnGroups.Count().ShouldBe(1);
+        dbContext.AgentRuns.Single().Provider.ShouldBe("ollama");
+        dbContext.AgentRuns.Single().Model.ShouldBe("test-model");
 
         agent.SeenMessages.Select(message => (message.Role, message.Text)).ShouldBe(
         [

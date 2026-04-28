@@ -19,7 +19,10 @@ public sealed class CreateIngredientHandler(
         if (await ingredientRepository.ExistsByNameAsync(name, cancellationToken: cancellationToken))
             throw new ConflictException($"An ingredient with the name '{name.Value}' already exists.");
 
-        var ingredient = Ingredient.Create(name, request.NotableBrands);
+        var ingredient = Ingredient.Create(
+            name,
+            request.NotableBrands,
+            IngredientGroup.Create(request.IngredientGroup));
         ingredientRepository.Add(ingredient);
         auditLogWriter.Write(
             "ingredient.create",

@@ -9,7 +9,8 @@ public sealed record NormalizedTagImport(string Name);
 
 public sealed record NormalizedIngredientImport(
     string Name,
-    List<string> NotableBrands);
+    List<string> NotableBrands,
+    string? IngredientGroup = null);
 
 public sealed record NormalizedDrinkImport(
     string Name,

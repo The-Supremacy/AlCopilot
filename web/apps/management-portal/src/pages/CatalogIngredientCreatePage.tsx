@@ -10,6 +10,7 @@ export function CatalogIngredientCreatePage() {
   const navigate = useNavigate();
   const createIngredient = useCreateIngredientMutation();
   const [name, setName] = useState('');
+  const [ingredientGroup, setIngredientGroup] = useState('');
   const [notableBrands, setNotableBrands] = useState('');
 
   async function handleSubmit() {
@@ -19,6 +20,7 @@ export function CatalogIngredientCreatePage() {
         .split(',')
         .map((part) => part.trim())
         .filter(Boolean),
+      ingredientGroup: ingredientGroup.trim() || null,
     });
     navigate({ to: '/catalog/ingredients' });
   }
@@ -32,8 +34,10 @@ export function CatalogIngredientCreatePage() {
       <IngredientFormSection
         isEditing={false}
         name={name}
+        ingredientGroup={ingredientGroup}
         notableBrands={notableBrands}
         onNameChange={setName}
+        onIngredientGroupChange={setIngredientGroup}
         onNotableBrandsChange={setNotableBrands}
         onSubmit={handleSubmit}
         onCancel={() => navigate({ to: '/catalog/ingredients' })}

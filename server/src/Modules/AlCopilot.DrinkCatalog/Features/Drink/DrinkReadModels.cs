@@ -23,6 +23,10 @@ internal sealed record DrinkDetailReadModel(
 
 internal sealed record TagReadModel(Guid Id, string Name);
 
-internal sealed record IngredientReadModel(Guid Id, string Name, List<string> NotableBrands);
+internal sealed record IngredientReadModel(
+    Guid Id,
+    string Name,
+    string? IngredientGroup,
+    List<string> NotableBrands);
 
 internal sealed record RecipeEntryReadModel(Guid IngredientId, string Quantity, string? RecommendedBrand);

@@ -49,6 +49,8 @@ public sealed class RecommendationNarrationServiceTests
 
         var strategy = strategyFactory.Create();
 
+        strategy.Provider.ShouldBe(RecommendationLlmOptions.OllamaProvider);
+        strategy.Model.ShouldBe("gemma4:e4b");
         strategy.ChatOptions.Temperature.ShouldBe(0.35f);
         strategy.ChatOptions.TopP.ShouldBe(0.85f);
         strategy.ChatOptions.TopK.ShouldBe(32);

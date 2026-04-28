@@ -87,6 +87,36 @@ public sealed class ImportBatchProcessingServiceTests
     }
 
     [Fact]
+    public async Task ProcessAsync_WhenExistingIngredientHasNullGroup_TreatsItAsNoGroup()
+    {
+        var existingIngredient = Ingredient.Create(IngredientName.Create("Gin"), []);
+        typeof(Ingredient)
+            .GetProperty(nameof(Ingredient.Group))!
+            .SetValue(existingIngredient, null);
+
+        _ingredientRepository.GetByNameAsync("Gin", Arg.Any<CancellationToken>())
+            .Returns(existingIngredient);
+        _drinkQueryService.GetAllAsync(Arg.Any<CancellationToken>()).Returns([]);
+
+        var service = new ImportBatchProcessingService(
+            _tagRepository,
+            _ingredientRepository,
+            _drinkQueryService);
+
+        var result = await service.ProcessAsync(
+            new NormalizedCatalogImport(
+                [],
+                [new NormalizedIngredientImport("Gin", [], "Gin")],
+                []),
+            CancellationToken.None);
+
+        result.ReviewRows.ShouldContain(row =>
+            row.TargetType == "ingredient" &&
+            row.TargetKey == "Gin" &&
+            row.Action == "update");
+    }
+
+    [Fact]
     public void GetBatchApplyReadiness_WhenBatchRequiresReview_ReturnsBatchReadiness()
     {
         var service = new ImportBatchProcessingService(

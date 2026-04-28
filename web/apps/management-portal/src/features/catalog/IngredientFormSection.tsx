@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 type IngredientFormSectionProps = {
   isEditing: boolean;
   name: string;
+  ingredientGroup: string;
   notableBrands: string;
   onNameChange: (value: string) => void;
+  onIngredientGroupChange: (value: string) => void;
   onNotableBrandsChange: (value: string) => void;
   onSubmit: () => Promise<void>;
   onDelete?: () => void;
@@ -17,8 +19,10 @@ type IngredientFormSectionProps = {
 export function IngredientFormSection({
   isEditing,
   name,
+  ingredientGroup,
   notableBrands,
   onNameChange,
+  onIngredientGroupChange,
   onNotableBrandsChange,
   onSubmit,
   onDelete,
@@ -50,6 +54,15 @@ export function IngredientFormSection({
             value={notableBrands}
             onChange={(event) => onNotableBrandsChange(event.target.value)}
             placeholder="Tanqueray, Beefeater"
+          />
+        </label>
+
+        <label className="space-y-2 text-sm font-medium">
+          <span>Ingredient group</span>
+          <Input
+            value={ingredientGroup}
+            onChange={(event) => onIngredientGroupChange(event.target.value)}
+            placeholder="Gin"
           />
         </label>
 

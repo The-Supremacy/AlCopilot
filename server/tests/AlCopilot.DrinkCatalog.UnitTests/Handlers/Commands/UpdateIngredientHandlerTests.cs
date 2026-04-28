@@ -27,11 +27,12 @@ public sealed class UpdateIngredientHandlerTests
         _ingredientRepository.GetByIdAsync(ingredient.Id, Arg.Any<CancellationToken>()).Returns(ingredient);
 
         var result = await _handler.Handle(
-            new UpdateIngredientCommand(ingredient.Id, "Premium Vodka", ["Grey Goose"]), CancellationToken.None);
+            new UpdateIngredientCommand(ingredient.Id, "Premium Vodka", ["Grey Goose"], "Vodka"), CancellationToken.None);
 
         result.ShouldBeTrue();
         ingredient.Name.Value.ShouldBe("Premium Vodka");
         ingredient.NotableBrands.ShouldBe(["Grey Goose"]);
+        ingredient.GetGroupName().ShouldBe("Vodka");
     }
 
     [Fact]

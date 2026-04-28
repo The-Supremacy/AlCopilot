@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 type StatusPillProps = {
   tone: 'neutral' | 'success' | 'warning' | 'danger';
   children: string;
+  className?: string;
 };
 
 export function StatusPill(props: StatusPillProps) {
@@ -17,5 +18,9 @@ export function StatusPill(props: StatusPillProps) {
             ? 'destructive'
             : 'default';
 
-  return <Badge variant={variant}>{props.children}</Badge>;
+  return (
+    <Badge variant={variant} className={props.className}>
+      {props.children}
+    </Badge>
+  );
 }

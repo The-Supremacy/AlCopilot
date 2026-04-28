@@ -17,6 +17,7 @@ It provides the canonical vocabulary for drinks, ingredients, and drink labels u
 - **Drink** — A named beverage concept that users can browse, recognize, and learn about.
 - **Recipe** — The ingredient composition that explains what goes into a drink and in what quantity or style.
 - **Ingredient** — A reusable drink component such as vodka, lime juice, tonic water, or mint.
+- **Ingredient Group** — An optional family label for closely related ingredients, such as rum or gin, used to improve selection and interpretation without replacing exact ingredients.
 - **Tag** — A reusable label that helps describe or classify drinks for discovery and understanding.
 - **Drink Category** — A first-class classification label for drinks such as Longdrink, Shortdrink, or Hot Drink.
 
@@ -28,6 +29,7 @@ It provides the canonical vocabulary for drinks, ingredients, and drink labels u
 - A drink can have a category that groups it into a recognizable family for browsing and catalog management.
 - A recipe is made of one or more ingredients expressed in drink-specific proportions or notes.
 - An ingredient can appear in many different drinks.
+- An ingredient can optionally belong to an ingredient group when the relationship is obvious and useful for customer selection.
 - Tags describe drinks, not ingredients.
 - Drinks and ingredients are reusable reference concepts for the rest of the product.
 
@@ -46,6 +48,7 @@ It provides the canonical vocabulary for drinks, ingredients, and drink labels u
 
 - A drink can be both a concrete entry in the catalog and a recognizable beverage concept for users.
 - Ingredients are shared reference items, not drink-specific duplicates.
+- Ingredient groups describe ingredient families; they do not mean a customer owns every ingredient in that family unless the customer explicitly chooses that.
 - Recommended brands are drink-specific guidance layered onto an ingredient within a recipe context.
 - Tags are discovery language for drinks.
 - Drink categories are core catalog labels for drinks.

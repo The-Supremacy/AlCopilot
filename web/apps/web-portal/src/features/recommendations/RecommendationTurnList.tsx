@@ -5,7 +5,6 @@ import type {
 } from '@alcopilot/customer-api-client';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatRelativeDate } from '@/lib/format';
@@ -128,34 +127,34 @@ function RecommendationTurnCard({
 
           {isAssistant && onFeedback ? (
             <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3">
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
+                type="button"
                 className={cn(
-                  'h-8 w-8 px-0',
+                  'inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
                   turn.feedback?.rating === 'positive' && 'bg-success-muted text-success',
                 )}
                 aria-label="Mark response helpful"
+                aria-pressed={turn.feedback?.rating === 'positive'}
                 title="Mark response helpful"
                 disabled={isFeedbackPending}
                 onClick={() => onFeedback(turn.turnId, 'positive')}
               >
                 <ThumbsUp className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
+              </button>
+              <button
+                type="button"
                 className={cn(
-                  'h-8 w-8 px-0',
+                  'inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
                   turn.feedback?.rating === 'negative' && 'bg-destructive-muted text-destructive',
                 )}
                 aria-label="Mark response unhelpful"
+                aria-pressed={turn.feedback?.rating === 'negative'}
                 title="Mark response unhelpful"
                 disabled={isFeedbackPending}
                 onClick={() => onFeedback(turn.turnId, 'negative')}
               >
                 <ThumbsDown className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
           ) : null}
         </CardContent>

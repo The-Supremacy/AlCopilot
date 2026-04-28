@@ -74,8 +74,8 @@ internal sealed class RecommendationConversationService(
             cancellationToken);
 
         agentRun.Complete(
-            provider: null,
-            model: null,
+            provider: agentRuntime.Provider,
+            model: agentRuntime.Model,
             finishReason: response.FinishReason?.ToString(),
             usage: response.Usage);
         diagnosticsRecorder.Record(session, agentRun, response);
