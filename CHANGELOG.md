@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.6...v0.1.7) (2026-04-28)
+
+
+### Features
+
+* improvement in harness and added compaction ([#24](https://github.com/The-Supremacy/AlCopilot/issues/24)) ([685c644](https://github.com/The-Supremacy/AlCopilot/commit/685c6449566df75e0c2a59d37cfbb71a0e97195d))
+
 ## [0.1.6](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.5...v0.1.6) (2026-04-25)
 
 
