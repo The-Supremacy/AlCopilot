@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.7...v0.1.8) (2026-04-28)
+
+
+### Features
+
+* ingredient groups ([#26](https://github.com/The-Supremacy/AlCopilot/issues/26)) ([30ce27e](https://github.com/The-Supremacy/AlCopilot/commit/30ce27efa2c1cd228182c689e82b9facf0b7b8ef))
+
 ## [0.1.7](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.6...v0.1.7) (2026-04-28)
 
 
