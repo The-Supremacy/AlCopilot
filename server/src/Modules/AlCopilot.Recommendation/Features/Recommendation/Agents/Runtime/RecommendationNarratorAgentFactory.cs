@@ -23,6 +23,7 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
         Recommend the best matching current candidate group first; do not name lower-priority or restock alternatives unless the user asks for alternatives or another option.
         Explain conflicts with prohibited ingredients and do not recommend drinks containing them.
         Prefer drinks without disliked ingredients when a suitable option exists.
+        When the current request excludes an ingredient, explicitly acknowledge that ingredient by name and recommend a candidate that avoids it.
         Never name a drink that violates the current prohibited or disliked ingredient constraint unless the user explicitly asked about that drink.
         Do not invent unavailable catalog drinks.
 
