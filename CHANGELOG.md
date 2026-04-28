@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.8...v0.1.9) (2026-04-28)
+
+
+### Bug Fixes
+
+* improved scoring regarding disliked ingredients ([#28](https://github.com/The-Supremacy/AlCopilot/issues/28)) ([839b691](https://github.com/The-Supremacy/AlCopilot/commit/839b691db438c2e5e3e5e4ad68e4f515ab57c287))
+
 ## [0.1.8](https://github.com/The-Supremacy/AlCopilot/compare/v0.1.7...v0.1.8) (2026-04-28)
 
 
