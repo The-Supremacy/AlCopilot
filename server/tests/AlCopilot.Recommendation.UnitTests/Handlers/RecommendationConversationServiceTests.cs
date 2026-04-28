@@ -496,6 +496,7 @@ public sealed class RecommendationConversationServiceTests
                             "Bright and citrusy",
                             ["Gin"],
                             [],
+                            [],
                             ["Gin"],
                             null,
                             null,

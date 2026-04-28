@@ -22,6 +22,7 @@ public sealed record RecommendationRunContextItem(
     string? Description,
     IReadOnlyCollection<string> OwnedIngredientNames,
     IReadOnlyCollection<string> MissingIngredientNames,
+    IReadOnlyCollection<string> DislikedIngredientNames,
     IReadOnlyCollection<string> RecipeIngredientNames,
     string? Method,
     string? Garnish,

@@ -244,6 +244,103 @@ public sealed class RecommendationCandidateBuilderTests
     }
 
     [Fact]
+    public void Build_ExcludesCurrentTurnIngredientConstraints()
+    {
+        var ginId = Guid.Parse("00000000-0000-0000-0000-000000000064");
+        var campariId = Guid.Parse("00000000-0000-0000-0000-000000000065");
+        var bourbonId = Guid.Parse("00000000-0000-0000-0000-000000000066");
+        var bittersId = Guid.Parse("00000000-0000-0000-0000-000000000067");
+        var sugarId = Guid.Parse("00000000-0000-0000-0000-000000000068");
+
+        var negroni = CreateDrink("Negroni", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(campariId, "Campari")]);
+        var oldFashioned = CreateDrink("Old Fashioned", [CreateRecipeEntry(bourbonId, "Bourbon"), CreateRecipeEntry(bittersId, "Angostura Bitters"), CreateRecipeEntry(sugarId, "Sugar Cube")]);
+        var profile = new CustomerProfileDto([], [], [], [ginId, campariId, bourbonId, bittersId, sugarId]);
+        var intent = new RecommendationRequestIntent(
+            RecommendationRequestIntentKind.Recommendation,
+            null,
+            [],
+            [],
+            false,
+            ["Campari"]);
+
+        var groups = _builder.Build("Actually, no Campari.", intent, profile, [negroni, oldFashioned], RecommendationSemanticSearchResult.Empty);
+
+        groups.Single(group => group.Key == "make-now").Items.Select(item => item.DrinkName)
+            .ShouldBe(["Old Fashioned"]);
+    }
+
+    [Fact]
+    public void Build_PrefersNonDislikedCandidatesEvenWhenDislikedCandidateScoresHigher()
+    {
+        var ginId = Guid.Parse("00000000-0000-0000-0000-000000000081");
+        var campariId = Guid.Parse("00000000-0000-0000-0000-000000000082");
+        var vermouthId = Guid.Parse("00000000-0000-0000-0000-000000000083");
+        var bourbonId = Guid.Parse("00000000-0000-0000-0000-000000000084");
+        var bittersId = Guid.Parse("00000000-0000-0000-0000-000000000085");
+        var sugarId = Guid.Parse("00000000-0000-0000-0000-000000000086");
+
+        var negroni = CreateDrink("Negroni", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(campariId, "Campari"), CreateRecipeEntry(vermouthId, "Sweet Vermouth")], "Classy, strong, and aromatic.");
+        var oldFashioned = CreateDrink("Old Fashioned", [CreateRecipeEntry(bourbonId, "Bourbon"), CreateRecipeEntry(bittersId, "Angostura Bitters"), CreateRecipeEntry(sugarId, "Sugar Cube")], "Classic, strong, and aromatic.");
+        var profile = new CustomerProfileDto(
+            [],
+            [campariId],
+            [],
+            [ginId, campariId, vermouthId, bourbonId, bittersId, sugarId]);
+        var semanticResult = new RecommendationSemanticSearchResult(
+            new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+            {
+                [negroni.Id] = new(negroni.Id, negroni.Name, 9.0d, 0d, 0d, 0.95d, [RecommendationSemanticFacetKind.Description], [], ["classy", "strong"], ["classy", "strong"]),
+            });
+
+        var groups = _builder.Build("I want something classy, strong, and aromatic.", DefaultIntent, profile, [negroni, oldFashioned], semanticResult);
+
+        groups.Single(group => group.Key == "make-now").Items.Select(item => item.DrinkName)
+            .ShouldBe(["Old Fashioned", "Negroni"]);
+    }
+
+    [Fact]
+    public void Build_UsesDislikedCandidatesAsFallbackWhenNoNonDislikedCandidateExistsForGroup()
+    {
+        var ginId = Guid.Parse("00000000-0000-0000-0000-000000000091");
+        var campariId = Guid.Parse("00000000-0000-0000-0000-000000000092");
+        var vermouthId = Guid.Parse("00000000-0000-0000-0000-000000000093");
+
+        var negroni = CreateDrink("Negroni", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(campariId, "Campari"), CreateRecipeEntry(vermouthId, "Sweet Vermouth")], "Bittersweet and spirit-forward.");
+        var profile = new CustomerProfileDto(
+            [],
+            [campariId],
+            [],
+            [ginId, campariId, vermouthId]);
+
+        var groups = _builder.Build("I want something strong.", DefaultIntent, profile, [negroni], RecommendationSemanticSearchResult.Empty);
+
+        groups.Single(group => group.Key == "make-now").Items.Select(item => item.DrinkName)
+            .ShouldBe(["Negroni"]);
+    }
+
+    [Fact]
+    public void Build_ScoresAvailableDislikedCandidateBelowCleanCandidateMissingOneIngredient()
+    {
+        var ginId = Guid.Parse("00000000-0000-0000-0000-000000000101");
+        var campariId = Guid.Parse("00000000-0000-0000-0000-000000000102");
+        var vermouthId = Guid.Parse("00000000-0000-0000-0000-000000000103");
+
+        var availableDisliked = CreateDrink("Negroni", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(campariId, "Campari")]);
+        var cleanButMissingOne = CreateDrink("Martini", [CreateRecipeEntry(ginId, "Gin"), CreateRecipeEntry(vermouthId, "Sweet Vermouth")]);
+        var profile = new CustomerProfileDto(
+            [],
+            [campariId],
+            [],
+            [ginId, campariId]);
+
+        var groups = _builder.Build("I want something spirit-forward.", DefaultIntent, profile, [availableDisliked, cleanButMissingOne], RecommendationSemanticSearchResult.Empty);
+
+        var makeNowScore = groups.Single(group => group.Key == "make-now").Items.Single().Score;
+        var buyNextScore = groups.Single(group => group.Key == "buy-next").Items.Single().Score;
+        makeNowScore.ShouldBeLessThan(buyNextScore);
+    }
+
+    [Fact]
     public void Build_KeepsMissingIngredientCandidatesOutOfMakeNowEvenWhenSemanticScoreIsHighest()
     {
         var ginId = Guid.Parse("00000000-0000-0000-0000-000000000071");

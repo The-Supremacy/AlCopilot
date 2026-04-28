@@ -10,6 +10,7 @@ internal static class RecommendationRunContextMessageBuilder
         builder.AppendLine($"- kind: {runContext.Intent.Kind}");
         builder.AppendLine($"- requested drink: {runContext.Intent.RequestedDrinkName ?? "none"}");
         builder.AppendLine($"- requested ingredients: {FormatTextList(runContext.Intent.RequestedIngredientNames)}");
+        builder.AppendLine($"- excluded ingredients: {FormatTextList(runContext.Intent.CurrentExcludedIngredientNames)}");
         builder.AppendLine($"- request descriptors: {FormatTextList(runContext.Intent.RequestDescriptors)}");
         builder.AppendLine($"- semantic hints: {FormatTextList(runContext.SemanticSummaryHints)}");
         builder.AppendLine();
@@ -36,6 +37,9 @@ internal static class RecommendationRunContextMessageBuilder
                 var missingIngredients = item.MissingIngredientNames.Count == 0
                     ? "missing none"
                     : $"missing {string.Join(", ", item.MissingIngredientNames)}";
+                var dislikedIngredients = item.DislikedIngredientNames.Count == 0
+                    ? "disliked none"
+                    : $"disliked {string.Join(", ", item.DislikedIngredientNames)}";
                 var recipeIngredients = runContext.Intent.IsDrinkDetailsRequest
                     ? "recipe details intentionally omitted"
                     : item.RecipeIngredientNames.Count == 0
@@ -59,7 +63,7 @@ internal static class RecommendationRunContextMessageBuilder
                     : $"semantic hints {string.Join(", ", item.SemanticHints)}";
 
                 builder.AppendLine(
-                    $"  - {item.DrinkName} [id: {item.DrinkId}] (score {item.Score}; {ownedIngredients}; {missingIngredients}; {recipeIngredients}; {method}; {garnish}; {matchedSignals}; {semanticHints}; {description})");
+                    $"  - {item.DrinkName} [id: {item.DrinkId}] (score {item.Score}; {ownedIngredients}; {missingIngredients}; {dislikedIngredients}; {recipeIngredients}; {method}; {garnish}; {matchedSignals}; {semanticHints}; {description})");
             }
         }
 

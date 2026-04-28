@@ -7,6 +7,8 @@ namespace AlCopilot.Recommendation.Features.Recommendation;
 
 internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendationCandidateBuilder
 {
+    private const int DislikedIngredientPenalty = 60;
+
     public List<RecommendationGroupDto> Build(
         string customerRequest,
         RecommendationRequestIntent intent,
@@ -16,15 +18,23 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
     {
         var favorites = profile.FavoriteIngredientIds.ToHashSet();
         var prohibited = profile.ProhibitedIngredientIds.ToHashSet();
+        var currentExcludedIngredientNames = intent.CurrentExcludedIngredientNames
+            .Select(name => name.Trim())
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToList();
         var disliked = profile.DislikedIngredientIds.ToHashSet();
         var owned = profile.OwnedIngredientIds.ToHashSet();
         var scopedDrinks = ScopeDrinks(intent, drinks, semanticSearchResult);
         var ranked = scopedDrinks
-            .Where(drink => intent.IsDrinkDetailsRequest || !drink.RecipeEntries.Any(entry => prohibited.Contains(entry.Ingredient.Id)))
+            .Where(drink =>
+                intent.IsDrinkDetailsRequest
+                || !drink.RecipeEntries.Any(entry =>
+                    prohibited.Contains(entry.Ingredient.Id)
+                    || currentExcludedIngredientNames.Any(excludedIngredientName =>
+                        RecommendationCatalogMatcher.IngredientMatches(entry.Ingredient.Name, excludedIngredientName))))
             .Select(drink => Score(drink, intent, favorites, disliked, owned, semanticSearchResult))
             .OrderByDescending(result => result.Score)
             .ThenBy(result => result.Drink.Name, StringComparer.Ordinal)
-            .Take(8)
             .ToList();
 
         if (intent.IsDrinkDetailsRequest)
@@ -43,11 +53,11 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
             new RecommendationGroupDto(
                 "make-now",
                 "Available Now",
-                ranked.Where(item => item.MissingIngredientNames.Count == 0).Take(4).Select(item => ToDto(item, owned)).ToList()),
+                SelectRecommendationItems(ranked.Where(item => item.MissingIngredientNames.Count == 0), owned, 4)),
             new RecommendationGroupDto(
                 "buy-next",
                 "Consider for Restock",
-                ranked.Where(item => item.MissingIngredientNames.Count > 0).Take(4).Select(item => ToDto(item, owned)).ToList()),
+                SelectRecommendationItems(ranked.Where(item => item.MissingIngredientNames.Count > 0), owned, 4)),
         ];
     }
 
@@ -107,7 +117,10 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var dislikedCount = drink.RecipeEntries.Count(entry => disliked.Contains(entry.Ingredient.Id));
+        var dislikedIngredientCount = drink.RecipeEntries
+            .Select(entry => entry.Ingredient.Id)
+            .Distinct()
+            .Count(disliked.Contains);
         var favoriteCount = drink.RecipeEntries.Count(entry => favorites.Contains(entry.Ingredient.Id));
         var semanticSignal = semanticSearchResult.Find(drink.Id);
         var matchedLexicalSignals = FindMatchedLexicalSignals(drink, intent);
@@ -115,7 +128,7 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
 
         var score = missingIngredientNames.Count == 0 ? 100 : 70 - missingIngredientNames.Count * 5;
         score += Math.Min(favoriteCount, 2) * 6;
-        score -= dislikedCount * 8;
+        score -= dislikedIngredientCount * DislikedIngredientPenalty;
         score += matchedLexicalSignals.Count * 8;
         score += ownedIngredientCount * 3;
 
@@ -147,7 +160,28 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
             missingIngredientNames,
             matchedSignals,
             score,
+            dislikedIngredientCount,
             semanticSignal?.SummaryHints ?? []);
+    }
+
+    private static List<RecommendationItemDto> SelectRecommendationItems(
+        IEnumerable<CandidateScore> ranked,
+        HashSet<Guid> owned,
+        int count)
+    {
+        var rankedList = ranked.ToList();
+        var preferred = rankedList
+            .Where(item => item.DislikedIngredientCount == 0)
+            .Take(count)
+            .ToList();
+        var fallback = rankedList
+            .Where(item => item.DislikedIngredientCount > 0)
+            .Take(count - preferred.Count);
+
+        return preferred
+            .Concat(fallback)
+            .Select(item => ToDto(item, owned))
+            .ToList();
     }
 
     private static List<string> FindMatchedLexicalSignals(
@@ -219,5 +253,6 @@ internal sealed class DeterministicRecommendationCandidateBuilder : IRecommendat
         List<string> MissingIngredientNames,
         List<string> MatchedSignals,
         int Score,
+        int DislikedIngredientCount,
         IReadOnlyCollection<string> SemanticHints);
 }

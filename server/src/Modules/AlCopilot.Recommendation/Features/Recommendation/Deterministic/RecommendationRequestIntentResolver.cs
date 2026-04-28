@@ -27,7 +27,8 @@ internal sealed class RecommendationRequestIntentResolver(
             entities.RequestedDrinkName,
             entities.RequestedIngredientNames,
             analysis.RequestDescriptors,
-            analysis.LooksLikeDrinkDetails);
+            analysis.LooksLikeDrinkDetails,
+            entities.ExcludedIngredientNames);
     }
 
     private async Task<RecommendationResolvedRequestEntities> ResolveEntitiesAsync(
@@ -39,9 +40,15 @@ internal sealed class RecommendationRequestIntentResolver(
         var requestedDrinkName = RecommendationCatalogMatcher.FindMentionedDrinkName(
             inputs.Drinks,
             analysis.NormalizedMessage);
-        var requestedIngredientNames = RecommendationCatalogMatcher.FindMentionedIngredientNames(
+        var mentionedIngredientNames = RecommendationCatalogMatcher.FindMentionedIngredientNames(
             inputs.Drinks,
             analysis.NormalizedMessage)
+            .ToList();
+        var excludedIngredientNames = mentionedIngredientNames
+            .Where(ingredientName => IsExcludedIngredientMention(analysis.NormalizedMessage, ingredientName))
+            .ToList();
+        var requestedIngredientNames = mentionedIngredientNames
+            .Except(excludedIngredientNames, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         if (string.IsNullOrWhiteSpace(requestedDrinkName) && !string.IsNullOrWhiteSpace(analysis.DrinkSearchText))
@@ -85,7 +92,28 @@ internal sealed class RecommendationRequestIntentResolver(
             requestedIngredientNames
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            excludedIngredientNames
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
                 .ToList());
+    }
+
+    private static bool IsExcludedIngredientMention(string customerMessage, string ingredientName)
+    {
+        var lowered = customerMessage.ToLowerInvariant();
+        var loweredIngredientName = ingredientName.ToLowerInvariant();
+        var exclusionSignals = new[]
+        {
+            $"no {loweredIngredientName}",
+            $"without {loweredIngredientName}",
+            $"skip {loweredIngredientName}",
+            $"skipping {loweredIngredientName}",
+            $"avoid {loweredIngredientName}",
+            $"avoiding {loweredIngredientName}",
+        };
+
+        return exclusionSignals.Any(signal => lowered.Contains(signal, StringComparison.Ordinal));
     }
 
     private static string? ResolveClearWinner(IReadOnlyCollection<RecommendationFuzzyMatch> matches)
@@ -149,5 +177,6 @@ internal sealed class RecommendationRequestIntentResolver(
     }
     private sealed record RecommendationResolvedRequestEntities(
         string? RequestedDrinkName,
-        IReadOnlyCollection<string> RequestedIngredientNames);
+        IReadOnlyCollection<string> RequestedIngredientNames,
+        IReadOnlyCollection<string> ExcludedIngredientNames);
 }

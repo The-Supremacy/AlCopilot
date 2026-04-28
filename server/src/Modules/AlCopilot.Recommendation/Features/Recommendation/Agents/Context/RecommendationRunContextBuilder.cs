@@ -15,6 +15,7 @@ internal sealed class RecommendationRunContextBuilder : IRecommendationRunContex
         RecommendationSemanticSearchResult semanticSearchResult)
     {
         var ownedIngredientIds = profile.OwnedIngredientIds.ToHashSet();
+        var dislikedIngredientIds = profile.DislikedIngredientIds.ToHashSet();
         var drinkLookup = drinks.ToDictionary(drink => drink.Id);
         var ingredientNames = drinks
             .SelectMany(drink => drink.RecipeEntries)
@@ -30,7 +31,7 @@ internal sealed class RecommendationRunContextBuilder : IRecommendationRunContex
                 group.Key,
                 group.Label,
                 group.Items
-                    .Select(item => BuildRunContextItem(item, drinkLookup, ownedIngredientIds, semanticSearchResult))
+                    .Select(item => BuildRunContextItem(item, drinkLookup, ownedIngredientIds, dislikedIngredientIds, semanticSearchResult))
                     .ToList()))
             .ToList();
         var semanticSummaryHints = semanticSearchResult.ByDrinkId.Values
@@ -48,6 +49,7 @@ internal sealed class RecommendationRunContextBuilder : IRecommendationRunContex
         RecommendationItemDto item,
         IReadOnlyDictionary<Guid, DrinkDetailDto> drinkLookup,
         HashSet<Guid> ownedIngredientIds,
+        HashSet<Guid> dislikedIngredientIds,
         RecommendationSemanticSearchResult semanticSearchResult)
     {
         var semanticHints = semanticSearchResult.Find(item.DrinkId)?.SummaryHints ?? [];
@@ -59,6 +61,7 @@ internal sealed class RecommendationRunContextBuilder : IRecommendationRunContex
                 item.Description,
                 [],
                 item.MissingIngredientNames,
+                [],
                 [],
                 null,
                 null,
@@ -78,6 +81,12 @@ internal sealed class RecommendationRunContextBuilder : IRecommendationRunContex
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        var dislikedIngredientNames = drink.RecipeEntries
+            .Where(entry => dislikedIngredientIds.Contains(entry.Ingredient.Id))
+            .Select(entry => entry.Ingredient.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         return new RecommendationRunContextItem(
             drink.Id,
@@ -85,6 +94,7 @@ internal sealed class RecommendationRunContextBuilder : IRecommendationRunContex
             string.IsNullOrWhiteSpace(item.Description) ? drink.Description : item.Description,
             ownedIngredientNames,
             item.MissingIngredientNames,
+            dislikedIngredientNames,
             recipeIngredientNames,
             drink.Method,
             drink.Garnish,
