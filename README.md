@@ -12,25 +12,28 @@ AI-powered drinks suggestion platform. "Al" is your friendly AI bartender.
 ## Quick Start
 
 ```bash
-# Install Node dependencies + git hooks
+# Install Node dependencies and git hooks when first cloning or when the lockfile changes
 pnpm install
 
-# Build the .NET backend
-cd server && dotnet build
+# Build the solution
+dotnet build server/AlCopilot.slnx
 
-# Build the frontend
-pnpm --filter @alcopilot/portal build
+# Start the local platform through Aspire
+dotnet run --project server/src/AlCopilot.Orchestration/AlCopilot.Orchestration.csproj
 ```
+
+Aspire is the local development entrypoint. It composes the backend Host, migrator, PostgreSQL, Qdrant, Keycloak, and the Vite-powered portal apps.
+Use direct `pnpm --filter ...` commands only for focused frontend checks such as linting, testing, or production builds.
 
 ## Repository Structure
 
-| Folder     | Purpose                                               |
-| ---------- | ----------------------------------------------------- |
-| `server/`  | .NET 10 modular monolith with Aspire                  |
-| `web/`     | Frontend — pnpm workspace (Vite + React + TypeScript) |
-| `deploy/`  | Docker, Helm, Flux, Terraform                         |
-| `docs/`    | Architecture and documentation                        |
-| `.github/` | CI/CD workflows, Copilot instructions, SKILLs         |
+| Folder     | Purpose                                           |
+| ---------- | ------------------------------------------------- |
+| `server/`  | .NET 10 modular monolith and Aspire orchestration |
+| `web/`     | Portal apps and shared frontend packages          |
+| `deploy/`  | Docker, Helm, Flux, Terraform                     |
+| `docs/`    | Architecture and documentation                    |
+| `.github/` | CI/CD workflows, Copilot instructions, SKILLs     |
 
 See [docs/architecture.md](docs/architecture.md) for full architecture and design decisions.
 

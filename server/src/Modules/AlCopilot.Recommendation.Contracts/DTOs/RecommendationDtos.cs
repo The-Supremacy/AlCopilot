@@ -21,10 +21,6 @@ public sealed record RecommendationGroupDto(
     string Label,
     List<RecommendationItemDto> Items);
 
-public sealed record RecommendationToolInvocationDto(
-    string ToolName,
-    string Purpose);
-
 public sealed record RecommendationTurnFeedbackDto(
     string Rating,
     string? Comment,
@@ -36,7 +32,6 @@ public sealed record RecommendationTurnDto(
     string Role,
     string Content,
     List<RecommendationGroupDto> RecommendationGroups,
-    List<RecommendationToolInvocationDto> ToolInvocations,
     RecommendationTurnFeedbackDto? Feedback,
     DateTimeOffset CreatedAtUtc);
 
@@ -53,6 +48,8 @@ public sealed record RecommendationSessionSummaryDto(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     string LastAssistantMessage);
+
+public sealed record SubmitRecommendationMessageResultDto(Guid SessionId);
 
 public sealed record RecommendationSemanticCatalogIndexResultDto(
     int DrinkCount,

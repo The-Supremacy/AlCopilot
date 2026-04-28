@@ -113,6 +113,53 @@ public sealed class RecommendationSemanticEvaluationTests
     }
 
     [Fact]
+    public async Task CreateAsync_UsesSemanticIngredientSignalsForMisspelledIngredientRecommendation()
+    {
+        var tequilaId = Guid.Parse("00000000-0000-0000-0000-000000000461");
+        var limeId = Guid.Parse("00000000-0000-0000-0000-000000000462");
+        var margarita = CreateDrink(
+            Guid.Parse("00000000-0000-0000-0000-000000000470"),
+            "Margarita",
+            "Bright tequila, lime, and orange liqueur.",
+            [CreateRecipeEntry(tequilaId, "Tequila"), CreateRecipeEntry(limeId, "Lime")]);
+
+        var factory = CreateFactory(
+            new CustomerProfileDto([], [], [], [tequilaId, limeId]),
+            [margarita],
+            prompt =>
+            {
+                if (!prompt.Contains("tequlia", StringComparison.OrdinalIgnoreCase))
+                {
+                    return RecommendationSemanticSearchResult.Empty;
+                }
+
+                return new RecommendationSemanticSearchResult(
+                    new Dictionary<Guid, RecommendationSemanticDrinkSignal>
+                    {
+                        [margarita.Id] = new(
+                            margarita.Id,
+                            margarita.Name,
+                            1.8d,
+                            0d,
+                            0.86d,
+                            0d,
+                            [RecommendationSemanticFacetKind.Ingredient],
+                            ["Tequila"],
+                            [],
+                            ["Tequila"])
+                    });
+            });
+
+        var runContext = await factory.CreateAsync("What can I make with tequlia?", CancellationToken.None);
+
+        runContext.Intent.Kind.ShouldBe(RecommendationRequestIntentKind.Recommendation);
+        runContext.Intent.RequestedIngredientNames.ShouldBe(["Tequila"]);
+        runContext.RecommendationGroups.Single(group => group.Key == "make-now")
+            .Items.Select(item => item.DrinkName)
+            .ShouldContain("Margarita");
+    }
+
+    [Fact]
     public async Task CreateAsync_SkipsSemanticSearch_ForExactDrinkDetailsRequest()
     {
         var negroni = CreateDrink(

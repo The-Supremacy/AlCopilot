@@ -12,10 +12,9 @@ namespace AlCopilot.Recommendation.UnitTests.Handlers;
 public sealed class RecommendationIngredientLookupToolTests
 {
     [Fact]
-    public async Task LookupDrinksByIngredientAsync_ReturnsMatchesAndRecordsInvocation()
+    public async Task LookupDrinksByIngredientAsync_ReturnsMatchesAndRecordsTrace()
     {
         var mediator = Substitute.For<IMediator>();
-        var recorder = new RecommendationToolInvocationRecorder();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         mediator.Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>())
             .Returns(
@@ -37,7 +36,6 @@ public sealed class RecommendationIngredientLookupToolTests
         var tool = new RecommendationIngredientLookupTool(
             mediator,
             new StubCatalogFuzzyLookupService([]),
-            recorder,
             executionTraceRecorder);
 
         var result = await tool.LookupDrinksByIngredientAsync("Tequila");
@@ -46,19 +44,17 @@ public sealed class RecommendationIngredientLookupToolTests
         result.Drinks.Select(drink => drink.DrinkName).ShouldBe(["Long Island Iced Tea", "Margarita"]);
         result.Drinks.Single(drink => drink.DrinkName == "Margarita").MatchedIngredientNames
             .ShouldBe(["Blanco Tequila"]);
-        recorder.Drain().ShouldContain(invocation => invocation.ToolName == "lookup_drinks_by_ingredient");
+        executionTraceRecorder.Drain().ShouldContain(step => step.StepName == "tool.lookup_drinks_by_ingredient");
     }
 
     [Fact]
     public async Task LookupDrinksByIngredientAsync_ReturnsInvalidInput_ForBlankIngredientName()
     {
         var mediator = Substitute.For<IMediator>();
-        var recorder = new RecommendationToolInvocationRecorder();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         var tool = new RecommendationIngredientLookupTool(
             mediator,
             new StubCatalogFuzzyLookupService([]),
-            recorder,
             executionTraceRecorder);
 
         var result = await tool.LookupDrinksByIngredientAsync("   ");
@@ -66,7 +62,6 @@ public sealed class RecommendationIngredientLookupToolTests
         result.Status.ShouldBe("invalid-input");
         result.Drinks.ShouldBeEmpty();
         await mediator.DidNotReceive().Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>());
-        recorder.Drain().ShouldBeEmpty();
     }
 
     [Fact]
@@ -74,7 +69,6 @@ public sealed class RecommendationIngredientLookupToolTests
     {
         var proseccoId = Guid.Parse("00000000-0000-0000-0000-000000000501");
         var mediator = Substitute.For<IMediator>();
-        var recorder = new RecommendationToolInvocationRecorder();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         mediator.Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>())
             .Returns(
@@ -85,7 +79,6 @@ public sealed class RecommendationIngredientLookupToolTests
         var tool = new RecommendationIngredientLookupTool(
             mediator,
             new StubCatalogFuzzyLookupService([new RecommendationFuzzyMatch(proseccoId, "Prosecco", 0.78d)]),
-            recorder,
             executionTraceRecorder);
 
         var result = await tool.LookupDrinksByIngredientAsync("Prosseco");

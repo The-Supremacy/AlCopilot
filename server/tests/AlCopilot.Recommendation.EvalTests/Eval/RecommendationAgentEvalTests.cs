@@ -51,7 +51,7 @@ public sealed class RecommendationAgentEvalTests(ITestOutputHelper output)
 
             WriteResult(result);
 
-            var evaluator = RecommendationAgentLocalEvaluator.Create(evalCase, result.ToolInvocations);
+            var evaluator = RecommendationAgentLocalEvaluator.Create(evalCase, result.ToolNames);
             var evaluationResult = await evaluator.EvaluateAsync(
                 [new EvalItem(evalCase.Prompt, result.Response)],
                 $"recommendation-agent-eval-{evalCase.Name}",
@@ -81,7 +81,7 @@ public sealed class RecommendationAgentEvalTests(ITestOutputHelper output)
 
             WriteResult(result);
 
-            var evaluator = RecommendationAgentLocalEvaluator.Create(turn, result.ToolInvocations);
+            var evaluator = RecommendationAgentLocalEvaluator.Create(turn, result.ToolNames);
             var evaluationResult = await evaluator.EvaluateAsync(
                 [new EvalItem(turn.Prompt, result.Response)],
                 $"recommendation-agent-eval-session-{evalCase.Name}-turn-{result.TurnNumber}",
@@ -98,7 +98,7 @@ public sealed class RecommendationAgentEvalTests(ITestOutputHelper output)
         output.WriteLine($"Session: {result.SessionId}");
         output.WriteLine($"Response: {result.Response}");
         output.WriteLine(
-            $"Tools: {string.Join(", ", result.ToolInvocations.Select(invocation => invocation.ToolName))}");
+            $"Tools: {string.Join(", ", result.ToolNames)}");
     }
 
     private static void AssertEvaluationPassed(

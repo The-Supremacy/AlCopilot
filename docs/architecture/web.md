@@ -87,7 +87,8 @@ This deferred direction is captured in [ADR 0008](../adr/0008-capability-level-m
 ## Current Runtime Notes
 
 The current management portal implementation uses polling-friendly persisted import batch status rather than SignalR or other live transport.
-Local development uses Vite proxying to the Host.
+Local development starts from Aspire through `AlCopilot.Orchestration`, which composes the portal Vite apps with the Host, migrator, Keycloak, PostgreSQL, and Qdrant.
+The Vite apps still own their local dev-server behavior and `/api` proxy shape, but Aspire supplies the composed Host endpoint for integrated local runs.
 Production direction uses a dedicated management host and service wiring described in [operations/management-portal-runtime.md](../operations/management-portal-runtime.md).
 The management portal now follows the accepted Tailwind CSS, shadcn/ui, and Zustand stack direction.
 Management auth should preserve host parity across environments so cookie and OIDC callback behavior stay predictable.

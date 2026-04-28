@@ -3,12 +3,9 @@ using AlCopilot.Recommendation.Data;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using AlCopilot.Shared.Errors;
-using Microsoft.Agents.AI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
@@ -16,14 +13,13 @@ internal sealed class RecommendationConversationService(
     IChatSessionRepository chatSessionRepository,
     IRecommendationNarratorAgentFactory agentFactory,
     IRecommendationAgentSessionStore sessionStore,
-    IRecommendationExecutionTraceRecorder executionTraceRecorder,
-    IRecommendationToolInvocationRecorder toolInvocationRecorder,
+    IRecommendationAgentRunDiagnosticsRecorder diagnosticsRecorder,
+    IAgentRunRepository agentRunRepository,
+    IRecommendationTurnOutputRepository turnOutputRepository,
     IRecommendationUnitOfWork unitOfWork,
-    IHostEnvironment hostEnvironment,
-    IOptions<RecommendationObservabilityOptions> observabilityOptions,
     ILogger<RecommendationConversationService> logger) : IRecommendationConversationService
 {
-    public async Task<RecommendationSessionDto> SendMessageAsync(
+    public async Task<SubmitRecommendationMessageResultDto> SendMessageAsync(
         string customerId,
         Guid? sessionId,
         string message,
@@ -44,13 +40,15 @@ internal sealed class RecommendationConversationService(
         }
     }
 
-    private async Task<RecommendationSessionDto> RunAsync(
+    private async Task<SubmitRecommendationMessageResultDto> RunAsync(
         RecommendationConversationRequest request,
         CancellationToken cancellationToken)
     {
         var session = await LoadOrCreateSessionAsync(request, cancellationToken);
-        var turnState = new RecommendationAgentTurnState();
-        var agent = agentFactory.Create(session, turnState);
+        var agentRun = AgentRun.Start(session.Id);
+        agentRunRepository.Add(agentRun);
+        var agentRuntime = agentFactory.Create(session, agentRun);
+        var agent = agentRuntime.Agent;
         var agentSession = await sessionStore.RestoreAsync(
             session.AgentSessionStateJson,
             agent,
@@ -60,7 +58,6 @@ internal sealed class RecommendationConversationService(
             agentSession,
             options: null,
             cancellationToken);
-        executionTraceRecorder.Record(BuildAgentRunTraceStep(response));
 
         var content = string.IsNullOrWhiteSpace(response.Text)
             ? response.Messages.LastOrDefault(message => message.Role == ChatRole.Assistant)?.Text
@@ -71,59 +68,26 @@ internal sealed class RecommendationConversationService(
             throw new InvalidOperationException("Recommendation LLM returned an empty assistant message.");
         }
 
-        var toolInvocations = toolInvocationRecorder.Drain();
-        var executionTrace = ShouldPersistExecutionTrace()
-            ? executionTraceRecorder.Drain()
-            : null;
         var serializedSession = await sessionStore.SerializeAsync(
             agentSession,
             agent,
             cancellationToken);
 
+        agentRun.Complete(
+            provider: null,
+            model: null,
+            finishReason: response.FinishReason?.ToString(),
+            usage: response.Usage);
+        diagnosticsRecorder.Record(session, agentRun, response);
+        turnOutputRepository.AddRange(
+            RecommendationTurnGroup.CreateMany(
+                agentRun.Id,
+                agentRuntime.RunContext?.RecommendationGroups ?? []));
         session.UpdateAgentSessionState(serializedSession);
-        session.UpdateLatestAssistantTurnArtifacts(
-            turnState.RunContext?.RecommendationGroups ?? [],
-            toolInvocations,
-            executionTrace);
 
         await SaveSessionChangesAsync(session, cancellationToken);
 
-        return session.ToDto();
-    }
-
-    private static RecommendationExecutionTraceStep BuildAgentRunTraceStep(AgentResponse response)
-    {
-        var reasoning = string.Join(
-            "\n\n",
-            response.Messages
-                .SelectMany(message => message.Contents)
-                .OfType<TextReasoningContent>()
-                .Select(content => content.Text)
-                .Where(text => !string.IsNullOrWhiteSpace(text)));
-        var usage = response.Usage;
-        var finishReason = response.FinishReason?.ToString();
-
-        return new RecommendationExecutionTraceStep(
-            "agent.run",
-            string.IsNullOrWhiteSpace(finishReason) ? "completed" : finishReason,
-            "Recommendation narrator agent produced an assistant response.",
-            DateTimeOffset.UtcNow,
-            new Dictionary<string, string?>
-            {
-                ["finishReason"] = finishReason,
-                ["inputTokens"] = usage?.InputTokenCount?.ToString(),
-                ["outputTokens"] = usage?.OutputTokenCount?.ToString(),
-                ["reasoningTokens"] = usage?.ReasoningTokenCount?.ToString(),
-                ["messageCount"] = response.Messages.Count.ToString(),
-            },
-            [],
-            string.IsNullOrWhiteSpace(reasoning) ? null : reasoning);
-    }
-
-    private bool ShouldPersistExecutionTrace()
-    {
-        return hostEnvironment.IsDevelopment()
-            && observabilityOptions.Value.PersistExecutionTraceInDevelopment;
+        return new SubmitRecommendationMessageResultDto(session.Id);
     }
 
     private async Task<ChatSession> LoadOrCreateSessionAsync(

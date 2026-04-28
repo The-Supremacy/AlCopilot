@@ -16,14 +16,10 @@ public sealed class SubmitRecommendationRequestHandlerTests
     {
         var actorAccessor = Substitute.For<ICurrentActorAccessor>();
         var conversationService = Substitute.For<IRecommendationConversationService>();
+        var sessionId = Guid.NewGuid();
         actorAccessor.GetCurrent().Returns(new CurrentActor("customer-1", "customer@example.com", true, ["user"]));
         conversationService.SendMessageAsync("customer-1", null, "Give me something citrusy", Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new RecommendationSessionDto(
-                Guid.NewGuid(),
-                "Citrusy ideas",
-                DateTimeOffset.UtcNow,
-                DateTimeOffset.UtcNow,
-                new List<RecommendationTurnDto>())));
+            .Returns(Task.FromResult(new SubmitRecommendationMessageResultDto(sessionId)));
 
         var handler = new SubmitRecommendationRequestHandler(
             actorAccessor,
@@ -33,7 +29,7 @@ public sealed class SubmitRecommendationRequestHandlerTests
             new SubmitRecommendationRequestCommand(null, "Give me something citrusy"),
             CancellationToken.None);
 
-        result.Title.ShouldBe("Citrusy ideas");
+        result.SessionId.ShouldBe(sessionId);
         await conversationService.Received(1).SendMessageAsync(
             "customer-1",
             null,
@@ -65,7 +61,7 @@ public sealed class SubmitRecommendationRequestHandlerTests
         var conversationService = Substitute.For<IRecommendationConversationService>();
         actorAccessor.GetCurrent().Returns(new CurrentActor("customer-1", "customer@example.com", true, ["user"]));
         conversationService.SendMessageAsync("customer-1", null, "   ", Arg.Any<CancellationToken>())
-            .Returns(Task.FromException<RecommendationSessionDto>(
+            .Returns(Task.FromException<SubmitRecommendationMessageResultDto>(
                 new AlCopilot.Shared.Errors.ValidationException("Recommendation message is required.")));
 
         var handler = new SubmitRecommendationRequestHandler(

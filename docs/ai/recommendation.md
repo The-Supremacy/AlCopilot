@@ -20,16 +20,16 @@ The Recommendation module combines exact catalog reads, fuzzy lookup, semantic r
 
 ## Request-Time Flow
 
-The request-time spine is the Agent Framework provider pipeline plus the recommendation conversation service.
+The request-time spine is the recommendation conversation service plus the Agent Framework provider pipeline.
 
 1. Load current recommendation inputs, including catalog details and customer profile.
-2. Capture and analyze the current customer message through provider-owned session state.
+2. Capture and analyze the current customer message from the model-visible invocation messages.
 3. Run semantic search over the derived Qdrant catalog projection only when lexical analysis suggests it will help.
 4. Resolve request intent, requested entities, and request descriptors.
 5. Build deterministic candidates with profile constraints, availability, exact, fuzzy, and semantic evidence.
-6. Build a compact run context message for the narrator through the final narration context provider.
+6. Build a compact run context message for the narrator through the recommendation run context provider.
 7. Invoke the Agent Framework narrator with optional read-only tools.
-8. Persist the user turn, assistant turn, candidate groups, tool calls, and development execution trace when enabled.
+8. Persist the native agent messages, customer-visible turns, candidate groups, tool calls, and development execution trace when enabled.
 
 This is a hybrid RAG pipeline.
 It uses relational truth for canonical data, PostgreSQL fuzzy lookup for typo-tolerant entity recovery, vector retrieval for descriptive intent, deterministic scoring for policy, and the LLM for final conversational presentation.

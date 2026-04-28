@@ -1,6 +1,8 @@
 using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
+using AlCopilot.Recommendation.Data;
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,9 +11,38 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarratorAgentFactory
 {
+    private const string NarratorInstructions =
+        """
+        You are an experienced bartender.
+        Answer from the provided run context, chat history, and tool results.
+        Follow the resolved request intent in the run context.
+        Use chat history to resolve follow-up references such as "that", "it", or "the first one".
+
+        Recommendation policy:
+        Prefer deterministic recommendation candidates when they satisfy the request.
+        Recommend the best matching current candidate group first; do not name lower-priority or restock alternatives unless the user asks for alternatives or another option.
+        Explain conflicts with prohibited ingredients and do not recommend drinks containing them.
+        Prefer drinks without disliked ingredients when a suitable option exists.
+        Never name a drink that violates the current prohibited or disliked ingredient constraint unless the user explicitly asked about that drink.
+        Do not invent unavailable catalog drinks.
+
+        Tool policy:
+        Use the tool descriptions to choose the required tool.
+        For ordinary recommendation requests, answer from deterministic candidates and do not call recipe lookup unless the user asks for recipe details, exact measurements, method, garnish, brand details, or how to make a specific drink.
+        If a recipe or drink-details request names a drink that is not resolved in the run context and not found by drink search, say it is unavailable in the catalog instead of calling recipe lookup or inventing the recipe.
+        Never call recipe lookup for a drink name that is absent from the run context and absent from a prior drink search result.
+        Do not answer recipe, measurement, method, garnish, or brand-detail requests from memory or deterministic candidates alone; use recipe lookup.
+        Do not use recipe lookup only to summarize an ordinary recommendation when the run context already contains enough detail.
+        When a recipe lookup is used, include the returned recipe ingredients in the answer.
+
+        Prefer concise, practical guidance.
+        """;
+
     private readonly IRecommendationChatClientStrategyFactory strategyFactory;
     private readonly ILoggerFactory loggerFactory;
+    private readonly RecommendationDbContext dbContext;
     private readonly IOptions<RecommendationObservabilityOptions> observabilityOptions;
+    private readonly IOptions<RecommendationCompactionOptions> compactionOptions;
     private readonly IRecommendationRunInputsQueryService runInputsQueryService;
     private readonly IRecommendationSemanticSearchService semanticSearchService;
     private readonly IRecommendationRequestIntentResolver requestIntentResolver;
@@ -26,7 +57,9 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
     public RecommendationNarratorAgentFactory(
         IRecommendationChatClientStrategyFactory strategyFactory,
         ILoggerFactory loggerFactory,
+        RecommendationDbContext dbContext,
         IOptions<RecommendationObservabilityOptions> observabilityOptions,
+        IOptions<RecommendationCompactionOptions> compactionOptions,
         IRecommendationRunInputsQueryService runInputsQueryService,
         IRecommendationSemanticSearchService semanticSearchService,
         IRecommendationRequestIntentResolver requestIntentResolver,
@@ -40,7 +73,9 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
     {
         this.strategyFactory = strategyFactory;
         this.loggerFactory = loggerFactory;
+        this.dbContext = dbContext;
         this.observabilityOptions = observabilityOptions;
+        this.compactionOptions = compactionOptions;
         this.runInputsQueryService = runInputsQueryService;
         this.semanticSearchService = semanticSearchService;
         this.requestIntentResolver = requestIntentResolver;
@@ -53,35 +88,20 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
         this.ingredientLookupTool = ingredientLookupTool;
     }
 
-    public AIAgent Create(ChatSession session, RecommendationAgentTurnState turnState)
+    public RecommendationNarratorAgentRuntime Create(ChatSession session, AgentRun agentRun)
     {
+        RecommendationRunContext? runContext = null;
         var strategy = strategyFactory.Create();
-        var instrumentedChatClient = new ChatClientBuilder(strategy.ChatClient)
+        var chatClientBuilder = new ChatClientBuilder(strategy.ChatClient);
+        ConfigureCompaction(chatClientBuilder);
+        var instrumentedChatClient = chatClientBuilder
             .UseOpenTelemetry(
                 loggerFactory,
                 RecommendationTelemetry.SourceName,
                 configure: telemetry => telemetry.EnableSensitiveData = observabilityOptions.Value.EnableSensitiveData)
             .Build();
-
         var chatOptions = strategy.ChatOptions;
-        chatOptions.Instructions =
-            """
-            You are an experienced bartender.
-            Base your answer on the provided customer context, deterministic recommendation candidates, and tool results.
-            Use chat history to resolve follow-up references like "that", "it", or "the first one".
-            Follow the resolved request intent from the run context.
-            Prefer deterministic recommendation candidates when they satisfy the request.
-            If the user asks for a prohibited ingredient, explain the conflict and do not recommend drinks containing it.
-            Prefer drinks without disliked ingredients when a suitable option exists.
-            If you mention a drink with a disliked ingredient, make the tradeoff explicit instead of presenting it as an equal recommendation.
-            If you need to resolve a drink name before looking up its recipe, call the drink search tool.
-            If the request is ingredient-led, or the deterministic candidates do not cover the request well enough, call the ingredient lookup tool before answering.
-            If deterministic recommendation candidates already include enough ingredients and method detail, do not call the recipe lookup tool just to summarize a recommendation.
-            For drink-details requests about how to make a specific drink, call the recipe lookup tool before answering.
-            If exact measurements, method, garnish, or brand details are needed for a specific known drink, call the recipe lookup tool after you know which drink to inspect.
-            Prefer concise, practical guidance.
-            Do not invent unavailable drinks or ignore prohibited ingredients.
-            """;
+        chatOptions.Instructions = NarratorInstructions;
         chatOptions.Tools =
         [
             AIFunctionFactory.Create(
@@ -89,21 +109,21 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
                 new AIFunctionFactoryOptions
                 {
                     Name = "search_drinks",
-                    Description = "Search the catalog by drink name or partial drink name before looking up a drink recipe."
+                    Description = "Search catalog drink names. Use when the user explicitly asks to search/find matching drink names, gives a partial or uncertain drink name, or a drink name must be resolved before recipe lookup. Do not use for ingredient-only searches."
                 }),
             AIFunctionFactory.Create(
                 ingredientLookupTool.LookupDrinksByIngredientAsync,
                 new AIFunctionFactoryOptions
                 {
                     Name = "lookup_drinks_by_ingredient",
-                    Description = "Find catalog drinks that contain a requested ingredient when the customer asks for something with tequila, rum, gin, citrus, or another ingredient."
+                    Description = "Find catalog drinks containing a requested ingredient. Use for questions like 'which drinks use ginger beer?' or recommendation requests centered on an ingredient when deterministic candidates are insufficient. Do not use for exact recipe details."
                 }),
             AIFunctionFactory.Create(
                 recipeLookupTool.LookupDrinkRecipeAsync,
                 new AIFunctionFactoryOptions
                 {
                     Name = "lookup_drink_recipe",
-                    Description = "Look up the full recipe details for a specific known drink from the catalog when exact measurements, method, garnish, or brand detail is needed."
+                    Description = "Look up full recipe details for one specific known drink that appears in the run context or a prior search_drinks result. Use for 'how do I make it?', exact ingredients, measurements, method, garnish, or brand-detail requests after the drink is known. Do not use for ordinary recommendation lists, catalog search, ingredient-list queries, or unavailable drinks."
                 }),
         ];
         chatOptions.AllowMultipleToolCalls = true;
@@ -115,18 +135,20 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
                 Name = "recommendation-narrator",
                 Description = "Turns deterministic recommendation candidates into a concise bartender-style response.",
                 ChatOptions = chatOptions,
-                ChatHistoryProvider = new RecommendationChatHistoryProvider(session, turnState),
+                ChatHistoryProvider = new RecommendationChatHistoryProvider(
+                    dbContext,
+                    session,
+                    agentRun.Id),
                 AIContextProviders =
                 [
-                    new RecommendationInvocationContextProvider(session.Id, turnState),
-                    new RecommendationCatalogInputsProvider(runInputsQueryService, turnState),
-                    new RecommendationSemanticSearchProvider(semanticSearchService, turnState),
-                    new RecommendationIntentResolutionProvider(requestIntentResolver, turnState),
-                    new RecommendationNarrationContextProvider(
+                    new RecommendationRunContextProvider(
+                        runInputsQueryService,
+                        semanticSearchService,
+                        requestIntentResolver,
                         candidateBuilder,
                         runContextBuilder,
                         executionTraceRecorder,
-                        turnState),
+                        value => runContext = value),
                 ],
             },
             loggerFactory,
@@ -138,6 +160,29 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
                 configure: telemetry => telemetry.EnableSensitiveData = observabilityOptions.Value.EnableSensitiveData)
             .Build(serviceProvider);
 
-        return builtAgent;
+        return new RecommendationNarratorAgentRuntime(builtAgent, () => runContext);
+    }
+
+    private void ConfigureCompaction(ChatClientBuilder builder)
+    {
+        var options = compactionOptions.Value;
+        if (!options.Enabled)
+        {
+            return;
+        }
+
+#pragma warning disable MAAI001
+        builder.UseAIContextProviders(
+            new CompactionProvider(
+                new ToolResultCompactionStrategy(
+                    CompactionTriggers.All(
+                        CompactionTriggers.HasToolCalls(),
+                        CompactionTriggers.Any(
+                            CompactionTriggers.GroupsExceed(options.ToolResultGroupsThreshold),
+                            CompactionTriggers.TokensExceed(options.ToolResultTokenThreshold))),
+                    options.MinimumPreservedGroups),
+                "recommendation-tool-result-compaction",
+                loggerFactory));
+#pragma warning restore MAAI001
     }
 }

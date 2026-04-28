@@ -9,6 +9,8 @@ using AlCopilot.Recommendation.Features.Recommendation.Abstractions;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using Mediator;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -39,6 +41,7 @@ internal sealed class RecommendationAgentEvalHarness
         var runtime = CreateRuntime(evalCase.Profile);
         return await SendMessageAsync(
             runtime.Service,
+            runtime.DbContext,
             $"maf-eval-{evalCase.Name}-{repetitionNumber}",
             null,
             evalCase.Prompt,
@@ -61,6 +64,7 @@ internal sealed class RecommendationAgentEvalHarness
             var turn = evalCase.Turns[turnNumber - 1];
             var result = await SendMessageAsync(
                 runtime.Service,
+                runtime.DbContext,
                 customerId,
                 sessionId,
                 turn.Prompt,
@@ -77,6 +81,7 @@ internal sealed class RecommendationAgentEvalHarness
 
     private static async Task<RecommendationAgentEvalResult> SendMessageAsync(
         RecommendationConversationService service,
+        RecommendationDbContext dbContext,
         string customerId,
         Guid? sessionId,
         string prompt,
@@ -84,11 +89,16 @@ internal sealed class RecommendationAgentEvalHarness
         int turnNumber,
         CancellationToken cancellationToken)
     {
-        var session = await service.SendMessageAsync(
+        var messageResult = await service.SendMessageAsync(
             customerId,
             sessionId,
             prompt,
             cancellationToken);
+        var session = await new RecommendationSessionQueryService(dbContext).GetSessionAsync(
+                customerId,
+                messageResult.SessionId,
+                cancellationToken)
+            ?? throw new InvalidOperationException("Recommendation eval session could not be reloaded.");
         var assistantTurn = session.Turns.Last(turn => string.Equals(turn.Role, "assistant", StringComparison.Ordinal));
 
         return new RecommendationAgentEvalResult(
@@ -96,7 +106,7 @@ internal sealed class RecommendationAgentEvalHarness
             turnNumber,
             session.SessionId,
             assistantTurn.Content,
-            assistantTurn.ToolInvocations);
+            GetToolNames(dbContext, session.SessionId));
     }
 
     private RecommendationAgentEvalRuntime CreateRuntime(RecommendationAgentEvalProfile evalProfile)
@@ -118,7 +128,6 @@ internal sealed class RecommendationAgentEvalHarness
 
         var fuzzyLookupService = new EvalCatalogFuzzyLookupService(catalog);
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
-        var toolInvocationRecorder = new RecommendationToolInvocationRecorder();
         var runInputsQueryService = new RecommendationRunInputsQueryService(mediator);
         var requestIntentResolver = new RecommendationRequestIntentResolver(
             fuzzyLookupService,
@@ -133,24 +142,28 @@ internal sealed class RecommendationAgentEvalHarness
             .AddLogging()
             .BuildServiceProvider();
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var dbContext = CreateEvalDbContext();
         var drinkSearchTool = new RecommendationDrinkSearchTool(
             mediator,
             fuzzyLookupService,
-            toolInvocationRecorder,
             executionTraceRecorder);
         var ingredientLookupTool = new RecommendationIngredientLookupTool(
             mediator,
             fuzzyLookupService,
-            toolInvocationRecorder,
             executionTraceRecorder);
         var recipeLookupTool = new RecommendationRecipeLookupTool(
             mediator,
-            toolInvocationRecorder,
             executionTraceRecorder);
+        var observabilityOptions = new RecommendationObservabilityOptions
+        {
+            PersistExecutionTraceInDevelopment = true,
+        };
         var agentFactory = new RecommendationNarratorAgentFactory(
             strategyFactory,
             loggerFactory,
-            Options.Create(new RecommendationObservabilityOptions()),
+            dbContext,
+            Options.Create(observabilityOptions),
+            Options.Create(new RecommendationCompactionOptions()),
             runInputsQueryService,
             new EvalSemanticSearchService(),
             requestIntentResolver,
@@ -161,19 +174,92 @@ internal sealed class RecommendationAgentEvalHarness
             drinkSearchTool,
             recipeLookupTool,
             ingredientLookupTool);
-        var repository = new EvalChatSessionRepository();
+        var repository = new ChatSessionRepository(dbContext);
         var service = new RecommendationConversationService(
             repository,
             agentFactory,
             new RecommendationAgentSessionStore(),
-            executionTraceRecorder,
-            toolInvocationRecorder,
-            new EvalRecommendationUnitOfWork(),
-            new EvalHostEnvironment(),
-            Options.Create(new RecommendationObservabilityOptions()),
+            new RecommendationAgentRunDiagnosticsRecorder(
+                executionTraceRecorder,
+                new AgentMessageDiagnosticRepository(dbContext),
+                new EvalHostEnvironment
+                {
+                    EnvironmentName = Environments.Development,
+                },
+                Options.Create(observabilityOptions)),
+            new AgentRunRepository(dbContext),
+            new RecommendationTurnOutputRepository(dbContext),
+            dbContext,
             loggerFactory.CreateLogger<RecommendationConversationService>());
 
-        return new RecommendationAgentEvalRuntime(service);
+        return new RecommendationAgentEvalRuntime(service, dbContext);
+    }
+
+    private static RecommendationDbContext CreateEvalDbContext()
+    {
+        var options = new DbContextOptionsBuilder<RecommendationDbContext>()
+            .UseInMemoryDatabase($"recommendation-eval-{Guid.NewGuid():N}")
+            .Options;
+
+        var dbContext = new RecommendationDbContext(options);
+        dbContext.Database.EnsureCreated();
+        return dbContext;
+    }
+
+    private static IReadOnlyCollection<string> GetToolNames(RecommendationDbContext dbContext, Guid sessionId)
+    {
+        var latestRunId = dbContext.AgentRuns
+            .AsNoTracking()
+            .Where(run => run.ChatSessionId == sessionId)
+            .OrderByDescending(run => run.StartedAtUtc)
+            .Select(run => (Guid?)run.Id)
+            .FirstOrDefault();
+
+        if (latestRunId is null)
+        {
+            return [];
+        }
+
+        var persistedToolNames = dbContext.AgentMessages
+            .AsNoTracking()
+            .Where(message => message.AgentRunId == latestRunId.Value && message.Kind == "tool-call")
+            .OrderBy(message => message.Sequence)
+            .AsEnumerable()
+            .SelectMany(message => ExtractToolNames(message.RawMessageJson))
+            .ToList();
+        if (persistedToolNames.Count > 0)
+        {
+            return persistedToolNames;
+        }
+
+        return dbContext.AgentMessageDiagnostics
+            .AsNoTracking()
+            .Where(diagnostic => diagnostic.AgentRunId == latestRunId.Value && diagnostic.Kind == "trace")
+            .OrderBy(diagnostic => diagnostic.CreatedAtUtc)
+            .Select(diagnostic => diagnostic.Name)
+            .AsEnumerable()
+            .Select(TryExtractToolName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .ToList();
+    }
+
+    private static IEnumerable<string> ExtractToolNames(string rawMessageJson)
+    {
+        var message = JsonSerializer.Deserialize<ChatMessage>(rawMessageJson, AIJsonUtilities.DefaultOptions);
+        return message?.Contents
+            .OfType<FunctionCallContent>()
+            .Select(content => content.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            ?? [];
+    }
+
+    private static string? TryExtractToolName(string name)
+    {
+        const string prefix = "tool.";
+        return name.StartsWith(prefix, StringComparison.Ordinal)
+            ? name[prefix.Length..]
+            : null;
     }
 
     private CustomerProfileDto BuildProfile(
@@ -225,7 +311,6 @@ internal sealed class RecommendationAgentEvalHarness
             ModelId = GetEnvironmentVariableOrDefault(
                 "ALCOPILOT_RECOMMENDATION_AGENT_EVAL_OLLAMA_MODEL",
                 devSettings.ModelId ?? "gemma4:e4b"),
-            MaxHistoryMessages = devSettings.MaxHistoryMessages ?? 24,
         };
     }
 
@@ -235,7 +320,7 @@ internal sealed class RecommendationAgentEvalHarness
             Path.Combine("server", "src", "AlCopilot.Host", "appsettings.Development.json"));
         if (devSettingsPath is null)
         {
-            return new EvalOllamaSettings(null, null, null);
+            return new EvalOllamaSettings(null, null);
         }
 
         using var stream = File.OpenRead(devSettingsPath);
@@ -243,14 +328,13 @@ internal sealed class RecommendationAgentEvalHarness
         if (!document.RootElement.TryGetProperty("Recommendation", out var recommendation)
             || !recommendation.TryGetProperty("Ollama", out var ollama))
         {
-            return new EvalOllamaSettings(null, null, null);
+            return new EvalOllamaSettings(null, null);
         }
 
         var endpoint = TryGetString(ollama, "Endpoint");
         var modelId = TryGetString(ollama, "ModelId");
-        var maxHistoryMessages = TryGetInt32(ollama, "MaxHistoryMessages");
 
-        return new EvalOllamaSettings(endpoint, modelId, maxHistoryMessages);
+        return new EvalOllamaSettings(endpoint, modelId);
     }
 
     private static string? FindFileAboveCurrentDirectory(string relativePath)
@@ -277,14 +361,6 @@ internal sealed class RecommendationAgentEvalHarness
             : null;
     }
 
-    private static int? TryGetInt32(JsonElement element, string propertyName)
-    {
-        return element.TryGetProperty(propertyName, out var property)
-            && property.TryGetInt32(out var value)
-            ? value
-            : null;
-    }
-
     private static string GetEnvironmentVariableOrDefault(string name, string fallback)
     {
         var value = Environment.GetEnvironmentVariable(name);
@@ -299,50 +375,11 @@ internal sealed class RecommendationAgentEvalHarness
 
     private sealed record EvalOllamaSettings(
         string? Endpoint,
-        string? ModelId,
-        int? MaxHistoryMessages);
+        string? ModelId);
 
-    private sealed record RecommendationAgentEvalRuntime(RecommendationConversationService Service);
-
-    private sealed class EvalChatSessionRepository : IChatSessionRepository
-    {
-        private readonly List<ChatSession> sessions = [];
-
-        public Task<ChatSession?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        {
-            var session = sessions.FirstOrDefault(candidate => candidate.Id == id);
-            return Task.FromResult(session);
-        }
-
-        public Task<ChatSession?> GetByCustomerSessionIdAsync(
-            string customerId,
-            Guid sessionId,
-            CancellationToken cancellationToken = default)
-        {
-            var session = sessions.FirstOrDefault(candidate =>
-                candidate.Id == sessionId
-                && string.Equals(candidate.CustomerId, customerId, StringComparison.Ordinal));
-            return Task.FromResult(session);
-        }
-
-        public void Add(ChatSession aggregate)
-        {
-            sessions.Add(aggregate);
-        }
-
-        public void Remove(ChatSession aggregate)
-        {
-            sessions.Remove(aggregate);
-        }
-    }
-
-    private sealed class EvalRecommendationUnitOfWork : IRecommendationUnitOfWork
-    {
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(0);
-        }
-    }
+    private sealed record RecommendationAgentEvalRuntime(
+        RecommendationConversationService Service,
+        RecommendationDbContext DbContext);
 
     private sealed class EvalHostEnvironment : IHostEnvironment
     {
@@ -469,7 +506,7 @@ internal sealed record RecommendationAgentEvalResult(
     int TurnNumber,
     Guid SessionId,
     string Response,
-    IReadOnlyCollection<RecommendationToolInvocationDto> ToolInvocations)
+    IReadOnlyCollection<string> ToolNames)
 {
     public int RepetitionNumber => TurnNumber;
 }

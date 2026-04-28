@@ -101,9 +101,6 @@ public sealed class RecommendationNarrationServiceTests
         message.ShouldContain("recommendation run context");
         message.ShouldContain("owned: Gin");
         message.ShouldContain("prohibited: Campari");
-        message.ShouldContain("search_drinks");
-        message.ShouldContain("lookup_drinks_by_ingredient");
-        message.ShouldContain("lookup_drink_recipe");
         message.ShouldContain("kind: Recommendation");
         message.ShouldContain("Negroni");
         message.ShouldContain("owned Gin");

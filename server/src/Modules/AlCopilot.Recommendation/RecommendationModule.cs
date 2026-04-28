@@ -34,6 +34,10 @@ public static class RecommendationModule
 
         services.AddScoped<IRecommendationUnitOfWork>(sp => sp.GetRequiredService<RecommendationDbContext>());
         services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
+        services.AddScoped<IAgentRunRepository, AgentRunRepository>();
+        services.AddScoped<IAgentMessageRepository, AgentMessageRepository>();
+        services.AddScoped<IAgentMessageDiagnosticRepository, AgentMessageDiagnosticRepository>();
+        services.AddScoped<IRecommendationTurnOutputRepository, RecommendationTurnOutputRepository>();
         services.AddScoped<IRecommendationSessionQueryService, RecommendationSessionQueryService>();
         services.AddScoped<IRecommendationCatalogFuzzyLookupService, RecommendationCatalogFuzzyLookupService>();
         services.AddScoped<IRecommendationCandidateBuilder, DeterministicRecommendationCandidateBuilder>();
@@ -46,7 +50,7 @@ public static class RecommendationModule
         services.AddScoped<IRecommendationNarratorAgentFactory, RecommendationNarratorAgentFactory>();
         services.AddSingleton<IRecommendationAgentSessionStore, RecommendationAgentSessionStore>();
         services.AddScoped<IRecommendationExecutionTraceRecorder, RecommendationExecutionTraceRecorder>();
-        services.AddScoped<IRecommendationToolInvocationRecorder, RecommendationToolInvocationRecorder>();
+        services.AddScoped<IRecommendationAgentRunDiagnosticsRecorder, RecommendationAgentRunDiagnosticsRecorder>();
         services.AddScoped<RecommendationDrinkSearchTool>();
         services.AddScoped<RecommendationIngredientLookupTool>();
         services.AddScoped<RecommendationRecipeLookupTool>();
@@ -59,6 +63,8 @@ public static class RecommendationModule
             .Bind(configuration.GetSection(RecommendationOllamaOptions.SectionName));
         services.AddOptions<RecommendationSemanticOptions>()
             .Bind(configuration.GetSection(RecommendationSemanticOptions.SectionName));
+        services.AddOptions<RecommendationCompactionOptions>()
+            .Bind(configuration.GetSection(RecommendationCompactionOptions.SectionName));
         services.AddOptions<RecommendationObservabilityOptions>()
             .Bind(configuration.GetSection(RecommendationObservabilityOptions.SectionName));
 

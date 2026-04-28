@@ -3,7 +3,9 @@ using AlCopilot.Recommendation.Data;
 using AlCopilot.Recommendation.Features.Recommendation;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Shouldly;
+using System.Text.Json;
 
 namespace AlCopilot.Recommendation.IntegrationTests.Integration;
 
@@ -22,7 +24,20 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
     public async Task DisposeAsync()
     {
         await _db.Database.ExecuteSqlRawAsync(
-            "DELETE FROM recommendation.\"ChatTurns\"; DELETE FROM recommendation.\"DomainEventRecords\"; DELETE FROM recommendation.\"ChatSessions\";");
+            """
+            TRUNCATE TABLE
+                recommendation."AgentMessageDiagnostics",
+                recommendation."RecommendationTurnItemMatchedSignals",
+                recommendation."RecommendationTurnItemMissingIngredients",
+                recommendation."RecommendationTurnItemRecipeEntries",
+                recommendation."RecommendationTurnItems",
+                recommendation."RecommendationTurnGroups",
+                recommendation."AgentMessages",
+                recommendation."AgentRuns",
+                recommendation."DomainEventRecords",
+                recommendation."ChatSessions"
+            CASCADE;
+            """);
         await _db.DisposeAsync();
     }
 
@@ -31,42 +46,47 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
     {
         var repository = new ChatSessionRepository(_db);
         var session = ChatSession.Create("customer-1", "Something refreshing");
-        session.AppendUserTurn("Something refreshing");
-        session.AppendAssistantTurn(
-            "Try a Gimlet.",
-            [new RecommendationGroupDto("make-now", "Available Now", [new RecommendationItemDto(Guid.NewGuid(), "Gimlet", null, [], [], 100)])],
-            [],
-            [
-                new RecommendationExecutionTraceStep(
-                    "agent.run",
-                    "completed",
-                    "Generated recommendation response.",
-                    DateTimeOffset.UtcNow,
-                    new Dictionary<string, string?> { ["finishReason"] = "stop" },
-                    [],
-                    "Compared the top available citrus drinks before answering.")
-            ]);
+        AppendMessage(session, "user", "Something refreshing");
+        var assistantMessage = AppendMessage(
+            session,
+            "assistant",
+            "Try a Gimlet.");
 
         repository.Add(session);
+        var run = AddRun(session);
+        _db.RecommendationTurnGroups.AddRange(RecommendationTurnGroup.CreateMany(
+            run.Id,
+            [new RecommendationGroupDto("make-now", "Available Now", [new RecommendationItemDto(Guid.NewGuid(), "Gimlet", null, [], [], 100)])]));
+        _db.AgentMessageDiagnostics.Add(AgentMessageDiagnostic.Create(
+            session.Id,
+            run.Id,
+            assistantMessage.Id,
+            "reasoning",
+            "provider.reasoning",
+            "Compared the top available citrus drinks before answering.",
+            null));
         await _db.SaveChangesAsync();
 
         var loaded = await repository.GetByCustomerSessionIdAsync("customer-1", session.Id);
         loaded.ShouldNotBeNull();
-        loaded!.Turns.Count.ShouldBe(2);
-        loaded.Turns.Last().Role.ShouldBe("assistant");
-        loaded.Turns.Last().GetExecutionTraceSteps().Single().StepName.ShouldBe("agent.run");
-        loaded.Turns.Last().GetExecutionTraceSteps().Single().Reasoning.ShouldBe(
+        var messages = await _db.AgentMessages
+            .Where(message => message.ChatSessionId == session.Id)
+            .OrderBy(message => message.Sequence)
+            .ToListAsync();
+        messages.Count.ShouldBe(2);
+        messages.Last().Role.ShouldBe("assistant");
+        var diagnostic = await _db.AgentMessageDiagnostics.SingleAsync();
+        diagnostic.Name.ShouldBe("provider.reasoning");
+        diagnostic.Text.ShouldBe(
             "Compared the top available citrus drinks before answering.");
         var domainEvents = await _db.DomainEventRecords
             .OrderBy(record => record.Id)
             .ToListAsync();
-        domainEvents.Count.ShouldBe(3);
+        domainEvents.Count.ShouldBe(1);
         domainEvents.Select(record => record.EventType)
             .ShouldBe(
             [
                 "recommendation.session-started.v1",
-                "recommendation.customer-message-recorded.v1",
-                "recommendation.assistant-message-recorded.v1",
             ]);
     }
 
@@ -75,8 +95,8 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
     {
         var repository = new ChatSessionRepository(_db);
         var session = ChatSession.Create("customer-1", "Something refreshing");
-        session.AppendUserTurn("Something refreshing");
-        session.AppendAssistantTurn("Try a Gimlet.", [], []);
+        AppendMessage(session, "user", "Something refreshing");
+        AppendMessage(session, "assistant", "Try a Gimlet.");
 
         repository.Add(session);
         await _db.SaveChangesAsync();
@@ -85,15 +105,19 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
         reloaded.ShouldNotBeNull();
 
         reloaded!.UpdateAgentSessionState("""{"stateBag":{"session":"restored"}}""");
-        reloaded.AppendUserTurn("Something bitter");
-        reloaded.AppendAssistantTurn("Try a Negroni.", [], []);
+        AppendMessage(reloaded, "user", "Something bitter");
+        AppendMessage(reloaded, "assistant", "Try a Negroni.");
         await _db.SaveChangesAsync();
 
         var persisted = await repository.GetByCustomerSessionIdAsync("customer-1", session.Id);
         persisted.ShouldNotBeNull();
         persisted!.AgentSessionStateJson.ShouldBe("""{"stateBag":{"session":"restored"}}""");
-        persisted.Turns.Count.ShouldBe(4);
-        persisted.Turns.Select(turn => turn.Role)
+        var persistedMessages = await _db.AgentMessages
+            .Where(message => message.ChatSessionId == session.Id)
+            .OrderBy(message => message.Sequence)
+            .ToListAsync();
+        persistedMessages.Count.ShouldBe(4);
+        persistedMessages.Select(message => message.Role)
             .ShouldBe(["user", "assistant", "user", "assistant"]);
     }
 
@@ -102,23 +126,64 @@ public sealed class RecommendationSessionRepositoryIntegrationTests(PostgresFixt
     {
         var repository = new ChatSessionRepository(_db);
         var session = ChatSession.Create("customer-1", "Something refreshing");
-        session.AppendUserTurn("Something refreshing");
-        session.AppendAssistantTurn("Try a Gimlet.", [], []);
-        var assistantTurnId = session.Turns.Last().Id;
+        AppendMessage(session, "user", "Something refreshing");
+        var assistantMessage = AppendMessage(session, "assistant", "Try a Gimlet.");
 
         repository.Add(session);
         await _db.SaveChangesAsync();
 
-        var reloaded = await repository.GetByCustomerSessionIdAsync("customer-1", session.Id);
-        reloaded.ShouldNotBeNull();
-
-        reloaded!.RecordTurnFeedback(assistantTurnId, "negative", "Missed the prosecco request.");
+        var reloadedMessage = await _db.AgentMessages.SingleAsync(message => message.Id == assistantMessage.Id);
+        reloadedMessage.RecordFeedback("negative", "Missed the prosecco request.");
         await _db.SaveChangesAsync();
 
-        var persisted = await repository.GetByCustomerSessionIdAsync("customer-1", session.Id);
-        var feedback = persisted!.Turns.Single(turn => turn.Id == assistantTurnId).GetFeedback();
-        feedback.ShouldNotBeNull();
-        feedback!.Rating.ShouldBe("negative");
-        feedback.Comment.ShouldBe("Missed the prosecco request.");
+        var persisted = await _db.AgentMessages.SingleAsync(message => message.Id == assistantMessage.Id);
+        persisted.FeedbackRating.ShouldBe("negative");
+        persisted.FeedbackComment.ShouldBe("Missed the prosecco request.");
+    }
+
+    private AgentMessage AppendMessage(
+        ChatSession session,
+        string role,
+        string content)
+    {
+        var maxPendingSequence = _db.ChangeTracker
+            .Entries<AgentMessage>()
+            .Where(entry => entry.Entity.ChatSessionId == session.Id)
+            .Select(entry => entry.Entity.Sequence)
+            .DefaultIfEmpty(0)
+            .Max();
+        var maxPersistedSequence = _db.AgentMessages
+            .Where(message => message.ChatSessionId == session.Id)
+            .Select(message => (int?)message.Sequence)
+            .Max() ?? 0;
+        var sequence = Math.Max(maxPendingSequence, maxPersistedSequence) + 1;
+        var chatRole = string.Equals(role, "assistant", StringComparison.Ordinal)
+            ? ChatRole.Assistant
+            : ChatRole.User;
+        var chatMessage = new ChatMessage(chatRole, content)
+        {
+            MessageId = Guid.NewGuid().ToString("N"),
+        };
+        var agentMessage = AgentMessage.Create(
+            session.Id,
+            null,
+            sequence,
+            chatMessage.MessageId,
+            role,
+            "text",
+            "test",
+            content,
+            JsonSerializer.Serialize(chatMessage, AIJsonUtilities.DefaultOptions));
+
+        _db.AgentMessages.Add(agentMessage);
+        return agentMessage;
+    }
+
+    private AgentRun AddRun(ChatSession session)
+    {
+        var run = AgentRun.Start(session.Id);
+        run.Complete(null, null, "stop", null);
+        _db.AgentRuns.Add(run);
+        return run;
     }
 }

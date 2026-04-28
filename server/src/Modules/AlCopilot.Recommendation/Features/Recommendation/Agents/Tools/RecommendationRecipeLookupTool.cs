@@ -8,13 +8,12 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 
 internal sealed class RecommendationRecipeLookupTool(
     IMediator mediator,
-    IRecommendationToolInvocationRecorder toolInvocationRecorder,
     IRecommendationExecutionTraceRecorder executionTraceRecorder)
 {
-    [Description("Look up the full recipe details for a specific known drink from the catalog.")]
+    [Description("Look up full recipe details for one specific known drink, including measurements, method, garnish, brands, and ingredient list.")]
     public async Task<RecommendationRecipeLookupResult> LookupDrinkRecipeAsync(
-        [Description("Optional drink id from the recommendation run context. Prefer this when available.")] string? drinkId = null,
-        [Description("Optional drink name when the drink id is unavailable. Use the exact drink name if possible.")] string? drinkName = null,
+        [Description("Drink id from the run context. Prefer this when available because it is exact.")] string? drinkId = null,
+        [Description("Exact drink name when drink id is unavailable. Search drink names first if the name is partial or uncertain.")] string? drinkName = null,
         CancellationToken cancellationToken = default)
     {
         var drink = await ResolveDrinkAsync(drinkId, drinkName, cancellationToken);
@@ -38,9 +37,6 @@ internal sealed class RecommendationRecipeLookupTool(
                 null);
         }
 
-        toolInvocationRecorder.Record(
-            "lookup_drink_recipe",
-            $"Looked up the full recipe details for {drink.Name}.");
         executionTraceRecorder.Record(
             new RecommendationExecutionTraceStep(
                 "tool.lookup_drink_recipe",

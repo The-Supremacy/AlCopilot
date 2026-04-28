@@ -29,10 +29,12 @@ export function useSubmitRecommendationRequestMutation() {
 
   return useMutation({
     mutationFn: (input: SubmitRecommendationRequestInput) => submitRecommendationRequest(input),
-    onSuccess: async (session) => {
+    onSuccess: async (result) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: portalKeys.recommendationSessions }),
-        queryClient.setQueryData(portalKeys.recommendationSession(session.sessionId), session),
+        queryClient.invalidateQueries({
+          queryKey: portalKeys.recommendationSession(result.sessionId),
+        }),
       ]);
     },
   });
@@ -44,10 +46,12 @@ export function useSubmitRecommendationTurnFeedbackMutation() {
   return useMutation({
     mutationFn: (input: SubmitRecommendationTurnFeedbackInput) =>
       submitRecommendationTurnFeedback(input),
-    onSuccess: async (session) => {
+    onSuccess: async (_result, input) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: portalKeys.recommendationSessions }),
-        queryClient.setQueryData(portalKeys.recommendationSession(session.sessionId), session),
+        queryClient.invalidateQueries({
+          queryKey: portalKeys.recommendationSession(input.sessionId),
+        }),
       ]);
     },
   });

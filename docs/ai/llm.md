@@ -131,17 +131,36 @@ So the practical difference is:
 - Current default: `Summary`
 - Why this default: observability is useful, but full reasoning traces are more noise-prone and heavier than the current workflow needs
 
-### Conversation harness
+### Compaction Controls
 
-`MaxHistoryMessages`
+`Compaction.Enabled`
 
-- Meaning: how many prior messages from the conversation should be retained in the live narrator context
-- If you increase it: the model can remember more earlier conversation detail, which helps long follow-ups, but also raises cost, latency, and the risk that stale context overrides the latest grounded run
-- If you decrease it: the model focuses more strongly on the recent turn and fresh backend context, but may forget older user preferences or prior clarifications sooner
-- Why it exists: long history increases cost, latency, and confusion risk
-- Current default reasoning: keep enough recent context for follow-up questions, but not so much that the narrator starts prioritizing stale turns over the fresh grounded run context
+- Meaning: whether MAF should compact the in-flight message list before the model call
+- What it does not do: it does not rewrite persisted `AgentMessage` history or the customer-visible transcript
+- Current default: `true`
+- Why this default: tool-heavy conversations can keep full durable history while still reducing runtime context size
 
----
+`Compaction.ToolResultGroupsThreshold`
+
+- Meaning: the non-system message group count at which tool-result compaction can start
+- If you increase it: more detailed tool history is sent before compaction starts
+- If you decrease it: older tool-call groups are compacted sooner
+- Current default: `32`
+- Why this default: normal short sessions stay untouched, while longer tool-heavy sessions get a group-aware cleanup path
+
+`Compaction.ToolResultTokenThreshold`
+
+- Meaning: the estimated in-flight token count at which tool-result compaction can start
+- If you increase it: compaction waits closer to the model context limit
+- If you decrease it: tool-result groups are compacted with more headroom
+- Current default: `96000`
+- Why this default: `gemma4:e4b` is currently listed by Ollama with a 128K context window, so 96K leaves roughly 25% headroom for fresh run context, tool schemas, provider overhead, and response generation
+
+`Compaction.MinimumPreservedGroups`
+
+- Meaning: how many recent non-system message groups MAF must leave intact
+- Current default: `8`
+- Why this default: recent turns and current tool interactions should remain available verbatim
 
 ## Why These Defaults Are Conservative
 
@@ -178,3 +197,4 @@ Those concerns are intentionally documented separately so tuning one does not bl
 - [Server Architecture](../architecture/server.md)
 - [ADR 0015](../adr/0015-recommendation-workflows-with-agent-framework.md)
 - [ADR 0016](../adr/0016-recommendation-semantic-retrieval-with-qdrant.md)
+- [ADR 0019](../adr/0019-recommendation-single-agent-runtime-with-context-provider.md)

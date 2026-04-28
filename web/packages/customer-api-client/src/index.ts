@@ -80,6 +80,10 @@ export type RecommendationSessionSummaryDto = {
   lastAssistantMessage: string;
 };
 
+export type SubmitRecommendationMessageResultDto = {
+  sessionId: string;
+};
+
 export type SubmitRecommendationRequestInput = {
   sessionId: string | null;
   message: string;
@@ -198,14 +202,14 @@ export function getRecommendationSession(sessionId: string) {
 }
 
 export function submitRecommendationRequest(input: SubmitRecommendationRequestInput) {
-  return request<RecommendationSessionDto>('/api/customer/recommendations/messages', {
+  return request<SubmitRecommendationMessageResultDto>('/api/customer/recommendations/messages', {
     method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
 export function submitRecommendationTurnFeedback(input: SubmitRecommendationTurnFeedbackInput) {
-  return request<RecommendationSessionDto>(
+  return request<void>(
     `/api/customer/recommendations/sessions/${input.sessionId}/turns/${input.turnId}/feedback`,
     {
       method: 'POST',

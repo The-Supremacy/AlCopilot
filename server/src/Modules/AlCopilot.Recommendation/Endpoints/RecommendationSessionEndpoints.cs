@@ -35,13 +35,16 @@ internal static class RecommendationSessionEndpoints
             SubmitRecommendationTurnFeedbackRequest request,
             IMediator mediator,
             CancellationToken ct) =>
-            Results.Ok(await mediator.Send(
+        {
+            await mediator.Send(
                 new SubmitRecommendationTurnFeedbackCommand(
                     sessionId,
                     turnId,
                     request.Rating,
                     request.Comment),
-                ct)));
+                ct);
+            return Results.NoContent();
+        });
     }
 
     private sealed record SubmitRecommendationTurnFeedbackRequest(

@@ -5,19 +5,7 @@ internal static class RecommendationRunContextMessageBuilder
     internal static string Build(RecommendationRunContext runContext)
     {
         var builder = new System.Text.StringBuilder();
-        builder.AppendLine("Use this recommendation run context as authoritative product context for this response only.");
-        builder.AppendLine("Use chat history to resolve follow-up references like that, it, or the first one.");
-        builder.AppendLine("Follow the resolved request intent below before choosing tools or writing the answer.");
-        builder.AppendLine("Prefer drinks from the deterministic groups when they satisfy the request.");
-        builder.AppendLine("If the request asks for a prohibited ingredient, explain the conflict and do not recommend drinks containing it.");
-        builder.AppendLine("Prefer drinks without disliked ingredients when a suitable option exists.");
-        builder.AppendLine("If mentioning a drink with a disliked ingredient, make the tradeoff explicit instead of presenting it as an equal recommendation.");
-        builder.AppendLine("If you need to resolve a drink name, call the search_drinks tool first.");
-        builder.AppendLine("If the request includes ingredient constraints or the deterministic groups are not enough, call the lookup_drinks_by_ingredient tool.");
-        builder.AppendLine("If deterministic candidates already include enough ingredients and method detail, do not call lookup_drink_recipe just to summarize a recommendation.");
-        builder.AppendLine("For drink-details requests about how to make a specific drink, call the lookup_drink_recipe tool before answering.");
-        builder.AppendLine("If exact measurements, method, garnish, or brand details are needed for a specific drink, call the lookup_drink_recipe tool.");
-        builder.AppendLine();
+        builder.AppendLine("Recommendation run context for this response only:");
         builder.AppendLine("Resolved request intent:");
         builder.AppendLine($"- kind: {runContext.Intent.Kind}");
         builder.AppendLine($"- requested drink: {runContext.Intent.RequestedDrinkName ?? "none"}");
@@ -48,15 +36,21 @@ internal static class RecommendationRunContextMessageBuilder
                 var missingIngredients = item.MissingIngredientNames.Count == 0
                     ? "missing none"
                     : $"missing {string.Join(", ", item.MissingIngredientNames)}";
-                var recipeIngredients = item.RecipeIngredientNames.Count == 0
-                    ? "recipe ingredients unavailable"
-                    : $"recipe {string.Join(", ", item.RecipeIngredientNames)}";
-                var method = string.IsNullOrWhiteSpace(item.Method)
-                    ? "method not specified"
-                    : $"method {item.Method}";
-                var garnish = string.IsNullOrWhiteSpace(item.Garnish)
-                    ? "garnish not specified"
-                    : $"garnish {item.Garnish}";
+                var recipeIngredients = runContext.Intent.IsDrinkDetailsRequest
+                    ? "recipe details intentionally omitted"
+                    : item.RecipeIngredientNames.Count == 0
+                        ? "recipe ingredients unavailable"
+                        : $"recipe {string.Join(", ", item.RecipeIngredientNames)}";
+                var method = runContext.Intent.IsDrinkDetailsRequest
+                    ? "method intentionally omitted"
+                    : string.IsNullOrWhiteSpace(item.Method)
+                        ? "method not specified"
+                        : $"method {item.Method}";
+                var garnish = runContext.Intent.IsDrinkDetailsRequest
+                    ? "garnish intentionally omitted"
+                    : string.IsNullOrWhiteSpace(item.Garnish)
+                        ? "garnish not specified"
+                        : $"garnish {item.Garnish}";
                 var matchedSignals = item.MatchedSignals.Count == 0
                     ? "matched signals none"
                     : $"matched signals {string.Join(", ", item.MatchedSignals)}";

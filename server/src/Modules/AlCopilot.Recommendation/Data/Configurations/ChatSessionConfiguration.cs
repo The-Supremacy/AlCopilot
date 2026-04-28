@@ -21,18 +21,13 @@ internal sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSe
             .HasMaxLength(200);
 
         builder.Property(session => session.AgentSessionStateJson)
-            .HasColumnType("jsonb");
+            .HasColumnType("text");
 
         builder.Property(session => session.CreatedAtUtc)
             .IsRequired();
 
         builder.Property(session => session.UpdatedAtUtc)
             .IsRequired();
-
-        builder.HasMany(session => session.Turns)
-            .WithOne()
-            .HasForeignKey(turn => turn.ChatSessionId)
-            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Ignore(session => session.DomainEvents);
     }

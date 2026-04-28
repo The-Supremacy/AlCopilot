@@ -9,9 +9,10 @@ namespace AlCopilot.Recommendation.Features.Recommendation;
 
 public sealed class SubmitRecommendationRequestHandler(
     ICurrentActorAccessor currentActorAccessor,
-    IRecommendationConversationService conversationService) : IRequestHandler<SubmitRecommendationRequestCommand, RecommendationSessionDto>
+    IRecommendationConversationService conversationService)
+    : IRequestHandler<SubmitRecommendationRequestCommand, SubmitRecommendationMessageResultDto>
 {
-    public async ValueTask<RecommendationSessionDto> Handle(
+    public async ValueTask<SubmitRecommendationMessageResultDto> Handle(
         SubmitRecommendationRequestCommand request,
         CancellationToken cancellationToken)
     {

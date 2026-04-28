@@ -12,10 +12,9 @@ namespace AlCopilot.Recommendation.UnitTests.Handlers;
 public sealed class RecommendationDrinkSearchToolTests
 {
     [Fact]
-    public async Task SearchDrinksAsync_ReturnsMatchesAndRecordsInvocation()
+    public async Task SearchDrinksAsync_ReturnsMatchesAndRecordsTrace()
     {
         var mediator = Substitute.For<IMediator>();
-        var recorder = new RecommendationToolInvocationRecorder();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         mediator.Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>())
             .Returns(
@@ -28,14 +27,13 @@ public sealed class RecommendationDrinkSearchToolTests
         var tool = new RecommendationDrinkSearchTool(
             mediator,
             new StubCatalogFuzzyLookupService([]),
-            recorder,
             executionTraceRecorder);
 
         var result = await tool.SearchDrinksAsync("Long");
 
         result.Status.ShouldBe("ok");
         result.Drinks.Select(drink => drink.DrinkName).ShouldBe(["Long Island Iced Tea", "Long Vodka"]);
-        recorder.Drain().ShouldContain(invocation => invocation.ToolName == "search_drinks");
+        executionTraceRecorder.Drain().ShouldContain(step => step.StepName == "tool.search_drinks");
     }
 
     [Fact]
@@ -43,14 +41,12 @@ public sealed class RecommendationDrinkSearchToolTests
     {
         var negroni = CreateDrink("Negroni", "Bitter classic", "Gin", "Campari");
         var mediator = Substitute.For<IMediator>();
-        var recorder = new RecommendationToolInvocationRecorder();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         mediator.Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>())
             .Returns([negroni, CreateDrink("Margarita", "Bright and tart", "Tequila")]);
         var tool = new RecommendationDrinkSearchTool(
             mediator,
             new StubCatalogFuzzyLookupService([new RecommendationFuzzyMatch(negroni.Id, negroni.Name, 0.74d)]),
-            recorder,
             executionTraceRecorder);
 
         var result = await tool.SearchDrinksAsync("Negrnoi");

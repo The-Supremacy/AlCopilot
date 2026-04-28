@@ -68,16 +68,16 @@ Customer portal authentication direction uses a separate Keycloak client and a s
 When module-owned write paths need operator traceability, the Host resolves the authenticated principal into a shared `CurrentActor` abstraction and exposes it through `ICurrentActorAccessor` so modules can persist stable actor IDs without depending on `HttpContext`.
 Module endpoints are registered into the Host, but module behavior remains module-owned.
 Customer-facing recommendation behavior is planned around separate `CustomerProfile` and `Recommendation` modules that collaborate through contracts rather than Host-owned product logic, as accepted in [ADR 0012](../adr/0012-customer-profile-and-recommendation-modules-with-deterministic-candidate-building.md).
-Recommendation orchestration now uses bounded Microsoft Agent Framework workflows, while deterministic filtering and grouping remain in plain module code, as accepted in [ADR 0015](../adr/0015-recommendation-workflows-with-agent-framework.md).
-Within the Recommendation module, model-visible conversation state should flow through a stable `ChatClientAgent` plus persisted `AgentSession` state, while the module aggregate remains the durable business transcript.
-Deterministic narration snapshots should be assembled per run through `AIContextProvider` stages that own their session-backed provider state, while the final narrator still receives explicit model-visible context messages derived from that state.
+Recommendation orchestration now uses ordinary module application-service coordination around a single Microsoft Agent Framework `ChatClientAgent`, while deterministic filtering and grouping remain in plain module code, as accepted in [ADR 0019](../adr/0019-recommendation-single-agent-runtime-with-context-provider.md).
+Within the Recommendation module, model-visible conversation state should flow through a stable `ChatClientAgent`, persisted `AgentSession` state, and native Agent Framework message history, while customer-facing recommendation turns remain a business projection under the same session parent, as accepted in [ADR 0018](../adr/0018-recommendation-native-agent-history-and-business-turns.md).
+Deterministic narration snapshots should be assembled per run through module-owned `AIContextProvider` code, while the final narrator receives explicit model-visible context messages derived from that deterministic snapshot.
 Recommendation semantic retrieval now uses Qdrant as `Recommendation`-owned derived projection storage over contracts-facing catalog reads, while PostgreSQL remains the canonical catalog store, as accepted in [ADR 0016](../adr/0016-recommendation-semantic-retrieval-with-qdrant.md).
 
 ---
 
 ## Infrastructure Direction
 
-Local development uses Aspire orchestration.
+Local development uses Aspire orchestration through `AlCopilot.Orchestration`.
 Production deployment is designed around GitHub Actions, GHCR, AKS, Flux, and PostgreSQL.
 Envoy Gateway is the external ingress layer.
 For recommendation development, the default local CPU-oriented Ollama profile is `gemma4:e4b` unless a newer documented default replaces it.

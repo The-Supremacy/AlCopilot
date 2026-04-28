@@ -9,13 +9,12 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 internal sealed class RecommendationDrinkSearchTool(
     IMediator mediator,
     IRecommendationCatalogFuzzyLookupService fuzzyLookupService,
-    IRecommendationToolInvocationRecorder toolInvocationRecorder,
     IRecommendationExecutionTraceRecorder executionTraceRecorder)
 {
-    [Description("Search the drink catalog by drink name when you need to resolve an exact drink before looking up its recipe.")]
+    [Description("Search catalog drink names by exact, partial, fuzzy, or uncertain drink name. Use for explicit catalog search requests and before recipe lookup when the drink name is not fully resolved.")]
     public async Task<RecommendationDrinkSearchResult> SearchDrinksAsync(
-        [Description("Drink name or partial drink name to search for.")] string query,
-        [Description("Maximum number of matches to return. Keep this small and use 5 unless the user explicitly asks for more.")] int maxResults = 5,
+        [Description("Drink name text to search for, such as 'Stormy', 'Dark n Stormi', or 'Negroni'. Do not pass ingredient names here.")] string query,
+        [Description("Maximum number of matching drink names to return. Use 5 unless the user asks for a different count.")] int maxResults = 5,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -45,9 +44,6 @@ internal sealed class RecommendationDrinkSearchTool(
                 []);
         }
 
-        toolInvocationRecorder.Record(
-            "search_drinks",
-            $"Searched the catalog for drinks matching '{normalizedQuery}'.");
         executionTraceRecorder.Record(
             BuildTraceStep("ok", $"Found {matches.Count} drink(s) matching '{normalizedQuery}'.", normalizedQuery, maxResults, matches.Count));
 
