@@ -56,7 +56,8 @@ When global UI invariants change, update this DESIGN.md.
 ## Interaction and Feedback Invariants
 
 - Global feedback pattern: inline guidance plus toast confirmation.
-- Recommendation results should combine conversational explanation with stable grouped summaries that stay easy to scan, especially through simple available-now versus restock-oriented presentation.
+- Recommendation results should keep conversational explanation as the primary answer, with structured drink details presented as progressive disclosure beneath the narration.
+- Recommendation result summaries should stay easy to scan through simple available-now versus buy-next grouping, with hidden detail still reachable by keyboard and understandable without color alone.
 - Recommendation scores are internal ranking/debug signals and should not appear as customer-facing UI.
 - Drink-details responses should present the resolved drink as a details artifact rather than as a scored recommendation list.
 - Signed-in gating uses a consistent local sign-in-required state before redirecting to the identity provider.
@@ -93,3 +94,4 @@ When global UI invariants change, update this DESIGN.md.
 - 2026-04-21: Refined the chat shell toward a centered conversation workspace with a pinned composer, search-first ingredient pickers, mobile drawer utility consolidation, and simpler grouped recommendation summaries.
 - 2026-04-22: Recommendation turns render lightweight emphasis and bullet formatting from assistant prose, and grouped summaries use softer available-now versus restock language.
 - 2026-04-28: Clarified that recommendation scores stay internal and drink-details turns render as resolved details rather than scored recommendation lists.
+- 2026-04-28: Recommendation result guidance now favors progressive disclosure under assistant narration, with available-now and buy-next summaries replacing fully expanded recommendation detail by default.
