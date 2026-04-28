@@ -13,6 +13,10 @@ internal sealed class IngredientConfiguration : IEntityTypeConfiguration<Ingredi
             .HasConversion(v => v.Value, raw => IngredientName.Create(raw))
             .IsRequired()
             .HasMaxLength(200);
+        builder.Property(i => i.Group)
+            .HasConversion(v => v.Value, raw => IngredientGroup.Create(raw))
+            .IsRequired(false)
+            .HasMaxLength(100);
         builder.HasIndex(i => i.Name).IsUnique();
         builder.Property(i => i.NotableBrands).HasColumnType("jsonb");
         builder.Ignore(i => i.DomainEvents);

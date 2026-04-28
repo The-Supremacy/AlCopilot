@@ -13,8 +13,8 @@ describe('PreferencesPage', () => {
 
     vi.mocked(profileHooks.useCustomerIngredients).mockReturnValue({
       data: [
-        { id: 'gin', name: 'Gin', notableBrands: ['Plymouth'] },
-        { id: 'campari', name: 'Campari', notableBrands: [] },
+        { id: 'gin', name: 'Gin', notableBrands: ['Plymouth'], ingredientGroup: 'Gin' },
+        { id: 'campari', name: 'Campari', notableBrands: [], ingredientGroup: null },
       ],
     } as unknown as ReturnType<typeof profileHooks.useCustomerIngredients>);
     vi.mocked(profileHooks.useCustomerProfile).mockReturnValue({
@@ -52,8 +52,8 @@ describe('PreferencesPage', () => {
   it('keeps the ingredient list collapsed until the user searches or expands it', () => {
     vi.mocked(profileHooks.useCustomerIngredients).mockReturnValue({
       data: [
-        { id: 'gin', name: 'Gin', notableBrands: ['Plymouth'] },
-        { id: 'campari', name: 'Campari', notableBrands: [] },
+        { id: 'gin', name: 'Gin', notableBrands: ['Plymouth'], ingredientGroup: 'Gin' },
+        { id: 'campari', name: 'Campari', notableBrands: [], ingredientGroup: null },
       ],
     } as unknown as ReturnType<typeof profileHooks.useCustomerIngredients>);
     vi.mocked(profileHooks.useCustomerProfile).mockReturnValue({
@@ -79,5 +79,49 @@ describe('PreferencesPage', () => {
     expect(screen.getAllByText(/Start typing to browse ingredients/i)).toHaveLength(3);
     expect(screen.queryByRole('checkbox', { name: 'Select Gin' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Browse full list' })).toHaveLength(3);
+  });
+
+  it('can select every ingredient in a group after confirmation', async () => {
+    const user = userEvent.setup();
+    const saveSpy = vi.fn().mockResolvedValue(undefined);
+
+    vi.mocked(profileHooks.useCustomerIngredients).mockReturnValue({
+      data: [
+        { id: 'gin', name: 'Gin', notableBrands: [], ingredientGroup: 'Gin' },
+        { id: 'dry-gin', name: 'Dry Gin', notableBrands: [], ingredientGroup: 'Gin' },
+        { id: 'vodka', name: 'Vodka', notableBrands: [], ingredientGroup: 'Vodka' },
+      ],
+    } as unknown as ReturnType<typeof profileHooks.useCustomerIngredients>);
+    vi.mocked(profileHooks.useCustomerProfile).mockReturnValue({
+      data: {
+        favoriteIngredientIds: [],
+        dislikedIngredientIds: [],
+        prohibitedIngredientIds: [],
+        ownedIngredientIds: [],
+      },
+    } as unknown as ReturnType<typeof profileHooks.useCustomerProfile>);
+    vi.mocked(profileHooks.useSaveCustomerProfileMutation).mockReturnValue({
+      mutateAsync: saveSpy,
+      isPending: false,
+    } as unknown as ReturnType<typeof profileHooks.useSaveCustomerProfileMutation>);
+
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PreferencesPage />
+      </QueryClientProvider>,
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Search Favorite ingredients' }), 'Gin');
+    await user.click(screen.getByRole('checkbox', { name: 'Select Gin' }));
+    await user.click(screen.getByRole('button', { name: 'All Gin ingredients' }));
+    await user.click(screen.getByRole('button', { name: 'Save preferences' }));
+
+    expect(saveSpy).toHaveBeenCalledWith({
+      favoriteIngredientIds: ['gin', 'dry-gin'],
+      dislikedIngredientIds: [],
+      prohibitedIngredientIds: [],
+      ownedIngredientIds: [],
+    });
   });
 });

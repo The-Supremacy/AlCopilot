@@ -170,14 +170,16 @@ public sealed class ImportBatchProcessingService(
         var brandsChanged = !existing.NotableBrands
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .SequenceEqual(ingredient.NotableBrands.OrderBy(x => x, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
+        var existingGroup = existing.GetGroupName();
+        var groupChanged = !string.Equals(existingGroup, ingredient.IngredientGroup, StringComparison.Ordinal);
 
-        if (brandsChanged)
+        if (brandsChanged || groupChanged)
         {
             return new ImportReviewRow(
                 "ingredient",
                 ingredient.Name,
                 "update",
-                $"Ingredient '{ingredient.Name}' would update notable brands.",
+                $"Ingredient '{ingredient.Name}' would update notable brands or group.",
                 true,
                 HasError(diagnostics, "ingredient", ingredient.Name));
         }

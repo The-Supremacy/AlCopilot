@@ -27,6 +27,7 @@ export function CatalogIngredientEditPage() {
   const updateIngredient = useUpdateIngredientMutation();
   const deleteIngredient = useDeleteIngredientMutation();
   const [name, setName] = useState('');
+  const [ingredientGroup, setIngredientGroup] = useState('');
   const [notableBrands, setNotableBrands] = useState('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -35,6 +36,7 @@ export function CatalogIngredientEditPage() {
   useEffect(() => {
     if (!ingredient) return;
     setName(ingredient.name);
+    setIngredientGroup(ingredient.ingredientGroup ?? '');
     setNotableBrands(ingredient.notableBrands.join(', '));
   }, [ingredient]);
 
@@ -48,6 +50,7 @@ export function CatalogIngredientEditPage() {
           .split(',')
           .map((part) => part.trim())
           .filter(Boolean),
+        ingredientGroup: ingredientGroup.trim() || null,
       },
     });
     navigate({ to: '/catalog/ingredients' });
@@ -81,8 +84,10 @@ export function CatalogIngredientEditPage() {
       <IngredientFormSection
         isEditing
         name={name}
+        ingredientGroup={ingredientGroup}
         notableBrands={notableBrands}
         onNameChange={setName}
+        onIngredientGroupChange={setIngredientGroup}
         onNotableBrandsChange={setNotableBrands}
         onSubmit={handleSubmit}
         onDelete={handleDelete}

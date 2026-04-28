@@ -9,4 +9,6 @@ internal interface IRecommendationChatClientStrategyFactory
 
 public sealed record RecommendationChatClientStrategy(
     IChatClient ChatClient,
-    ChatOptions ChatOptions);
+    ChatOptions ChatOptions,
+    string Provider,
+    string Model);

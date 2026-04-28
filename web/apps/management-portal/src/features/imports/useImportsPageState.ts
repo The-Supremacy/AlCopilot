@@ -5,6 +5,7 @@ import {
   useCancelImportBatchMutation,
   useImportBatch,
   useImportHistory,
+  useReviewImportBatchMutation,
   useStartImportMutation,
 } from '@/features/imports/useImportData';
 
@@ -15,11 +16,16 @@ export function useImportsPageState() {
   const activeBatchId = latestBatch?.status === 'InProgress' ? latestBatch.id : null;
   const selectedBatch = useImportBatch(activeBatchId);
   const startImportMutation = useStartImportMutation();
+  const reviewMutation = useReviewImportBatchMutation();
   const applyMutation = useApplyImportBatchMutation();
   const cancelMutation = useCancelImportBatchMutation();
 
   const currentBatch = selectedBatch.data;
-  const activeError = startImportMutation.error ?? applyMutation.error ?? cancelMutation.error;
+  const activeError =
+    startImportMutation.error ??
+    reviewMutation.error ??
+    applyMutation.error ??
+    cancelMutation.error;
   const requiresReviewBeforeApply = currentBatch?.applyReadiness === 'RequiresReview';
   const blockedByValidationErrors = currentBatch?.applyReadiness === 'BlockedByValidationErrors';
 
@@ -50,9 +56,24 @@ export function useImportsPageState() {
 
     try {
       await toast.promise(
-        applyMutation.mutateAsync({
-          id: currentBatch.id,
-        }),
+        (async () => {
+          const reviewedBatch =
+            currentBatch.applyReadiness === 'RequiresReview'
+              ? await reviewMutation.mutateAsync(currentBatch.id)
+              : currentBatch;
+
+          if (reviewedBatch.applyReadiness !== 'Ready') {
+            return {
+              batch: reviewedBatch,
+              applyReadiness: reviewedBatch.applyReadiness,
+              wasApplied: false,
+            };
+          }
+
+          return await applyMutation.mutateAsync({
+            id: reviewedBatch.id,
+          });
+        })(),
         {
           loading: 'Applying import changes...',
           success: (result) =>
@@ -93,7 +114,7 @@ export function useImportsPageState() {
     requiresReviewBeforeApply,
     blockedByValidationErrors,
     isStartingImport: startImportMutation.isPending,
-    isApplyingBatch: applyMutation.isPending,
+    isApplyingBatch: reviewMutation.isPending || applyMutation.isPending,
     isCancellingBatch: cancelMutation.isPending,
     startImport,
     applyBatch,

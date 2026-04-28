@@ -5,7 +5,9 @@ export function ImportsPage() {
   const state = useImportsPageState();
   const currentBatch = state.currentBatch ?? null;
 
-  const canApply = currentBatch?.status === 'InProgress' && currentBatch.applyReadiness === 'Ready';
+  const canApply =
+    currentBatch?.status === 'InProgress' &&
+    (currentBatch.applyReadiness === 'Ready' || currentBatch.applyReadiness === 'RequiresReview');
   const canCancel = currentBatch?.status === 'InProgress';
 
   const applyHint = !currentBatch
@@ -17,7 +19,7 @@ export function ImportsPage() {
         : state.blockedByValidationErrors
           ? 'Validation errors block completion. Open Review to inspect diagnostics.'
           : state.requiresReviewBeforeApply
-            ? 'This batch updates existing catalog data. Open Review before applying.'
+            ? 'Apply will refresh review first because this batch updates existing catalog data.'
             : null;
 
   return (

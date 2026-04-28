@@ -18,6 +18,8 @@ public sealed class IbaCocktailsSnapshotImportSourceStrategyTests
         result.Import.Drinks.Count.ShouldBeGreaterThan(80);
         result.Import.Tags.ShouldBeEmpty();
         result.Import.Ingredients.ShouldContain(i => i.Name == "Vodka");
+        result.Import.Ingredients.ShouldContain(i => i.Name == "Gin" && i.IngredientGroup == "Gin");
+        result.Import.Ingredients.ShouldContain(i => i.Name == "White Rum" && i.IngredientGroup == "Rum");
         result.Import.Drinks.ShouldContain(d => d.Name == "Bellini" && d.Category == "Contemporary Classics");
         result.Import.Drinks.ShouldContain(d =>
             d.Name == "Bellini"
@@ -54,7 +56,7 @@ public sealed class IbaCocktailsSnapshotImportSourceStrategyTests
 
         result.Import.Tags.ShouldBeEmpty();
         result.Import.Ingredients.ShouldContain(i => i.Name == "Campari");
-        result.Import.Ingredients.ShouldContain(i => i.Name == "Sweet Vermouth");
+        result.Import.Ingredients.ShouldContain(i => i.Name == "Sweet Vermouth" && i.IngredientGroup == "Vermouth");
         result.Import.Drinks.ShouldHaveSingleItem().Category.ShouldBe("The Unforgettables");
         result.Import.Drinks.ShouldHaveSingleItem().Description.ShouldBe(
             "A bittersweet stirred aperitif built on equal parts gin, bitter liqueur, and sweet vermouth.");

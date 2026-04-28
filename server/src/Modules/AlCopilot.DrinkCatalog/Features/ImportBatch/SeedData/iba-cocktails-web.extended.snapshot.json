@@ -29,7 +29,8 @@
         "direction": "50 ml Vodka",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Vodka"
+        "ingredient": "Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "20 ml Coffee Liqueur",
@@ -50,7 +51,8 @@
         "direction": "45 ml Vodka",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Vodka"
+        "ingredient": "Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "90 ml Tomato Juice",
@@ -134,7 +136,8 @@
         "direction": "10 ml Cognac",
         "quantity": "10",
         "unit": "ml",
-        "ingredient": "Cognac"
+        "ingredient": "Cognac",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "2 dashes Angostura bitters",
@@ -168,7 +171,8 @@
         "direction": "30 ml Gin",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "30 ml Cointreau",
@@ -207,7 +211,8 @@
         "direction": "40 ml Vodka Citron",
         "quantity": "40",
         "unit": "ml",
-        "ingredient": "Vodka Citron"
+        "ingredient": "Vodka Citron",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "15 ml Cointreau",
@@ -240,7 +245,8 @@
         "direction": "50 ml White Rum",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "White Rum"
+        "ingredient": "White Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "120 ml Coca Cola",
@@ -266,7 +272,8 @@
         "direction": "30 ml Gin",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "15 ml Fresh Lemon Juice",
@@ -298,7 +305,8 @@
         "direction": "35 ml Cognac",
         "quantity": "35",
         "unit": "ml",
-        "ingredient": "Cognac"
+        "ingredient": "Cognac",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "35 ml Amaretto",
@@ -379,7 +387,8 @@
         "direction": "60 ml Rum",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "Rum"
+        "ingredient": "Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "40 ml Grapefruit Juice",
@@ -412,7 +421,8 @@
         "direction": "40 ml Cognac",
         "quantity": "40",
         "unit": "ml",
-        "ingredient": "Cognac"
+        "ingredient": "Cognac",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "120 ml Ginger Ale",
@@ -439,7 +449,8 @@
         "direction": "50 ml Irish Whiskey",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Irish Whiskey"
+        "ingredient": "Irish Whiskey",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "120 ml Hot coffee",
@@ -493,25 +504,29 @@
         "direction": "15 ml Vodka",
         "quantity": "15",
         "unit": "ml",
-        "ingredient": "Vodka"
+        "ingredient": "Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "15 ml Tequila",
         "quantity": "15",
         "unit": "ml",
-        "ingredient": "Tequila"
+        "ingredient": "Tequila",
+        "ingredientGroup": "Tequila"
       },
       {
         "direction": "15 ml White rum",
         "quantity": "15",
         "unit": "ml",
-        "ingredient": "White rum"
+        "ingredient": "White rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "15 ml Gin",
         "quantity": "15",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "15 ml Cointreau",
@@ -550,13 +565,15 @@
         "direction": "30 ml Amber Jamaican Rum",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Amber Jamaican Rum"
+        "ingredient": "Amber Jamaican Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "30 ml Martinique Molasses Rhum",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Martinique Molasses Rhum"
+        "ingredient": "Martinique Molasses Rhum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "15 ml Orange Curacao",
@@ -596,7 +613,8 @@
         "direction": "50 ml Tequila 100% Agave",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Tequila 100% Agave"
+        "ingredient": "Tequila 100% Agave",
+        "ingredientGroup": "Tequila"
       },
       {
         "direction": "20 ml Triple Sec",
@@ -644,7 +662,8 @@
         "direction": "60 ml Bourbon Whiskey",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "Bourbon Whiskey"
+        "ingredient": "Bourbon Whiskey",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "4 fresh Mint sprigs",
@@ -677,7 +696,8 @@
         "direction": "45 ml White Cuban Ron",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "White Cuban Ron"
+        "ingredient": "White Cuban Ron",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "20 ml Fresh Lime Juice",
@@ -716,7 +736,8 @@
         "direction": "45 ml Smirnoff Vodka",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Smirnoff Vodka"
+        "ingredient": "Smirnoff Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "120 ml Ginger Beer",
@@ -743,7 +764,8 @@
         "direction": "50 ml White Rum",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "White Rum"
+        "ingredient": "White Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "30 ml Coconut Cream",
@@ -770,7 +792,8 @@
         "direction": "60 ml Pisco",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "Pisco"
+        "ingredient": "Pisco",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "30 ml Fresh Lemon Juice",
@@ -803,7 +826,8 @@
         "direction": "40 ml Vodka",
         "quantity": "40",
         "unit": "ml",
-        "ingredient": "Vodka"
+        "ingredient": "Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "120 ml Cranberry Juice",
@@ -830,7 +854,8 @@
         "direction": "40 ml Vodka",
         "quantity": "40",
         "unit": "ml",
-        "ingredient": "Vodka"
+        "ingredient": "Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "20 ml Peach Schnapps",
@@ -863,7 +888,8 @@
         "direction": "30 ml Gin",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "15 ml Cherry liqueur",
@@ -920,7 +946,8 @@
         "direction": "45 ml Tequila",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Tequila"
+        "ingredient": "Tequila",
+        "ingredientGroup": "Tequila"
       },
       {
         "direction": "90 ml Fresh Orange Juice",
@@ -947,13 +974,15 @@
         "direction": "45 ml Gin",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "15 ml Vodka",
         "quantity": "15",
         "unit": "ml",
-        "ingredient": "Vodka"
+        "ingredient": "Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "7.5 ml Lillet Blanc",
@@ -974,19 +1003,22 @@
         "direction": "45 ml Jamaican dark rum",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Jamaican dark rum"
+        "ingredient": "Jamaican dark rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "45 ml Gold Puerto Rican rum",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Gold Puerto Rican rum"
+        "ingredient": "Gold Puerto Rican rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "30 ml Demerara Rum",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Demerara Rum"
+        "ingredient": "Demerara Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "20 ml Fresh lime juice",
@@ -1037,7 +1069,8 @@
         "direction": "45 ml Gold Rum",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Gold Rum"
+        "ingredient": "Gold Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "15 ml Galliano",
@@ -1076,7 +1109,8 @@
         "direction": "52.5 ml Dry Gin",
         "quantity": "52.5",
         "unit": "ml",
-        "ingredient": "Dry Gin"
+        "ingredient": "Dry Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "2 teaspoons Honey Syrup",
@@ -1109,7 +1143,8 @@
         "direction": "50 ml Gin",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "25 ml Fresh Lemon Juice",
@@ -1175,7 +1210,8 @@
         "direction": "60 ml Goslings Rum",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "Goslings Rum"
+        "ingredient": "Goslings Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "100 ml Ginger Beer",
@@ -1195,7 +1231,8 @@
         "direction": "50 ml Vodka",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Vodka"
+        "ingredient": "Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "30 ml Kahlúa",
@@ -1248,7 +1285,8 @@
         "direction": "45 ml Vodka",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Vodka"
+        "ingredient": "Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "15 ml Raspberry Liqueur",
@@ -1274,13 +1312,15 @@
         "direction": "30 ml Espadin Mezcal",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Espadin Mezcal"
+        "ingredient": "Espadin Mezcal",
+        "ingredientGroup": "Mezcal"
       },
       {
         "direction": "15 ml Jamaica Overproof White Rum",
         "quantity": "15",
         "unit": "ml",
-        "ingredient": "Jamaica Overproof White Rum"
+        "ingredient": "Jamaica Overproof White Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "15 ml Falernum",
@@ -1326,7 +1366,8 @@
         "direction": "30 ml Vodka Citron",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Vodka Citron"
+        "ingredient": "Vodka Citron",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "20 ml Triple Sec",
@@ -1352,7 +1393,8 @@
         "direction": "22.5 ml Mezcal",
         "quantity": "22.5",
         "unit": "ml",
-        "ingredient": "Mezcal"
+        "ingredient": "Mezcal",
+        "ingredientGroup": "Mezcal"
       },
       {
         "direction": "22.5 ml Yellow Chartreuse",
@@ -1385,7 +1427,8 @@
         "direction": "60 ml Rye Whiskey or Bourbon",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "Rye Whiskey or Bourbon"
+        "ingredient": "Rye Whiskey or Bourbon",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "22.5 ml Simple syrup",
@@ -1431,7 +1474,8 @@
         "direction": "45 ml Aged Rum",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Aged Rum"
+        "ingredient": "Aged Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "22.5 ml Fresh Lime Juice",
@@ -1470,7 +1514,8 @@
         "direction": "50 ml 100% Agave Tequila",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "100% Agave Tequila"
+        "ingredient": "100% Agave Tequila",
+        "ingredientGroup": "Tequila"
       },
       {
         "direction": "5 ml Fresh lime",
@@ -1502,7 +1547,8 @@
         "direction": "30 ml Bourbon Whiskey",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Bourbon Whiskey"
+        "ingredient": "Bourbon Whiskey",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "30 ml Amaro Nonino",
@@ -1535,13 +1581,15 @@
         "direction": "60 ml Blended Scotch Whisky",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "Blended Scotch Whisky"
+        "ingredient": "Blended Scotch Whisky",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "7.5 ml Lagavulin 16 y Whisky",
         "quantity": "7.5",
         "unit": "ml",
-        "ingredient": "Lagavulin 16 y Whisky"
+        "ingredient": "Lagavulin 16 y Whisky",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "22.5 ml Fresh Lemon Juice",
@@ -1574,7 +1622,8 @@
         "direction": "25 ml Vodka",
         "quantity": "25",
         "unit": "ml",
-        "ingredient": "Vodka"
+        "ingredient": "Vodka",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "25 ml Fresh Lemon Juice",
@@ -1613,7 +1662,8 @@
         "direction": "60 ml London Dry Gin",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "London Dry Gin"
+        "ingredient": "London Dry Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "30 ml Fresh Lemon Juice",
@@ -1653,7 +1703,8 @@
         "direction": "50 ml Vodka Vanilla",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Vodka Vanilla"
+        "ingredient": "Vodka Vanilla",
+        "ingredientGroup": "Vodka"
       },
       {
         "direction": "15 ml Elderflower Cordial",
@@ -1719,13 +1770,15 @@
         "direction": "30 ml Cognac or Brandy",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Cognac or Brandy"
+        "ingredient": "Cognac or Brandy",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "30 ml Gin",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "15 ml Fresh Lime Juice",
@@ -1758,13 +1811,15 @@
         "direction": "50 ml Irish Whiskey",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Irish Whiskey"
+        "ingredient": "Irish Whiskey",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "25 ml Sweet Red Vermouth",
         "quantity": "25",
         "unit": "ml",
-        "ingredient": "Sweet Red Vermouth"
+        "ingredient": "Sweet Red Vermouth",
+        "ingredientGroup": "Vermouth"
       },
       {
         "direction": "15 ml Green Chartreuse",
@@ -1791,7 +1846,8 @@
         "direction": "60 ml Tequila Agave 100% Reposado",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "Tequila Agave 100% Reposado"
+        "ingredient": "Tequila Agave 100% Reposado",
+        "ingredientGroup": "Tequila"
       },
       {
         "direction": "30 ml Fresh Lime Juice (Persiano)",
@@ -1837,7 +1893,8 @@
         "direction": "15 ml Rye Whisky",
         "quantity": "15",
         "unit": "ml",
-        "ingredient": "Rye Whisky"
+        "ingredient": "Rye Whisky",
+        "ingredientGroup": "Whiskey"
       }
     ]
   },
@@ -1852,7 +1909,8 @@
         "direction": "45 ml White Smooth Grappa",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "White Smooth Grappa"
+        "ingredient": "White Smooth Grappa",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "22.5 ml Fresh lemon Juice",
@@ -1892,7 +1950,8 @@
         "direction": "30 ml White rum",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "White rum"
+        "ingredient": "White rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "15 ml Galliano",
@@ -1925,7 +1984,8 @@
         "direction": "30 ml Cognac",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Cognac"
+        "ingredient": "Cognac",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "30 ml Crème de Cacao (Brown)",
@@ -1959,7 +2019,8 @@
         "direction": "30 ml Sweet Red Vermouth",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Sweet Red Vermouth"
+        "ingredient": "Sweet Red Vermouth",
+        "ingredientGroup": "Vermouth"
       },
       {
         "direction": "A splash of Soda Water",
@@ -1979,19 +2040,22 @@
         "direction": "30 ml Gin",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "30 ml Apricot Brandy",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Apricot Brandy"
+        "ingredient": "Apricot Brandy",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "30 ml Calvados",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Calvados"
+        "ingredient": "Calvados",
+        "ingredientGroup": "Brandy"
       }
     ]
   },
@@ -2006,7 +2070,8 @@
         "direction": "45 ml Gin",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "15 ml Maraschino Luxardo",
@@ -2038,13 +2103,15 @@
         "direction": "30 ml White Rum",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "White Rum"
+        "ingredient": "White Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "30 ml Cognac",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Cognac"
+        "ingredient": "Cognac",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "30 ml Triple Sec",
@@ -2071,7 +2138,8 @@
         "direction": "45 ml Bourbon or Rye Whiskey",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Bourbon or Rye Whiskey"
+        "ingredient": "Bourbon or Rye Whiskey",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "30 ml Bitter Campari",
@@ -2083,7 +2151,8 @@
         "direction": "30 ml Sweet Red Vermouth",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Sweet Red Vermouth"
+        "ingredient": "Sweet Red Vermouth",
+        "ingredientGroup": "Vermouth"
       }
     ]
   },
@@ -2098,7 +2167,8 @@
         "direction": "52.5 ml Brandy",
         "quantity": "52.5",
         "unit": "ml",
-        "ingredient": "Brandy"
+        "ingredient": "Brandy",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "7.5 ml Maraschino Luxardo",
@@ -2143,7 +2213,8 @@
         "direction": "40 ml Old Tom Gin",
         "quantity": "40",
         "unit": "ml",
-        "ingredient": "Old Tom Gin"
+        "ingredient": "Old Tom Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "10 ml Maraschino Luxardo",
@@ -2176,7 +2247,8 @@
         "direction": "45 ml Gin",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "15 ml Raspberry Syrup",
@@ -2208,7 +2280,8 @@
         "direction": "60 ml White Cuban Ron",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "White Cuban Ron"
+        "ingredient": "White Cuban Ron",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "20 ml Fresh Lime Juice",
@@ -2235,13 +2308,15 @@
         "direction": "60 ml Gin",
         "quantity": "60",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "10 ml Dry Vermouth",
         "quantity": "10",
         "unit": "ml",
-        "ingredient": "Dry Vermouth"
+        "ingredient": "Dry Vermouth",
+        "ingredientGroup": "Vermouth"
       }
     ]
   },
@@ -2256,7 +2331,8 @@
         "direction": "45 ml Gin",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "30 ml Fresh Lemon Juice",
@@ -2289,13 +2365,15 @@
         "direction": "45 ml London Dry Gin",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "London Dry Gin"
+        "ingredient": "London Dry Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "45 ml Sweet Red Vermouth",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Sweet Red Vermouth"
+        "ingredient": "Sweet Red Vermouth",
+        "ingredientGroup": "Vermouth"
       },
       {
         "direction": "7.5 ml Fernet Branca",
@@ -2316,7 +2394,8 @@
         "direction": "45 ml Gin",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "30 ml Fresh Lemon Juice",
@@ -2348,7 +2427,8 @@
         "direction": "22.5 ml Gin",
         "quantity": "22.5",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "22.5 ml Green Chartreuse",
@@ -2381,13 +2461,15 @@
         "direction": "50 ml Rye Whiskey",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Rye Whiskey"
+        "ingredient": "Rye Whiskey",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "20 ml Sweet Red Vermouth",
         "quantity": "20",
         "unit": "ml",
-        "ingredient": "Sweet Red Vermouth"
+        "ingredient": "Sweet Red Vermouth",
+        "ingredientGroup": "Vermouth"
       },
       {
         "direction": "1 dash Angostura Bitters",
@@ -2408,13 +2490,15 @@
         "direction": "45 ml London Dry Gin",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "London Dry Gin"
+        "ingredient": "London Dry Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "45 ml Sweet Red Vermouth",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Sweet Red Vermouth"
+        "ingredient": "Sweet Red Vermouth",
+        "ingredientGroup": "Vermouth"
       },
       {
         "direction": "1 Bar Spoon Maraschino Liqueur",
@@ -2440,7 +2524,8 @@
         "direction": "45 ml White Rum",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "White Rum"
+        "ingredient": "White Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "45 ml Fresh Pineapple Juice",
@@ -2472,7 +2557,8 @@
         "direction": "45 ml Dry Gin",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Dry Gin"
+        "ingredient": "Dry Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "45 ml Fresh Orange Juice",
@@ -2505,7 +2591,8 @@
         "direction": "30 ml Gin",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "30 ml Bitter Campari",
@@ -2517,7 +2604,8 @@
         "direction": "30 ml Sweet Red Vermouth",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Sweet Red Vermouth"
+        "ingredient": "Sweet Red Vermouth",
+        "ingredientGroup": "Vermouth"
       }
     ]
   },
@@ -2532,7 +2620,8 @@
         "direction": "45 ml Bourbon or Rye Whiskey",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Bourbon or Rye Whiskey"
+        "ingredient": "Bourbon or Rye Whiskey",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "1 Sugar Cube",
@@ -2564,13 +2653,15 @@
         "direction": "30 ml Gin",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "20 ml Apricot Brandy",
         "quantity": "20",
         "unit": "ml",
-        "ingredient": "Apricot Brandy"
+        "ingredient": "Apricot Brandy",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "15 ml Fresh Orange Juice",
@@ -2591,7 +2682,8 @@
         "direction": "45 ml Jamaican Rum",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Jamaican Rum"
+        "ingredient": "Jamaican Rum",
+        "ingredientGroup": "Rum"
       },
       {
         "direction": "15 ml Lime Juice",
@@ -2618,7 +2710,8 @@
         "direction": "15 ml Brandy",
         "quantity": "15",
         "unit": "ml",
-        "ingredient": "Brandy"
+        "ingredient": "Brandy",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "45 ml Red Tawny Port Wine",
@@ -2644,7 +2737,8 @@
         "direction": "45 ml Gin",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "15 ml Fresh Lime Juice",
@@ -2707,7 +2801,8 @@
         "direction": "45 ml Scotch Whisky",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Scotch Whisky"
+        "ingredient": "Scotch Whisky",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "25 ml Drambuie",
@@ -2728,7 +2823,8 @@
         "direction": "50 ml Cognac",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Cognac"
+        "ingredient": "Cognac",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "10 ml Absinthe",
@@ -2760,7 +2856,8 @@
         "direction": "50 ml Cognac",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Cognac"
+        "ingredient": "Cognac",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "20 ml Triple Sec",
@@ -2787,7 +2884,8 @@
         "direction": "50 ml Cognac",
         "quantity": "50",
         "unit": "ml",
-        "ingredient": "Cognac"
+        "ingredient": "Cognac",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "20 ml White Crème de Menthe",
@@ -2808,13 +2906,15 @@
         "direction": "30 ml Old Tom Gin",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Old Tom Gin"
+        "ingredient": "Old Tom Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "30 ml Dry Vermouth",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Dry Vermouth"
+        "ingredient": "Dry Vermouth",
+        "ingredientGroup": "Vermouth"
       },
       {
         "direction": "1/2 Bar Spoon Maraschino Luxardo",
@@ -2847,19 +2947,22 @@
         "direction": "30 ml Rye Whiskey",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Rye Whiskey"
+        "ingredient": "Rye Whiskey",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "30 ml Cognac",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Cognac"
+        "ingredient": "Cognac",
+        "ingredientGroup": "Brandy"
       },
       {
         "direction": "30 ml Sweet Vermouth",
         "quantity": "30",
         "unit": "ml",
-        "ingredient": "Sweet Vermouth"
+        "ingredient": "Sweet Vermouth",
+        "ingredientGroup": "Vermouth"
       },
       {
         "direction": "1 Bar Spoon Bénédictine",
@@ -2886,7 +2989,8 @@
         "direction": "45 ml Bourbon Whiskey",
         "quantity": "45",
         "unit": "ml",
-        "ingredient": "Bourbon Whiskey"
+        "ingredient": "Bourbon Whiskey",
+        "ingredientGroup": "Whiskey"
       },
       {
         "direction": "25 ml Fresh Lemon Juice",
@@ -2919,7 +3023,8 @@
         "direction": "40 ml Gin",
         "quantity": "40",
         "unit": "ml",
-        "ingredient": "Gin"
+        "ingredient": "Gin",
+        "ingredientGroup": "Gin"
       },
       {
         "direction": "30 ml Triple Sec",

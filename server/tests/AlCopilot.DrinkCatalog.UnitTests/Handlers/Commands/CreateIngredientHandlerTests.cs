@@ -29,8 +29,10 @@ public sealed class CreateIngredientHandlerTests
         _ingredientRepository.ExistsByNameAsync("Tequila", Arg.Any<Guid?>(), Arg.Any<CancellationToken>()).Returns(false);
 
         var id = await _handler.Handle(
-            new CreateIngredientCommand("Tequila", ["Patron"]), CancellationToken.None);
+            new CreateIngredientCommand("Tequila", ["Patron"], "Tequila"), CancellationToken.None);
 
         id.ShouldNotBe(Guid.Empty);
+        _ingredientRepository.Received(1).Add(Arg.Is<Ingredient>(ingredient =>
+            ingredient.GetGroupName() == "Tequila"));
     }
 }

@@ -21,7 +21,10 @@ public sealed class UpdateIngredientHandler(
         if (await ingredientRepository.ExistsByNameAsync(name, request.IngredientId, cancellationToken))
             throw new ConflictException($"Ingredient '{name.Value}' already exists.");
 
-        ingredient.Update(name, request.NotableBrands);
+        ingredient.Update(
+            name,
+            request.NotableBrands,
+            IngredientGroup.Create(request.IngredientGroup));
         auditLogWriter.Write(
             "ingredient.update",
             "ingredient",

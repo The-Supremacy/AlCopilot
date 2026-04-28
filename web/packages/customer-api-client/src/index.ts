@@ -9,6 +9,7 @@ export type IngredientDto = {
   id: string;
   name: string;
   notableBrands: string[];
+  ingredientGroup: string | null;
 };
 
 export type CustomerProfileDto = {

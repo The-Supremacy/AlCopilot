@@ -28,6 +28,11 @@ export function CatalogIngredientsPage() {
         cell: ({ row }) => joinLines(row.original.notableBrands) || '—',
       },
       {
+        accessorKey: 'ingredientGroup',
+        header: 'Group',
+        cell: ({ row }) => row.original.ingredientGroup || '—',
+      },
+      {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => (
@@ -66,6 +71,10 @@ export function CatalogIngredientsPage() {
               {row.notableBrands.length} notable brand
               {row.notableBrands.length === 1 ? '' : 's'}
             </p>
+          </div>
+          <div className="grid gap-1 text-sm">
+            <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Group</p>
+            <p className="text-foreground">{row.ingredientGroup || 'No group assigned'}</p>
           </div>
           <div className="grid gap-1 text-sm">
             <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">

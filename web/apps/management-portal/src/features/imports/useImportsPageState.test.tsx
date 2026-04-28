@@ -15,6 +15,11 @@ const applyImportBatchMutation = {
   error: null as null | Error,
   isPending: false,
 };
+const reviewImportBatchMutation = {
+  mutateAsync: vi.fn(),
+  error: null as null | Error,
+  isPending: false,
+};
 const cancelImportBatchMutation = {
   mutateAsync: vi.fn(),
   error: null as null | Error,
@@ -46,6 +51,7 @@ vi.mock('@/features/imports/useImportData', () => ({
     data: id ? currentBatch : null,
   }),
   useStartImportMutation: () => startImportMutation,
+  useReviewImportBatchMutation: () => reviewImportBatchMutation,
   useApplyImportBatchMutation: () => applyImportBatchMutation,
   useCancelImportBatchMutation: () => cancelImportBatchMutation,
 }));
@@ -63,6 +69,8 @@ beforeEach(() => {
   startImportMutation.error = null;
   applyImportBatchMutation.mutateAsync.mockReset();
   applyImportBatchMutation.error = null;
+  reviewImportBatchMutation.mutateAsync.mockReset();
+  reviewImportBatchMutation.error = null;
   cancelImportBatchMutation.mutateAsync.mockReset();
   cancelImportBatchMutation.error = null;
   vi.mocked(toast.promise).mockClear();
@@ -110,6 +118,31 @@ test('applies without row-level decision input', async () => {
   });
 
   expect(toast.promise).toHaveBeenCalled();
+});
+
+test('reviews then applies when the current batch requires review', async () => {
+  const wrapper = createWrapper();
+  currentBatch.applyReadiness = 'RequiresReview';
+
+  reviewImportBatchMutation.mutateAsync.mockResolvedValue({
+    ...currentBatch,
+    applyReadiness: 'Ready',
+  });
+  applyImportBatchMutation.mutateAsync.mockResolvedValue({
+    batch: { ...currentBatch, applyReadiness: 'Completed', status: 'Completed' },
+    applyReadiness: 'Completed',
+    wasApplied: true,
+  });
+
+  const { result } = renderHook(() => useImportsPageState(), { wrapper });
+  await act(async () => {
+    await result.current.applyBatch();
+  });
+
+  expect(reviewImportBatchMutation.mutateAsync).toHaveBeenCalledWith('batch-hook');
+  expect(applyImportBatchMutation.mutateAsync).toHaveBeenCalledWith({
+    id: 'batch-hook',
+  });
 });
 
 test('cancels without clearing local decision state because none is kept', async () => {

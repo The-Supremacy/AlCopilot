@@ -15,7 +15,7 @@ const deleteIngredientMutation = {
 };
 
 const ingredientsQuery = {
-  data: [{ id: 'ingredient-1', name: 'Gin', notableBrands: ['Tanqueray'] }],
+  data: [{ id: 'ingredient-1', name: 'Gin', notableBrands: ['Tanqueray'], ingredientGroup: 'Gin' }],
   isLoading: false,
 };
 
@@ -56,13 +56,16 @@ test('hydrates and submits parsed notable brands for the selected ingredient', a
   const user = userEvent.setup();
   renderPage();
 
-  expect(await screen.findByDisplayValue('Gin')).toBeInTheDocument();
+  expect(await screen.findByLabelText('Ingredient name')).toHaveValue('Gin');
+  expect(screen.getByLabelText('Ingredient group')).toHaveValue('Gin');
   expect(screen.getByDisplayValue('Tanqueray')).toBeInTheDocument();
 
   await user.clear(screen.getByLabelText('Ingredient name'));
   await user.type(screen.getByLabelText('Ingredient name'), 'London Dry Gin');
   await user.clear(screen.getByLabelText('Notable brands'));
   await user.type(screen.getByLabelText('Notable brands'), 'Tanqueray, Beefeater');
+  await user.clear(screen.getByLabelText('Ingredient group'));
+  await user.type(screen.getByLabelText('Ingredient group'), 'Gin');
   await user.click(screen.getByRole('button', { name: 'Save' }));
 
   expect(updateIngredientMutation.mutateAsync).toHaveBeenCalledWith({
@@ -70,6 +73,7 @@ test('hydrates and submits parsed notable brands for the selected ingredient', a
     input: {
       name: 'London Dry Gin',
       notableBrands: ['Tanqueray', 'Beefeater'],
+      ingredientGroup: 'Gin',
     },
   });
   expect(navigateSpy).toHaveBeenCalledWith({ to: '/catalog/ingredients' });

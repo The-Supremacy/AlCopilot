@@ -51,7 +51,8 @@ internal static class DrinkQueryMappings
         return new IngredientDto(
             ingredient.Id,
             ingredient.Name,
-            ingredient.NotableBrands);
+            ingredient.NotableBrands,
+            ingredient.IngredientGroup);
     }
 
     public static RecipeEntryDto ToDto(

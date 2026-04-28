@@ -232,6 +232,7 @@ internal sealed class DrinkQueryService(DrinkCatalogDbContext dbContext) : IDrin
             .Select(ingredient => new IngredientReadModel(
                 ingredient.Id,
                 ingredient.Name,
+                ingredient.Group,
                 ingredient.NotableBrands))
             .ToDictionaryAsync(ingredient => ingredient.Id, cancellationToken);
     }

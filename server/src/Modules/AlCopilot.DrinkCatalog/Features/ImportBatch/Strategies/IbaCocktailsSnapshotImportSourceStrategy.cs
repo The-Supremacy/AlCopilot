@@ -99,8 +99,19 @@ internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceSt
                 var incomingName = NormalizeIngredientName(NormalizeRequired(ingredientPayload.Ingredient, nameof(ingredientPayload.Ingredient)));
                 if (!ingredients.TryGetValue(incomingName, out var existing))
                 {
-                    existing = new NormalizedIngredientImport(incomingName, []);
+                    existing = new NormalizedIngredientImport(
+                        incomingName,
+                        [],
+                        NormalizeIngredientGroup(incomingName, ingredientPayload.IngredientGroup));
                     ingredients[incomingName] = existing;
+                }
+                else if (existing.IngredientGroup is null)
+                {
+                    var ingredientGroup = NormalizeIngredientGroup(incomingName, ingredientPayload.IngredientGroup);
+                    if (ingredientGroup is not null)
+                    {
+                        ingredients[incomingName] = existing with { IngredientGroup = ingredientGroup };
+                    }
                 }
 
                 recipeEntries.Add(new NormalizedDrinkRecipeEntryImport(
@@ -151,6 +162,41 @@ internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceSt
             : normalized;
     }
 
+    private static string? NormalizeIngredientGroup(string ingredientName, string? explicitGroup)
+    {
+        var normalizedGroup = NormalizeOptional(explicitGroup);
+        if (normalizedGroup is not null)
+            return normalizedGroup;
+
+        var normalizedName = ingredientName.ToLowerInvariant();
+        if (ContainsToken(normalizedName, "rum", "rhum", "ron"))
+            return "Rum";
+        if (ContainsToken(normalizedName, "gin"))
+            return "Gin";
+        if (ContainsToken(normalizedName, "vodka"))
+            return "Vodka";
+        if (ContainsToken(normalizedName, "whiskey", "whisky", "bourbon", "rye", "scotch"))
+            return "Whiskey";
+        if (ContainsToken(normalizedName, "tequila"))
+            return "Tequila";
+        if (ContainsToken(normalizedName, "mezcal"))
+            return "Mezcal";
+        if (ContainsToken(normalizedName, "vermouth"))
+            return "Vermouth";
+        if (ContainsToken(normalizedName, "cognac", "brandy", "calvados", "pisco", "grappa"))
+            return "Brandy";
+
+        return null;
+    }
+
+    private static bool ContainsToken(string value, params string[] candidates)
+    {
+        var tokens = value.Split(
+            [' ', '-', '/', '(', ')', ',', '.', '\''],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return tokens.Any(token => candidates.Contains(token, StringComparer.OrdinalIgnoreCase));
+    }
+
 
 
     private static string NormalizeRequired(string? value, string paramName)
@@ -188,7 +234,8 @@ internal sealed class IbaCocktailsSnapshotImportSourceStrategy : IImportSourceSt
         string? Direction,
         string? Quantity,
         string? Unit,
-        string? Ingredient);
+        string? Ingredient,
+        string? IngredientGroup);
 
     private static readonly Dictionary<string, string> CanonicalIngredientNames = new(StringComparer.OrdinalIgnoreCase)
     {

@@ -2,7 +2,7 @@ namespace AlCopilot.DrinkCatalog.Contracts.DTOs;
 
 public sealed record TagDto(Guid Id, string Name, int DrinkCount);
 
-public sealed record IngredientDto(Guid Id, string Name, List<string> NotableBrands);
+public sealed record IngredientDto(Guid Id, string Name, List<string> NotableBrands, string? IngredientGroup = null);
 
 public sealed record RecipeEntryDto(IngredientDto Ingredient, string Quantity, string? RecommendedBrand);
 

@@ -21,6 +21,7 @@ vi.mock('@/features/imports/useImportData', () => ({
   useImportHistory: () => ({ data: [] }),
   useImportBatch: () => ({ data: null }),
   useStartImportMutation: () => startImportMutation,
+  useReviewImportBatchMutation: () => noopMutation,
   useApplyImportBatchMutation: () => noopMutation,
   useCancelImportBatchMutation: () => noopMutation,
 }));

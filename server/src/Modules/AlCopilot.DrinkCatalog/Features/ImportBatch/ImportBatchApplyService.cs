@@ -64,14 +64,18 @@ public sealed class ImportBatchApplyService(
             {
                 ingredientRepository.Add(Ingredient.Ingredient.Create(
                     IngredientNameValue.Create(ingredientImport.Name),
-                    ingredientImport.NotableBrands));
+                    ingredientImport.NotableBrands,
+                    IngredientGroup.Create(ingredientImport.IngredientGroup)));
                 applyState.Created++;
                 continue;
             }
 
             if (RequiresReviewedUpdate(batch, "ingredient", ingredientImport.Name))
             {
-                existing.Update(IngredientNameValue.Create(ingredientImport.Name), ingredientImport.NotableBrands);
+                existing.Update(
+                    IngredientNameValue.Create(ingredientImport.Name),
+                    ingredientImport.NotableBrands,
+                    IngredientGroup.Create(ingredientImport.IngredientGroup));
                 applyState.Updated++;
                 continue;
             }

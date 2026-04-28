@@ -160,7 +160,11 @@ internal sealed class RecommendationNarratorAgentFactory : IRecommendationNarrat
                 configure: telemetry => telemetry.EnableSensitiveData = observabilityOptions.Value.EnableSensitiveData)
             .Build(serviceProvider);
 
-        return new RecommendationNarratorAgentRuntime(builtAgent, () => runContext);
+        return new RecommendationNarratorAgentRuntime(
+            builtAgent,
+            () => runContext,
+            strategy.Provider,
+            strategy.Model);
     }
 
     private void ConfigureCompaction(ChatClientBuilder builder)

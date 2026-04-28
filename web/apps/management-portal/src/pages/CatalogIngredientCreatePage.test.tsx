@@ -41,11 +41,13 @@ test('submits parsed notable brands and navigates back to the ingredient list', 
 
   await user.type(screen.getByLabelText('Ingredient name'), 'Gin');
   await user.type(screen.getByLabelText('Notable brands'), 'Tanqueray, Beefeater ,  Plymouth  ');
+  await user.type(screen.getByLabelText('Ingredient group'), 'Gin');
   await user.click(screen.getByRole('button', { name: 'Save' }));
 
   expect(createIngredientMutation.mutateAsync).toHaveBeenCalledWith({
     name: 'Gin',
     notableBrands: ['Tanqueray', 'Beefeater', 'Plymouth'],
+    ingredientGroup: 'Gin',
   });
   expect(navigateSpy).toHaveBeenCalledWith({ to: '/catalog/ingredients' });
 });

@@ -9,9 +9,15 @@ internal interface IRecommendationNarratorAgentFactory
 
 internal sealed class RecommendationNarratorAgentRuntime(
     AIAgent agent,
-    Func<RecommendationRunContext?> getRunContext)
+    Func<RecommendationRunContext?> getRunContext,
+    string? provider = null,
+    string? model = null)
 {
     public AIAgent Agent { get; } = agent;
 
     public RecommendationRunContext? RunContext => getRunContext();
+
+    public string? Provider { get; } = provider;
+
+    public string? Model { get; } = model;
 }

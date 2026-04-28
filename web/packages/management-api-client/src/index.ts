@@ -8,6 +8,7 @@ export type IngredientDto = {
   id: string;
   name: string;
   notableBrands: string[];
+  ingredientGroup: string | null;
 };
 
 export type RecipeEntryDto = {
@@ -151,11 +152,13 @@ export type CreateTagInput = {
 export type CreateIngredientInput = {
   name: string;
   notableBrands: string[];
+  ingredientGroup?: string | null;
 };
 
 export type UpdateIngredientInput = {
   name: string;
   notableBrands: string[];
+  ingredientGroup?: string | null;
 };
 
 export type StartImportInput = {
