@@ -88,4 +88,4 @@ ADR 0012 in recommendation orchestration direction only.
 
 ## Superseded by
 
-None.
+ADR 0019 supersedes the requirement to use Agent Framework Workflows as the current Recommendation orchestration layer.

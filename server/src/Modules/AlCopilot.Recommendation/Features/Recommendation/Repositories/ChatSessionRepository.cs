@@ -29,6 +29,6 @@ internal sealed class ChatSessionRepository(RecommendationDbContext dbContext) :
 
     private IQueryable<ChatSession> QueryAggregate()
     {
-        return dbContext.ChatSessions.Include(session => session.Turns);
+        return dbContext.ChatSessions;
     }
 }

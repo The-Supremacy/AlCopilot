@@ -1,7 +1,6 @@
 using AlCopilot.DrinkCatalog.Contracts.DTOs;
 using AlCopilot.DrinkCatalog.Contracts.Queries;
 using AlCopilot.Recommendation.Features.Recommendation.Agents;
-using AlCopilot.Recommendation.Features.Recommendation.Agents.Abstractions;
 using Mediator;
 using NSubstitute;
 using Shouldly;
@@ -11,10 +10,9 @@ namespace AlCopilot.Recommendation.UnitTests.Handlers;
 public sealed class RecommendationRecipeLookupToolTests
 {
     [Fact]
-    public async Task LookupDrinkRecipeAsync_ReturnsRecipeAndRecordsInvocation()
+    public async Task LookupDrinkRecipeAsync_ReturnsRecipeAndRecordsTrace()
     {
         var mediator = Substitute.For<IMediator>();
-        var recorder = new RecommendationToolInvocationRecorder();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         var drinkId = Guid.NewGuid();
         mediator.Send(Arg.Any<GetDrinkByIdQuery>(), Arg.Any<CancellationToken>())
@@ -32,30 +30,28 @@ public sealed class RecommendationRecipeLookupToolTests
                     new RecipeEntryDto(new IngredientDto(Guid.NewGuid(), "Campari", ["Campari"]), "1 oz", null),
                 ]));
 
-        var tool = new RecommendationRecipeLookupTool(mediator, recorder, executionTraceRecorder);
+        var tool = new RecommendationRecipeLookupTool(mediator, executionTraceRecorder);
 
         var result = await tool.LookupDrinkRecipeAsync(drinkId.ToString(), null);
 
         result.Status.ShouldBe("ok");
         result.Drink.ShouldNotBeNull();
         result.Drink.DrinkName.ShouldBe("Negroni");
-        recorder.Drain().ShouldContain(invocation => invocation.ToolName == "lookup_drink_recipe");
+        executionTraceRecorder.Drain().ShouldContain(step => step.StepName == "tool.lookup_drink_recipe");
     }
 
     [Fact]
-    public async Task LookupDrinkRecipeAsync_ReturnsNotFoundWithoutRecordingInvocation()
+    public async Task LookupDrinkRecipeAsync_ReturnsNotFound()
     {
         var mediator = Substitute.For<IMediator>();
-        var recorder = new RecommendationToolInvocationRecorder();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
         mediator.Send(Arg.Any<GetRecommendationCatalogQuery>(), Arg.Any<CancellationToken>())
             .Returns([]);
 
-        var tool = new RecommendationRecipeLookupTool(mediator, recorder, executionTraceRecorder);
+        var tool = new RecommendationRecipeLookupTool(mediator, executionTraceRecorder);
 
         var result = await tool.LookupDrinkRecipeAsync(null, "Unknown");
 
         result.Status.ShouldBe("not-found");
-        recorder.Drain().ShouldBeEmpty();
     }
 }

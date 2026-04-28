@@ -20,24 +20,76 @@ namespace AlCopilot.Recommendation.UnitTests.Handlers;
 public sealed class RecommendationConversationServiceTests
 {
     [Fact]
-    public void BuildChatMessages_UsesConfiguredHistoryWindow()
+    public void BuildChatMessages_ReplaysPersistedNativeHistoryInSequenceOrder()
     {
         var session = ChatSession.Create("customer-1", "First request");
-        session.AppendUserTurn("First request");
-        session.AppendAssistantTurn("First answer", [], []);
-        session.AppendUserTurn("Second request");
-        session.AppendAssistantTurn("Second answer", [], []);
-        session.AppendUserTurn("Third request");
-        session.AppendAssistantTurn("Third answer", [], []);
-
-        var messages = RecommendationChatHistoryProvider.BuildChatMessages(session.Turns, maxHistoryMessages: 4);
+        var messages = RecommendationChatHistoryProvider.BuildChatMessages(
+            [
+                CreateAgentMessage(session.Id, 4, ChatRole.Assistant, "Second answer"),
+                CreateAgentMessage(session.Id, 3, ChatRole.User, "Second request"),
+                CreateAgentMessage(session.Id, 2, ChatRole.Assistant, "First answer"),
+                CreateAgentMessage(session.Id, 1, ChatRole.User, "First request"),
+            ]);
 
         messages.Select(message => (message.Role, message.Text)).ShouldBe(
         [
+            (ChatRole.User, "First request"),
+            (ChatRole.Assistant, "First answer"),
             (ChatRole.User, "Second request"),
             (ChatRole.Assistant, "Second answer"),
-            (ChatRole.User, "Third request"),
-            (ChatRole.Assistant, "Third answer"),
+        ]);
+    }
+
+    [Fact]
+    public void BuildChatMessages_ReplaysPersistedFollowUpTurnHistory()
+    {
+        var session = ChatSession.Create("customer-1", "Can I make a Dark 'n' Stormy?");
+        var messages = RecommendationChatHistoryProvider.BuildChatMessages(
+            [
+                CreateAgentMessage(session.Id, 1, ChatRole.User, "Can I make a Dark 'n' Stormy?"),
+                CreateAgentMessage(session.Id, 2, ChatRole.Assistant, "Yes, you can already make a Dark 'n' Stormy."),
+                CreateAgentMessage(
+                    session.Id,
+                    3,
+                    ChatRole.User,
+                    "Oh I see that I can already make Dark 'n' stormy from what I have. Any other drinks I can already make or at least close to that?"),
+            ]);
+
+        messages.Select(message => (message.Role, message.Text)).ShouldBe(
+        [
+            (ChatRole.User, "Can I make a Dark 'n' Stormy?"),
+            (ChatRole.Assistant, "Yes, you can already make a Dark 'n' Stormy."),
+            (ChatRole.User, "Oh I see that I can already make Dark 'n' stormy from what I have. Any other drinks I can already make or at least close to that?"),
+        ]);
+    }
+
+    [Fact]
+    public void BuildChatMessages_ReplaysPersistedHistoryWhenContentTypeMetadataIsNotFirst()
+    {
+        var session = ChatSession.Create("customer-1", "First request");
+        var assistantMessage = new ChatMessage(ChatRole.Assistant, "Yes, you can already make a Dark 'n' Stormy.")
+        {
+            MessageId = "assistant-message",
+        };
+        var rawMessageJson = SerializeWithContentTypeMetadataLast(assistantMessage);
+
+        var messages = RecommendationChatHistoryProvider.BuildChatMessages(
+            [
+                CreateAgentMessage(session.Id, 1, ChatRole.User, "First request"),
+                CreateAgentMessage(
+                    session.Id,
+                    null,
+                    2,
+                    ChatRole.Assistant,
+                    assistantMessage.Text,
+                    rawMessageJson,
+                    assistantMessage.MessageId),
+            ]);
+
+        messages.Select(message => (message.Role, message.Text)).ShouldBe(
+        [
+            (ChatRole.User, "First request"),
+            (ChatRole.Assistant, "Yes, you can already make a Dark 'n' Stormy."),
         ]);
     }
 
@@ -48,32 +100,37 @@ public sealed class RecommendationConversationServiceTests
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
-        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
-        var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var hostEnvironment = Substitute.For<IHostEnvironment>();
+        var dbContext = CreateDbContext();
+        var unitOfWork = new TestUnitOfWork(dbContext);
         var agent = new FakeAgent("Try the Gimlet.", BuildRunContext());
         var agentSession = new TestAgentSession();
 
-        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        agentFactory.Create(
+            Arg.Any<ChatSession>(),
+            Arg.Any<AgentRun>()).Returns(call =>
         {
-            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
-            return agent;
+            RecommendationRunContext? capturedRunContext = null;
+            agent.Attach(
+                (ChatSession)call[0]!,
+                (AgentRun)call[1]!,
+                value => capturedRunContext = value,
+                dbContext);
+            return new RecommendationNarratorAgentRuntime(agent, () => capturedRunContext);
         });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
-        toolInvocationRecorder.Drain().Returns([]);
 
-        var service = new RecommendationConversationService(
+        var service = CreateService(
             repository,
             agentFactory,
             sessionStore,
             executionTraceRecorder,
-            toolInvocationRecorder,
+            dbContext,
             unitOfWork,
             hostEnvironment,
-            Options.Create(new RecommendationObservabilityOptions()),
             NullLogger<RecommendationConversationService>.Instance);
 
         var result = await service.SendMessageAsync(
@@ -82,13 +139,15 @@ public sealed class RecommendationConversationServiceTests
             "Give me something citrusy",
             CancellationToken.None);
 
-        result.Turns.Count.ShouldBe(2);
-        result.Turns.First().Role.ShouldBe("user");
-        result.Turns.Last().Role.ShouldBe("assistant");
-        result.Turns.Last().RecommendationGroups.Count.ShouldBe(1);
+        result.SessionId.ShouldNotBe(Guid.Empty);
         repository.Received(1).Add(Arg.Is<ChatSession>(session =>
             session.AgentSessionStateJson == """{"stateBag":{"session":"saved"}}"""));
-        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        unitOfWork.SaveCount.ShouldBe(1);
+        dbContext.AgentMessages
+            .OrderBy(message => message.Sequence)
+            .Select(message => message.Role)
+            .ShouldBe(["user", "assistant"]);
+        dbContext.RecommendationTurnGroups.Count().ShouldBe(1);
 
         agent.SeenMessages.Select(message => (message.Role, message.Text)).ShouldBe(
         [
@@ -97,40 +156,43 @@ public sealed class RecommendationConversationServiceTests
     }
 
     [Fact]
-    public async Task SendMessageAsync_UsesScopedTurnState_ForRecommendationArtifacts()
+    public async Task SendMessageAsync_UsesAgentRuntimeRunContext_ForRecommendationArtifacts()
     {
         var repository = Substitute.For<IChatSessionRepository>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
-        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
-        var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var hostEnvironment = Substitute.For<IHostEnvironment>();
-        RecommendationAgentTurnState? capturedTurnState = null;
+        var dbContext = CreateDbContext();
+        var unitOfWork = new TestUnitOfWork(dbContext);
         var agent = new FakeAgent("Try the Gimlet.", BuildRunContext());
         var agentSession = new TestAgentSession();
 
-        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        agentFactory.Create(
+            Arg.Any<ChatSession>(),
+            Arg.Any<AgentRun>()).Returns(call =>
         {
-            capturedTurnState = (RecommendationAgentTurnState)call[1]!;
-            agent.Attach((ChatSession)call[0]!, capturedTurnState);
-            return agent;
+            RecommendationRunContext? capturedRunContext = null;
+            agent.Attach(
+                (ChatSession)call[0]!,
+                (AgentRun)call[1]!,
+                value => capturedRunContext = value,
+                dbContext);
+            return new RecommendationNarratorAgentRuntime(agent, () => capturedRunContext);
         });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
-        toolInvocationRecorder.Drain().Returns([]);
 
-        var service = new RecommendationConversationService(
+        var service = CreateService(
             repository,
             agentFactory,
             sessionStore,
             executionTraceRecorder,
-            toolInvocationRecorder,
+            dbContext,
             unitOfWork,
             hostEnvironment,
-            Options.Create(new RecommendationObservabilityOptions()),
             NullLogger<RecommendationConversationService>.Instance);
 
         var result = await service.SendMessageAsync(
@@ -139,53 +201,52 @@ public sealed class RecommendationConversationServiceTests
             "Give me something citrusy",
             CancellationToken.None);
 
-        result.Turns.Last().RecommendationGroups.Count.ShouldBe(1);
-        capturedTurnState.ShouldNotBeNull();
-        capturedTurnState.RunContext.ShouldNotBeNull();
-        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        result.SessionId.ShouldNotBe(Guid.Empty);
+        dbContext.RecommendationTurnGroups.Count().ShouldBe(1);
+        unitOfWork.SaveCount.ShouldBe(1);
     }
 
     [Fact]
-    public async Task SendMessageAsync_ReusesExistingSession_AndPersistsRecordedToolInvocations()
+    public async Task SendMessageAsync_ReusesExistingSession()
     {
         var repository = Substitute.For<IChatSessionRepository>();
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
-        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
-        var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var hostEnvironment = Substitute.For<IHostEnvironment>();
+        var dbContext = CreateDbContext();
+        var unitOfWork = new TestUnitOfWork(dbContext);
         var agent = new FakeAgent("No great matches right now.", BuildEmptyRunContext());
         var agentSession = new TestAgentSession();
         var existingSession = ChatSession.Create("customer-1", "First request");
-        existingSession.AppendUserTurn("First request");
-        existingSession.AppendAssistantTurn("First answer", [], []);
 
         repository.GetByCustomerSessionIdAsync("customer-1", existingSession.Id, Arg.Any<CancellationToken>())
             .Returns(existingSession);
-        agentFactory.Create(existingSession, Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        agentFactory.Create(
+            existingSession,
+            Arg.Any<AgentRun>()).Returns(call =>
         {
-            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
-            return agent;
+            RecommendationRunContext? capturedRunContext = null;
+            agent.Attach(
+                (ChatSession)call[0]!,
+                (AgentRun)call[1]!,
+                value => capturedRunContext = value,
+                dbContext);
+            return new RecommendationNarratorAgentRuntime(agent, () => capturedRunContext);
         });
         sessionStore.RestoreAsync(existingSession.AgentSessionStateJson, agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"restored"}}""");
-        toolInvocationRecorder.Drain()
-            .Returns([
-                new RecommendationToolInvocationDto("lookup_drink_recipe", "Looked up the full recipe details for Negroni.")
-            ]);
 
-        var service = new RecommendationConversationService(
+        var service = CreateService(
             repository,
             agentFactory,
             sessionStore,
             executionTraceRecorder,
-            toolInvocationRecorder,
+            dbContext,
             unitOfWork,
             hostEnvironment,
-            Options.Create(new RecommendationObservabilityOptions()),
             NullLogger<RecommendationConversationService>.Instance);
 
         var result = await service.SendMessageAsync(
@@ -197,7 +258,6 @@ public sealed class RecommendationConversationServiceTests
         result.SessionId.ShouldBe(existingSession.Id);
         repository.DidNotReceive().Add(Arg.Any<ChatSession>());
         existingSession.AgentSessionStateJson.ShouldBe("""{"stateBag":{"session":"restored"}}""");
-        result.Turns.Last().ToolInvocations.ShouldContain(invocation => invocation.ToolName == "lookup_drink_recipe");
         agent.SeenMessages.Select(message => (message.Role, message.Text)).ShouldBe(
         [
             (ChatRole.User, "Something else"),
@@ -211,19 +271,18 @@ public sealed class RecommendationConversationServiceTests
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
-        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var hostEnvironment = Substitute.For<IHostEnvironment>();
 
-        var service = new RecommendationConversationService(
+        var dbContext = CreateDbContext();
+        var service = CreateService(
             repository,
             agentFactory,
             sessionStore,
             executionTraceRecorder,
-            toolInvocationRecorder,
+            dbContext,
             unitOfWork,
             hostEnvironment,
-            Options.Create(new RecommendationObservabilityOptions()),
             NullLogger<RecommendationConversationService>.Instance);
 
         await Should.ThrowAsync<AlCopilot.Shared.Errors.ValidationException>(() =>
@@ -237,34 +296,39 @@ public sealed class RecommendationConversationServiceTests
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
-        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var hostEnvironment = Substitute.For<IHostEnvironment>();
+        var dbContext = CreateDbContext();
         var agent = new FakeAgent("Try the Gimlet.", BuildEmptyRunContext());
         var agentSession = new TestAgentSession();
 
-        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        agentFactory.Create(
+            Arg.Any<ChatSession>(),
+            Arg.Any<AgentRun>()).Returns(call =>
         {
-            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
-            return agent;
+            RecommendationRunContext? capturedRunContext = null;
+            agent.Attach(
+                (ChatSession)call[0]!,
+                (AgentRun)call[1]!,
+                value => capturedRunContext = value,
+                dbContext);
+            return new RecommendationNarratorAgentRuntime(agent, () => capturedRunContext);
         });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
-        toolInvocationRecorder.Drain().Returns([]);
         unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns<Task<int>>(_ => throw new DbUpdateConcurrencyException("conflict"));
 
-        var service = new RecommendationConversationService(
+        var service = CreateService(
             repository,
             agentFactory,
             sessionStore,
             executionTraceRecorder,
-            toolInvocationRecorder,
+            dbContext,
             unitOfWork,
             hostEnvironment,
-            Options.Create(new RecommendationObservabilityOptions()),
             NullLogger<RecommendationConversationService>.Instance);
 
         var ex = await Should.ThrowAsync<ConflictException>(() =>
@@ -280,37 +344,43 @@ public sealed class RecommendationConversationServiceTests
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
-        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
-        var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var hostEnvironment = Substitute.For<IHostEnvironment>();
+        var dbContext = CreateDbContext();
+        var unitOfWork = new TestUnitOfWork(dbContext);
         var agent = new FakeAgent("Try the Gimlet.", BuildEmptyRunContext());
         var agentSession = new TestAgentSession();
 
         hostEnvironment.EnvironmentName.Returns(Environments.Development);
-        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        agentFactory.Create(
+            Arg.Any<ChatSession>(),
+            Arg.Any<AgentRun>()).Returns(call =>
         {
-            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
-            return agent;
+            RecommendationRunContext? capturedRunContext = null;
+            agent.Attach(
+                (ChatSession)call[0]!,
+                (AgentRun)call[1]!,
+                value => capturedRunContext = value,
+                dbContext);
+            return new RecommendationNarratorAgentRuntime(agent, () => capturedRunContext);
         });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
-        toolInvocationRecorder.Drain().Returns([]);
 
-        var service = new RecommendationConversationService(
+        var service = CreateService(
             repository,
             agentFactory,
             sessionStore,
             executionTraceRecorder,
-            toolInvocationRecorder,
+            dbContext,
             unitOfWork,
             hostEnvironment,
-            Options.Create(new RecommendationObservabilityOptions
+            NullLogger<RecommendationConversationService>.Instance,
+            new RecommendationObservabilityOptions
             {
                 PersistExecutionTraceInDevelopment = true,
-            }),
-            NullLogger<RecommendationConversationService>.Instance);
+            });
 
         var result = await service.SendMessageAsync(
             "customer-1",
@@ -318,10 +388,10 @@ public sealed class RecommendationConversationServiceTests
             "Give me something citrusy",
             CancellationToken.None);
 
-        var assistantTurn = result.Turns.Last();
-        assistantTurn.Role.ShouldBe("assistant");
-        repository.Received(1).Add(Arg.Is<ChatSession>(session =>
-            session.Turns.Last().GetExecutionTraceSteps().Any(step => step.StepName == "agent.run")));
+        result.SessionId.ShouldNotBe(Guid.Empty);
+        dbContext.AgentMessageDiagnostics.Local
+            .Select(diagnostic => (diagnostic.Kind, diagnostic.Name))
+            .ShouldBe([("trace", "agent.run")]);
     }
 
     [Fact]
@@ -331,9 +401,9 @@ public sealed class RecommendationConversationServiceTests
         var agentFactory = Substitute.For<IRecommendationNarratorAgentFactory>();
         var sessionStore = Substitute.For<IRecommendationAgentSessionStore>();
         var executionTraceRecorder = new RecommendationExecutionTraceRecorder();
-        var toolInvocationRecorder = Substitute.For<IRecommendationToolInvocationRecorder>();
         var unitOfWork = Substitute.For<IRecommendationUnitOfWork>();
         var hostEnvironment = Substitute.For<IHostEnvironment>();
+        var dbContext = CreateDbContext();
         var agent = new FakeAgent(
             new AgentResponse(
                 [
@@ -348,30 +418,36 @@ public sealed class RecommendationConversationServiceTests
         var agentSession = new TestAgentSession();
 
         hostEnvironment.EnvironmentName.Returns(Environments.Development);
-        agentFactory.Create(Arg.Any<ChatSession>(), Arg.Any<RecommendationAgentTurnState>()).Returns(call =>
+        agentFactory.Create(
+            Arg.Any<ChatSession>(),
+            Arg.Any<AgentRun>()).Returns(call =>
         {
-            agent.Attach((ChatSession)call[0]!, (RecommendationAgentTurnState)call[1]!);
-            return agent;
+            RecommendationRunContext? capturedRunContext = null;
+            agent.Attach(
+                (ChatSession)call[0]!,
+                (AgentRun)call[1]!,
+                value => capturedRunContext = value,
+                dbContext);
+            return new RecommendationNarratorAgentRuntime(agent, () => capturedRunContext);
         });
         sessionStore.RestoreAsync(Arg.Any<string?>(), agent, Arg.Any<CancellationToken>())
             .Returns(agentSession);
         sessionStore.SerializeAsync(agentSession, agent, Arg.Any<CancellationToken>())
             .Returns("""{"stateBag":{"session":"saved"}}""");
-        toolInvocationRecorder.Drain().Returns([]);
 
-        var service = new RecommendationConversationService(
+        var service = CreateService(
             repository,
             agentFactory,
             sessionStore,
             executionTraceRecorder,
-            toolInvocationRecorder,
+            dbContext,
             unitOfWork,
             hostEnvironment,
-            Options.Create(new RecommendationObservabilityOptions
+            NullLogger<RecommendationConversationService>.Instance,
+            new RecommendationObservabilityOptions
             {
                 PersistExecutionTraceInDevelopment = true,
-            }),
-            NullLogger<RecommendationConversationService>.Instance);
+            });
 
         await service.SendMessageAsync(
             "customer-1",
@@ -379,11 +455,12 @@ public sealed class RecommendationConversationServiceTests
             "Give me something citrusy",
             CancellationToken.None);
 
-        repository.Received(1).Add(Arg.Is<ChatSession>(session =>
-            session.Turns.Last().GetExecutionTraceSteps().Any(step =>
-                step.StepName == "agent.run"
-                && step.Reasoning == "Compare the citrus-forward options before answering."
-                && step.Details.Count == 0)));
+        dbContext.AgentMessageDiagnostics.Local
+            .Select(diagnostic => (diagnostic.Kind, diagnostic.Name, diagnostic.Text))
+            .ShouldContain((
+                "reasoning",
+                "provider.reasoning",
+                "Compare the citrus-forward options before answering."));
     }
 
     private static RecommendationRunContext BuildRunContext()
@@ -439,12 +516,107 @@ public sealed class RecommendationConversationServiceTests
             []);
     }
 
+    private static RecommendationDbContext CreateDbContext()
+    {
+        var options = new DbContextOptionsBuilder<RecommendationDbContext>()
+            .UseInMemoryDatabase($"recommendation-conversation-service-{Guid.NewGuid():N}")
+            .Options;
+
+        return new RecommendationDbContext(options);
+    }
+
+    private static RecommendationConversationService CreateService(
+        IChatSessionRepository repository,
+        IRecommendationNarratorAgentFactory agentFactory,
+        IRecommendationAgentSessionStore sessionStore,
+        IRecommendationExecutionTraceRecorder executionTraceRecorder,
+        RecommendationDbContext dbContext,
+        IRecommendationUnitOfWork unitOfWork,
+        IHostEnvironment hostEnvironment,
+        Microsoft.Extensions.Logging.ILogger<RecommendationConversationService> logger,
+        RecommendationObservabilityOptions? observabilityOptions = null)
+    {
+        return new RecommendationConversationService(
+            repository,
+            agentFactory,
+            sessionStore,
+            new RecommendationAgentRunDiagnosticsRecorder(
+                executionTraceRecorder,
+                new AgentMessageDiagnosticRepository(dbContext),
+                hostEnvironment,
+                Options.Create(observabilityOptions ?? new RecommendationObservabilityOptions())),
+            new AgentRunRepository(dbContext),
+            new RecommendationTurnOutputRepository(dbContext),
+            unitOfWork,
+            logger);
+    }
+
+    private static AgentMessage CreateAgentMessage(Guid sessionId, int sequence, ChatRole role, string text) =>
+        CreateAgentMessage(sessionId, null, sequence, role, text);
+
+    private static AgentMessage CreateAgentMessage(
+        Guid sessionId,
+        Guid? agentRunId,
+        int sequence,
+        ChatRole role,
+        string text) =>
+        CreateAgentMessage(
+            sessionId,
+            agentRunId,
+            sequence,
+            role,
+            text,
+            null,
+            null);
+
+    private static AgentMessage CreateAgentMessage(
+        Guid sessionId,
+        Guid? agentRunId,
+        int sequence,
+        ChatRole role,
+        string text,
+        string? rawMessageJson,
+        string? nativeMessageId)
+    {
+        var chatMessage = new ChatMessage(role, text)
+        {
+            MessageId = nativeMessageId ?? Guid.NewGuid().ToString("N"),
+        };
+
+        return AgentMessage.Create(
+            sessionId,
+            agentRunId,
+            sequence,
+            chatMessage.MessageId,
+            role == ChatRole.Assistant ? "assistant" : "user",
+            "text",
+            "maf",
+            text,
+            rawMessageJson ?? System.Text.Json.JsonSerializer.Serialize(chatMessage, AIJsonUtilities.DefaultOptions));
+    }
+
+    private static string SerializeWithContentTypeMetadataLast(ChatMessage message)
+    {
+        var json = System.Text.Json.Nodes.JsonNode
+            .Parse(System.Text.Json.JsonSerializer.Serialize(message, AIJsonUtilities.DefaultOptions))!
+            .AsObject();
+        var content = json["contents"]!.AsArray()[0]!.AsObject();
+        var typeMetadata = content["$type"]!.DeepClone();
+
+        content.Remove("$type");
+        content["$type"] = typeMetadata;
+
+        return json.ToJsonString(AIJsonUtilities.DefaultOptions);
+    }
+
     private sealed class FakeAgent : AIAgent
     {
         private readonly AgentResponse response;
         private readonly RecommendationRunContext? runContext;
         private ChatSession? chatSession;
-        private RecommendationAgentTurnState? turnState;
+        private AgentRun? agentRun;
+        private Action<RecommendationRunContext?>? captureRunContext;
+        private RecommendationDbContext? dbContext;
 
         public FakeAgent(string assistantText)
             : this(new AgentResponse([new ChatMessage(ChatRole.Assistant, assistantText)]))
@@ -464,10 +636,16 @@ public sealed class RecommendationConversationServiceTests
 
         public List<ChatMessage> SeenMessages { get; } = [];
 
-        public void Attach(ChatSession session, RecommendationAgentTurnState state)
+        public void Attach(
+            ChatSession session,
+            AgentRun run,
+            Action<RecommendationRunContext?> captureContext,
+            RecommendationDbContext context)
         {
             chatSession = session;
-            turnState = state;
+            agentRun = run;
+            captureRunContext = captureContext;
+            dbContext = context;
         }
 
         protected override ValueTask<AgentSession> CreateSessionCoreAsync(CancellationToken cancellationToken = default)
@@ -493,7 +671,7 @@ public sealed class RecommendationConversationServiceTests
         {
             SeenMessages.Clear();
             SeenMessages.AddRange(messages);
-            if (chatSession is not null)
+            if (chatSession is not null && agentRun is not null && dbContext is not null)
             {
                 var userMessage = messages
                     .Where(message => message.Role == ChatRole.User)
@@ -505,15 +683,29 @@ public sealed class RecommendationConversationServiceTests
                     .LastOrDefault(text => !string.IsNullOrWhiteSpace(text));
                 if (!string.IsNullOrWhiteSpace(userMessage) && !string.IsNullOrWhiteSpace(assistantMessage))
                 {
-                    chatSession.AppendUserTurn(userMessage);
-                    chatSession.AppendAssistantTurn(assistantMessage, [], []);
+                    var nextSequence = dbContext.AgentMessages.Local
+                        .Where(message => message.ChatSessionId == chatSession.Id)
+                        .Select(message => message.Sequence)
+                        .DefaultIfEmpty(0)
+                        .Max() + 1;
+                    var userAgentMessage = CreateAgentMessage(
+                        chatSession.Id,
+                        agentRun.Id,
+                        nextSequence,
+                        ChatRole.User,
+                        userMessage);
+                    var assistantAgentMessage = CreateAgentMessage(
+                        chatSession.Id,
+                        agentRun.Id,
+                        nextSequence + 1,
+                        ChatRole.Assistant,
+                        assistantMessage);
+                    dbContext.AgentMessages.Add(userAgentMessage);
+                    dbContext.AgentMessages.Add(assistantAgentMessage);
                 }
             }
 
-            if (turnState is not null)
-            {
-                turnState.RunContext = runContext;
-            }
+            captureRunContext?.Invoke(runContext);
 
             return Task.FromResult(response);
         }
@@ -534,6 +726,17 @@ public sealed class RecommendationConversationServiceTests
         public TestAgentSession()
             : base(new AgentSessionStateBag())
         {
+        }
+    }
+
+    private sealed class TestUnitOfWork(RecommendationDbContext dbContext) : IRecommendationUnitOfWork
+    {
+        public int SaveCount { get; private set; }
+
+        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            SaveCount++;
+            return await dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 }

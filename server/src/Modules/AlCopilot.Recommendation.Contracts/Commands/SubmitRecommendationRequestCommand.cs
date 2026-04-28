@@ -6,13 +6,13 @@ namespace AlCopilot.Recommendation.Contracts.Commands;
 
 public sealed record SubmitRecommendationRequestCommand(
     Guid? SessionId,
-    string Message) : IRequest<RecommendationSessionDto>;
+    string Message) : IRequest<SubmitRecommendationMessageResultDto>;
 
 public sealed record SubmitRecommendationTurnFeedbackCommand(
     Guid SessionId,
     Guid TurnId,
     string Rating,
-    string? Comment) : IRequest<RecommendationSessionDto>;
+    string? Comment) : IRequest;
 
 public sealed record ReplaceRecommendationSemanticCatalogCommand(
     IReadOnlyCollection<DrinkDetailDto> Drinks) : IRequest<RecommendationSemanticCatalogIndexResultDto>;

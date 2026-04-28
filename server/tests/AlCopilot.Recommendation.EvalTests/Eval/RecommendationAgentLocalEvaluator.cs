@@ -1,4 +1,3 @@
-using AlCopilot.Recommendation.Contracts.DTOs;
 using Microsoft.Agents.AI;
 
 namespace AlCopilot.Recommendation.EvalTests.Eval;
@@ -7,7 +6,7 @@ internal static class RecommendationAgentLocalEvaluator
 {
     public static IAgentEvaluator Create(
         RecommendationAgentEvalCase evalCase,
-        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
+        IReadOnlyCollection<string> toolNames)
     {
         return Create(
             new RecommendationAgentEvalExpectations(
@@ -18,12 +17,12 @@ internal static class RecommendationAgentLocalEvaluator
                 evalCase.MaxToolCallCount,
                 evalCase.ExpectedRecommendedDrinkNames,
                 evalCase.ForbiddenRecommendedDrinkNames),
-            toolInvocations);
+            toolNames);
     }
 
     public static IAgentEvaluator Create(
         RecommendationAgentEvalSessionTurn turn,
-        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
+        IReadOnlyCollection<string> toolNames)
     {
         return Create(
             new RecommendationAgentEvalExpectations(
@@ -34,23 +33,23 @@ internal static class RecommendationAgentLocalEvaluator
                 turn.MaxToolCallCount,
                 turn.ExpectedRecommendedDrinkNames,
                 turn.ForbiddenRecommendedDrinkNames),
-            toolInvocations);
+            toolNames);
     }
 
     private static IAgentEvaluator Create(
         RecommendationAgentEvalExpectations expectations,
-        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
+        IReadOnlyCollection<string> toolNames)
     {
         return new LocalEvaluator(
             EvalChecks.NonEmpty(),
             CreateExpectedResponseFragmentsCheck(expectations),
             CreateForbiddenResponseFragmentsCheck(expectations),
-            CreateExpectedToolNamesCheck(expectations, toolInvocations),
-            CreateForbiddenToolNamesCheck(expectations, toolInvocations),
-            CreateMaxToolCallCountCheck(expectations, toolInvocations),
+            CreateExpectedToolNamesCheck(expectations, toolNames),
+            CreateForbiddenToolNamesCheck(expectations, toolNames),
+            CreateMaxToolCallCountCheck(expectations, toolNames),
             CreateExpectedRecommendedDrinkNamesCheck(expectations),
             CreateForbiddenRecommendedDrinkNamesCheck(expectations),
-            CreateNoRepeatedToolCallsCheck(toolInvocations));
+            CreateNoRepeatedToolCallsCheck(toolNames));
     }
 
     private static EvalCheck CreateExpectedResponseFragmentsCheck(RecommendationAgentEvalExpectations expectations)
@@ -93,13 +92,12 @@ internal static class RecommendationAgentLocalEvaluator
 
     private static EvalCheck CreateExpectedToolNamesCheck(
         RecommendationAgentEvalExpectations expectations,
-        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
+        IReadOnlyCollection<string> toolNames)
     {
         return FunctionEvaluator.Create(
             "expected_tool_names",
             _ =>
             {
-                var toolNames = toolInvocations.Select(invocation => invocation.ToolName).ToList();
                 var missing = expectations.ExpectedToolNames
                     .Where(expected => !toolNames.Any(toolName =>
                         string.Equals(toolName, expected, StringComparison.OrdinalIgnoreCase)))
@@ -116,13 +114,12 @@ internal static class RecommendationAgentLocalEvaluator
 
     private static EvalCheck CreateForbiddenToolNamesCheck(
         RecommendationAgentEvalExpectations expectations,
-        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
+        IReadOnlyCollection<string> toolNames)
     {
         return FunctionEvaluator.Create(
             "forbidden_tool_names",
             _ =>
             {
-                var toolNames = toolInvocations.Select(invocation => invocation.ToolName).ToList();
                 var present = expectations.ForbiddenToolNames
                     .Where(forbidden => toolNames.Any(toolName =>
                         string.Equals(toolName, forbidden, StringComparison.OrdinalIgnoreCase)))
@@ -139,13 +136,13 @@ internal static class RecommendationAgentLocalEvaluator
 
     private static EvalCheck CreateMaxToolCallCountCheck(
         RecommendationAgentEvalExpectations expectations,
-        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
+        IReadOnlyCollection<string> toolNames)
     {
         return FunctionEvaluator.Create(
             "max_tool_call_count",
             _ =>
             {
-                var toolCallCount = toolInvocations.Count;
+                var toolCallCount = toolNames.Count;
                 return new EvalCheckResult(
                     toolCallCount <= expectations.MaxToolCallCount,
                     toolCallCount <= expectations.MaxToolCallCount
@@ -156,14 +153,13 @@ internal static class RecommendationAgentLocalEvaluator
     }
 
     private static EvalCheck CreateNoRepeatedToolCallsCheck(
-        IReadOnlyCollection<RecommendationToolInvocationDto> toolInvocations)
+        IReadOnlyCollection<string> toolNames)
     {
         return FunctionEvaluator.Create(
             "no_repeated_tool_calls",
             _ =>
             {
-                var repeated = toolInvocations
-                    .Select(invocation => invocation.ToolName)
+                var repeated = toolNames
                     .GroupBy(toolName => toolName, StringComparer.OrdinalIgnoreCase)
                     .Where(group => group.Count() > 1)
                     .Select(group => group.Key)
@@ -221,15 +217,43 @@ internal static class RecommendationAgentLocalEvaluator
         var escapedDrinkName = System.Text.RegularExpressions.Regex.Escape(drinkName);
         var patterns = new[]
         {
-            $@"\*\*{escapedDrinkName}\*\*",
             $@"(?m)^\s*[-*]\s+{escapedDrinkName}\b",
             $@"(?m)^\s*\d+[\.)]\s+{escapedDrinkName}\b",
-            $@"(?im)\brecommend(?:ation)?\s+is\s+(?:the\s+)?{escapedDrinkName}\b",
-            $@"(?im)\btry\s+(?:the\s+)?{escapedDrinkName}\b",
+            $@"(?im)\brecommend(?:ation)?\s+is\s+(?:an?\s+|the\s+)?(?:\*\*)?{escapedDrinkName}\b(?:\*\*)?",
+            $@"(?im)\brecommend(?:ed)?\s+(?:an?\s+|the\s+)?(?:\*\*)?{escapedDrinkName}\b(?:\*\*)?",
+            $@"(?im)\btry\s+(?:an?\s+|the\s+)?(?:\*\*)?{escapedDrinkName}\b(?:\*\*)?",
+            $@"(?im)\boption\b.{{0,80}}\bis\s+(?:an?\s+|the\s+)?(?:\*\*)?{escapedDrinkName}\b(?:\*\*)?",
+            $@"(?im)\b(?:an?\s+|the\s+)?\*\*{escapedDrinkName}\*\*\s+(?:is|remains|would be|works|fits)\b",
         };
 
         return patterns.Any(pattern =>
-            System.Text.RegularExpressions.Regex.IsMatch(response, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+            System.Text.RegularExpressions.Regex.Matches(
+                    response,
+                    pattern,
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                .Any(match => !IsNegatedRecommendationMention(response, match.Index, match.Length)));
+    }
+
+    private static bool IsNegatedRecommendationMention(string response, int index, int length)
+    {
+        var start = Math.Max(0, index - 80);
+        var end = Math.Min(response.Length, index + length + 120);
+        var context = response[start..end];
+        var negationMarkers = new[]
+        {
+            "off the table",
+            "contains campari",
+            "does contain campari",
+            "do not recommend",
+            "don't recommend",
+            "not recommend",
+            "can't recommend",
+            "cannot recommend",
+            "won't recommend",
+            "so i'll stick with",
+        };
+
+        return negationMarkers.Any(marker => context.Contains(marker, StringComparison.OrdinalIgnoreCase));
     }
 
     private sealed record RecommendationAgentEvalExpectations(

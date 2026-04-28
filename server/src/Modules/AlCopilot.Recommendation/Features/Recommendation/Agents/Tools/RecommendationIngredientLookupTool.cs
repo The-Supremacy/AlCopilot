@@ -10,13 +10,12 @@ namespace AlCopilot.Recommendation.Features.Recommendation.Agents;
 internal sealed class RecommendationIngredientLookupTool(
     IMediator mediator,
     IRecommendationCatalogFuzzyLookupService fuzzyLookupService,
-    IRecommendationToolInvocationRecorder toolInvocationRecorder,
     IRecommendationExecutionTraceRecorder executionTraceRecorder)
 {
-    [Description("Find catalog drinks that contain a requested ingredient.")]
+    [Description("Find catalog drinks that contain a requested ingredient. Use for 'which drinks use X', 'drinks with X', or ingredient-led recommendation requests.")]
     public async Task<RecommendationIngredientLookupResult> LookupDrinksByIngredientAsync(
-        [Description("The ingredient name to search for, such as Tequila or Lime Juice.")] string ingredientName,
-        [Description("Maximum number of drinks to return. Keep this small and use 5 unless the user explicitly asks for more.")] int maxResults = 5,
+        [Description("Ingredient name to search for, such as Ginger Beer, Tequila, Lime Juice, Rum, or Gin. Do not pass drink names here.")] string ingredientName,
+        [Description("Maximum number of matching drinks to return. Use 5 unless the user asks for a different count.")] int maxResults = 5,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(ingredientName))
@@ -51,9 +50,6 @@ internal sealed class RecommendationIngredientLookupTool(
                 []);
         }
 
-        toolInvocationRecorder.Record(
-            "lookup_drinks_by_ingredient",
-            $"Looked up drinks containing ingredient '{normalizedIngredientName}'.");
         executionTraceRecorder.Record(
             BuildTraceStep("ok", $"Found {matches.Count} drink(s) containing an ingredient matching '{normalizedIngredientName}'.", normalizedIngredientName, maxResults, matches.Count));
 

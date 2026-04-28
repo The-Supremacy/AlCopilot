@@ -44,8 +44,10 @@ The system is a single deployable unit with internal module boundaries, one `DbC
 - [ADR 0011: Customer Portal Authentication With Keycloak And Host Cookies](adr/0011-customer-portal-authentication-with-keycloak-and-host-cookies.md) — accepted customer authentication and customer-session separation direction
 - [ADR 0012: Customer Profile And Recommendation Modules With Deterministic Candidate Building](adr/0012-customer-profile-and-recommendation-modules-with-deterministic-candidate-building.md) — accepted customer module split and recommendation orchestration direction
 - [ADR 0014: Feature-Oriented Backend Module Structure](adr/0014-feature-oriented-backend-module-structure.md) — accepted backend feature layout and abstraction-placement conventions
-- [ADR 0015: Recommendation Workflows With Agent Framework](adr/0015-recommendation-workflows-with-agent-framework.md) — accepted recommendation workflow orchestration and local runtime direction
+- [ADR 0015: Recommendation Workflows With Agent Framework](adr/0015-recommendation-workflows-with-agent-framework.md) — accepted Agent Framework adoption and local runtime direction
 - [ADR 0016: Recommendation Semantic Retrieval With Qdrant](adr/0016-recommendation-semantic-retrieval-with-qdrant.md) — accepted vector-store and curated semantic-retrieval projection direction
+- [ADR 0018: Recommendation Native Agent History And Business Turns](adr/0018-recommendation-native-agent-history-and-business-turns.md) — accepted split between Agent Framework-native model history and customer-visible business turns
+- [ADR 0019: Recommendation Single Agent Runtime With Context Provider](adr/0019-recommendation-single-agent-runtime-with-context-provider.md) — accepted current single-agent runtime and Workflow deferral direction
 
 ---
 

@@ -55,7 +55,6 @@ internal sealed class RecommendationChatClientStrategyFactory(
 
         return new RecommendationChatClientStrategy(
             new OllamaApiClient(endpoint, ollama.ModelId),
-            chatOptions,
-            ollama.GetEffectiveMaxHistoryMessages());
+            chatOptions);
     }
 }
